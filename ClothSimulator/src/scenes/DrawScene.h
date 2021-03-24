@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 #include <vulkan/vulkan.h>
 
 /**
@@ -20,5 +20,11 @@ private:
 	void CreateInstance();
 	void CheckAvaliableExtensions() const;
 	bool CheckValidationLayerSupport() const;
+	void SetupDebugMessenger();
+	void PickPhysicalDevice();
+	void CreateLogicalDevice();
 	VkInstance mInstance;
+	VkPhysicalDevice mPhysicalDevice;
+	VkDevice mDevice;		// logical device
+	VkQueue mGraphicsQueue; // device queue (only one)
 };
