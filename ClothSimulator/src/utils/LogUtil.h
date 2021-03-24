@@ -27,7 +27,7 @@ private:
 };
 
 #if defined(_WIN32)
-#define SIM_UNREACHABLE exit(1);
+#define SIM_UNREACHABLE __assume(0);
 #else
 #define SIM_UNREACHABLE __builtin_unreachable();
 #endif

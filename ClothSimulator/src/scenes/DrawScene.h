@@ -23,8 +23,13 @@ private:
 	void SetupDebugMessenger();
 	void PickPhysicalDevice();
 	void CreateLogicalDevice();
+	void CreateSurface();
+	void CreateSwapChain();
 	VkInstance mInstance;
 	VkPhysicalDevice mPhysicalDevice;
 	VkDevice mDevice;		// logical device
+	VkSurfaceKHR mSurface;	// window surface
 	VkQueue mGraphicsQueue; // device queue (only one)
+	VkQueue mPresentQueue;
+	VkSwapchainKHR mSwapChain;
 };
