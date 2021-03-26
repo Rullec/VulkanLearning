@@ -12,6 +12,7 @@ add_definitions(-std=c++17)
 
 add_subdirectory(./src/utils)
 add_subdirectory(./src/scenes)
+add_subdirectory(./src/shaders)
 
 set(my_libs ${scenes_lib} ${utils_lib})
 set(libs ${Vulkan_LIBRARIES} ${GLFW3_LIBRARY} ${my_libs})

@@ -31,15 +31,16 @@ int main()
     InitGlfw();
     std::shared_ptr<cDrawScene> scene = std::make_shared<cDrawScene>();
     scene->Init();
-    double cur_time = glfwGetTime();
-    while (!glfwWindowShouldClose(window))
-    {
-        glfwPollEvents();
-        double now_time = glfwGetTime();
-        scene->Update(now_time - cur_time);
-        //std::cout << "cost " << now_time - cur_time << std::endl;
-        cur_time = now_time;
-    }
+    scene->MainLoop();
+    // double cur_time = glfwGetTime();
+    // while (!glfwWindowShouldClose(window))
+    // {
+    //     glfwPollEvents();
+    //     double now_time = glfwGetTime();
+    //     scene->Update(now_time - cur_time);
+    //     //std::cout << "cost " << now_time - cur_time << std::endl;
+    //     cur_time = now_time;
+    // }
 
     glfwDestroyWindow(window);
 

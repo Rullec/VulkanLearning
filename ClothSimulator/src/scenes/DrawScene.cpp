@@ -1,10 +1,10 @@
 #include "DrawScene.h"
-#include <iostream>
-#include <set>
-#include "vulkan/vulkan.h"
-#include "utils/MathUtil.h"
 #include "utils/LogUtil.h"
+#include "utils/MathUtil.h"
+#include "vulkan/vulkan.h"
+#include <iostream>
 #include <optional>
+#include <set>
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
@@ -18,10 +18,9 @@
 #ifdef __linux__
 #define VK_USE_PLATFORM_XCB_KHR
 #include <GLFW/glfw3.h>
-// #define GLFW_EXPOSE_NATIVE_
+#define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 #endif
-
 
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
@@ -35,13 +34,17 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-cDrawScene::cDrawScene()
-{
-    mInstance = nullptr;
-}
+cDrawScene::cDrawScene() { mInstance = nullptr; }
 
-cDrawScene::~cDrawScene()
+cDrawScene::~cDrawScene() { CleanVulkan(); }
+
+void cDrawScene::CleanVulkan()
 {
+    vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
+    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
+    for (auto &x : mSwapChainFramebuffers)
+        vkDestroyFramebuffer(mDevice, x, nullptr);
     vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
@@ -70,16 +73,12 @@ void cDrawScene::Init()
 /**
  * \brief           Update the render
 */
-void cDrawScene::Update(double dt)
-{
-}
+void cDrawScene::Update(double dt) {}
 
 /**
  * \brief           Reset the whole scene
 */
-void cDrawScene::Reset()
-{
-}
+void cDrawScene::Reset() {}
 
 /**
  * \brief           Do initialization for vulkan
@@ -91,17 +90,92 @@ void cDrawScene::InitVulkan()
     CreateSurface();
     PickPhysicalDevice();
     CreateLogicalDevice();
+
+    // 1. all changed
     CreateSwapChain();
     CreateImageViews();
     CreateRenderPass();
     CreateGraphicsPipeline();
+    CreateFrameBuffers();
+    CreateCommandPool();
+    CreateCommandBuffers();
+    CreateSemaphores();
+}
+
+/**
+ * \brief           Mainloop for vulkan rendering
+*/
+void cDrawScene::MainLoop()
+{
+    while (glfwWindowShouldClose(window) == false)
+    {
+        glfwPollEvents();
+        DrawFrame();
+    }
+}
+/**
+ * \brief           draw a single frame
+        1. get an image from the swap chain
+        2. executate the command buffer with that image as attachment in the framebuffer
+        3. return the image to the swap chain for presentation
+    These 3 actions, ideally should be executed asynchronously. but the function calls will return before the operations are actually finished.
+    So the order of execution is undefined. we need "fences" ans "semaphores" to synchronizing swap chain
+
+*/
+void cDrawScene::DrawFrame()
+{
+    // 1. acquire an image from the swap chain
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX,
+                          mImageAvailableSemaphore, VK_NULL_HANDLE,
+                          &imageIndex);
+
+    // 2. submitting the command buffer
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    VkSemaphore waitSemaphores[] = {mImageAvailableSemaphore};
+    VkPipelineStageFlags waitStages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}; //
+    submit_info.waitSemaphoreCount =
+        1; // how much semaphres does this submission need to wait?
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = waitSemaphores;
+    submit_info.pWaitDstStageMask = waitStages;
+
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &mCommandBuffers[imageIndex];
+
+    // when the commands are finished, which semaphore do we need to send?
+    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphore};
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = signalSemaphores;
+    if (vkQueueSubmit(mGraphicsQueue, 1, &submit_info, VK_NULL_HANDLE) !=
+        VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to submit draw command buffer!");
+        exit(0);
+    }
+
+    // // 3. render finish and present the image to the screen
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    VkSwapchainKHR swapChains[] = {mSwapChain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    vkQueuePresentKHR(mPresentQueue, &presentInfo);
 }
 
 // which queues do we want to support?
 struct QueueFamilyIndices
 {
-    std::optional<uint32_t> graphicsFamily; // here we use optional, because any unit value would be valid and we need to distinguish from non-value case
-    std::optional<uint32_t> presentFamily;  // the ability to show the image to the screen
+    std::optional<uint32_t>
+        graphicsFamily; // here we use optional, because any unit value would be valid and we need to distinguish from non-value case
+    std::optional<uint32_t>
+        presentFamily; // the ability to show the image to the screen
     /**
      * \brief           Judge: can we use this queue family?
     */
@@ -116,16 +190,19 @@ struct QueueFamilyIndices
  *      If an queue family is supported, it has an value
  *      otherwise, its value is <optional>::novalue
 */
-QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
+                                     VkSurfaceKHR surface)
 {
     QueueFamilyIndices indices;
     uint32_t num_of_families = 0;
 
     // 1. get all queue faimilies on this physical device
     vkGetPhysicalDeviceQueueFamilyProperties(device, &num_of_families, nullptr);
-    std::vector<VkQueueFamilyProperties> families(num_of_families); // storage the properties of each queue on this physical device. such as maximium number of queues, types of queues...
+    std::vector<VkQueueFamilyProperties> families(
+        num_of_families); // storage the properties of each queue on this physical device. such as maximium number of queues, types of queues...
 
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &num_of_families, families.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &num_of_families,
+                                             families.data());
 
     // 2. find a queue to support graphics
     for (int i = 0; i < families.size(); i++)
@@ -138,7 +215,8 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
         }
 
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface,
+                                             &presentSupport);
         //vkGetPhysicalDeviceSurfaceSupportKHR(device, i, mSurface, &presentSupport);
         if (presentSupport == true)
         {
@@ -156,11 +234,14 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
 bool checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
     uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                         nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                         availableExtensions.data());
 
-    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(),
+                                             deviceExtensions.end());
     for (const auto &x : availableExtensions)
     {
         requiredExtensions.erase(x.extensionName);
@@ -183,25 +264,31 @@ struct SwapChainSupportDetails
 /**
  * \brief           check whehter swap chain is supported and how it's supported
 */
-SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
+SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,
+                                              VkSurfaceKHR surface)
 {
     SwapChainSupportDetails details;
 
     // 1. capabilities
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface,
+                                              &details.capabilities);
 
     // 2. formats
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,
+                                         nullptr);
     details.formats.resize(formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,
+                                         details.formats.data());
 
     // 3. presentModes
     uint32_t modesCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &modesCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &modesCount,
+                                              nullptr);
 
     details.presentModes.resize(modesCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &modesCount, details.presentModes.data());
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &modesCount,
+                                              details.presentModes.data());
 
     return details;
 }
@@ -209,11 +296,13 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurface
 /**
  * \brief       select the best surface format(color channels and types)
 */
-VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> availableFormats)
+VkSurfaceFormatKHR
+chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> availableFormats)
 {
     for (auto &x : availableFormats)
     {
-        if (x.format == VK_FORMAT_B8G8R8A8_SRGB && x.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        if (x.format == VK_FORMAT_B8G8R8A8_SRGB &&
+            x.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
             return x;
     }
     return availableFormats[0];
@@ -224,7 +313,8 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>
  * 
  *          the author thought the "mailbox" which can support the triple buffering is the best option
 */
-VkPresentModeKHR chooseSwapPresentKHR(const std::vector<VkPresentModeKHR> &modes)
+VkPresentModeKHR
+chooseSwapPresentKHR(const std::vector<VkPresentModeKHR> &modes)
 {
     for (const auto &x : modes)
     {
@@ -251,12 +341,15 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities)
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
 
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)};
+        VkExtent2D actualExtent = {static_cast<uint32_t>(width),
+                                   static_cast<uint32_t>(height)};
 
-        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+        actualExtent.width = std::max(
+            capabilities.minImageExtent.width,
+            std::min(capabilities.maxImageExtent.width, actualExtent.width));
+        actualExtent.height = std::max(
+            capabilities.minImageExtent.height,
+            std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
         return actualExtent;
     }
@@ -287,7 +380,8 @@ bool IsDeviceSuitable(VkPhysicalDevice &dev, VkSurfaceKHR surface)
     if (extensionsSupported)
     {
         auto details = querySwapChainSupport(dev, surface);
-        swapChainAdequate = details.formats.empty() == false && (details.presentModes.empty()) == false;
+        swapChainAdequate = details.formats.empty() == false &&
+                            (details.presentModes.empty()) == false;
     }
     return indices.IsComplete() && extensionsSupported && swapChainAdequate;
 }
@@ -323,13 +417,16 @@ int RateDeviceSutability(VkPhysicalDevice &dev, VkSurfaceKHR surface)
 void cDrawScene::CreateInstance()
 {
     // 1. check validation layer enable & supported?
-    if (enableValidationLayers == true && CheckValidationLayerSupport() == false)
+    if (enableValidationLayers == true &&
+        CheckValidationLayerSupport() == false)
     {
         SIM_ERROR("Validation Layers is not supported");
     }
     // 2. application info
-    VkApplicationInfo appInfo{};                        // it contains a pNext member for further extension
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; // type should be set manually
+    VkApplicationInfo
+        appInfo{}; // it contains a pNext member for further extension
+    appInfo.sType =
+        VK_STRUCTURE_TYPE_APPLICATION_INFO; // type should be set manually
     appInfo.pApplicationName = "ClothSim";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "No Engine";
@@ -370,7 +467,8 @@ void cDrawScene::CreateInstance()
     }
 
     // given the instance info, create the instance
-    SIM_ASSERT(vkCreateInstance(&createInfo, nullptr, &mInstance) == VK_SUCCESS);
+    SIM_ASSERT(vkCreateInstance(&createInfo, nullptr, &mInstance) ==
+               VK_SUCCESS);
     SIM_INFO("CreateInstance succ");
     //CheckAvaliableExtensions();
     // exit(0);
@@ -430,9 +528,7 @@ bool cDrawScene::CheckValidationLayerSupport() const
 /**
  * \brief           set the messege callback for validation layer (not impl yet)
 */
-void cDrawScene::SetupDebugMessenger()
-{
-}
+void cDrawScene::SetupDebugMessenger() {}
 
 /**
  * \brief           After the initializetion of device, create and select a physical device
@@ -487,8 +583,8 @@ void cDrawScene::CreateLogicalDevice()
 
     // 2. set the queue family info into the physical device
     std::vector<VkDeviceQueueCreateInfo> queueCreateinfos;
-    std::set<uint32_t> uniqueQueueFamilies = {
-        indices.graphicsFamily.value(), indices.presentFamily.value()};
+    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(),
+                                              indices.presentFamily.value()};
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies)
@@ -533,13 +629,15 @@ void cDrawScene::CreateLogicalDevice()
         }
     }
 
-    if (vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mDevice) != VK_SUCCESS)
+    if (vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mDevice) !=
+        VK_SUCCESS)
     {
         SIM_ERROR("create logic device failed");
     }
 
     // get the queue handles: graphics queue and presentQueue
-    vkGetDeviceQueue(mDevice, indices.graphicsFamily.value(), 0, &mGraphicsQueue);
+    vkGetDeviceQueue(mDevice, indices.graphicsFamily.value(), 0,
+                     &mGraphicsQueue);
     vkGetDeviceQueue(mDevice, indices.presentFamily.value(), 0, &mPresentQueue);
 }
 
@@ -549,7 +647,8 @@ void cDrawScene::CreateLogicalDevice()
 
 void cDrawScene::CreateSurface()
 {
-    if (VK_SUCCESS != glfwCreateWindowSurface(mInstance, window, nullptr, &mSurface))
+    if (VK_SUCCESS !=
+        glfwCreateWindowSurface(mInstance, window, nullptr, &mSurface))
     {
         SIM_ERROR("glfw create surface for vulkan failed");
     }
@@ -583,17 +682,19 @@ void cDrawScene::CreateSwapChain()
     create_info.imageFormat = format.format;
     create_info.imageColorSpace = format.colorSpace;
     create_info.imageExtent = extent;
-    create_info.imageArrayLayers = 1;                             // always 1
-    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // we use swap chain image for directly rendering, namely color attachment
+    create_info.imageArrayLayers = 1; // always 1
+    create_info.imageUsage =
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // we use swap chain image for directly rendering, namely color attachment
     create_info.presentMode = mode;
 
     /*
         6.1 image sharing mode
         exclusive: ownership changed when a image is visited by multiple queue
-        concurrent: 
+        concurrent:
     */
     QueueFamilyIndices indices = findQueueFamilies(mPhysicalDevice, mSurface);
-    uint32_t queueFamilyIndices[] = {indices.presentFamily.value(), indices.graphicsFamily.value()};
+    uint32_t queueFamilyIndices[] = {indices.presentFamily.value(),
+                                     indices.graphicsFamily.value()};
     if (indices.graphicsFamily == indices.presentFamily)
     {
         // the present, and graphics queue are the same, we can use the exclusive mode because the ownership can never be changed
@@ -612,21 +713,26 @@ void cDrawScene::CreateSwapChain()
     // 6.2 set the pretrasform (90 degree clockwise rotation,etc)
     create_info.preTransform = details.capabilities.currentTransform;
 
-    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // blend the color with other window
-    create_info.clipped = VK_TRUE;                                  // window, color obsecured related...
+    create_info.compositeAlpha =
+        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // blend the color with other window
+    create_info.clipped = VK_TRUE;         // window, color obsecured related...
 
-    create_info.oldSwapchain = VK_NULL_HANDLE; // only one swapchain, so set it to false
+    create_info.oldSwapchain =
+        VK_NULL_HANDLE; // only one swapchain, so set it to false
 
     // 6.3 final create
-    if (VK_SUCCESS != vkCreateSwapchainKHR(mDevice, &create_info, nullptr, &mSwapChain))
+    if (VK_SUCCESS !=
+        vkCreateSwapchainKHR(mDevice, &create_info, nullptr, &mSwapChain))
     {
         SIM_ERROR("create swap chain failed");
     }
     //std::cout << "succ to create swap chain\n";
     uint32_t swapchain_image_count = 0;
-    vkGetSwapchainImagesKHR(mDevice, mSwapChain, &swapchain_image_count, nullptr);
+    vkGetSwapchainImagesKHR(mDevice, mSwapChain, &swapchain_image_count,
+                            nullptr);
     mSwapChainImages.resize(swapchain_image_count);
-    vkGetSwapchainImagesKHR(mDevice, mSwapChain, &swapchain_image_count, mSwapChainImages.data());
+    vkGetSwapchainImagesKHR(mDevice, mSwapChain, &swapchain_image_count,
+                            mSwapChainImages.data());
     mSwapChainImageFormat = format.format;
     mSwapChainExtent = extent;
     SIM_INFO("swapchain is created successfully");
@@ -644,8 +750,10 @@ void cDrawScene::CreateImageViews()
     {
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = mSwapChainImages[i];      // which image will this imageview to be binded to
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // 1d/2d/3d textures, cube maps
+        createInfo.image = mSwapChainImages
+            [i]; // which image will this imageview to be binded to
+        createInfo.viewType =
+            VK_IMAGE_VIEW_TYPE_2D; // 1d/2d/3d textures, cube maps
         createInfo.format = this->mSwapChainImageFormat;
         // map all channels to red channels, for example
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -658,7 +766,8 @@ void cDrawScene::CreateImageViews()
         createInfo.subresourceRange.levelCount = 1;
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
-        if (VK_SUCCESS != vkCreateImageView(mDevice, &createInfo, nullptr, &(mSwapChainImageViews[i])))
+        if (VK_SUCCESS != vkCreateImageView(mDevice, &createInfo, nullptr,
+                                            &(mSwapChainImageViews[i])))
         {
             SIM_ERROR("create image view {} failed", i);
         }
@@ -697,36 +806,39 @@ VkShaderModule cDrawScene::CreateShaderModule(const std::vector<char> &code)
 void cDrawScene::CreateGraphicsPipeline()
 {
     // load and create the module
-    auto VertShaderCode = ReadFile("src/shaders/vert.spv");
-    auto FragShaderCode = ReadFile("src/shaders/frag.spv");
+    auto VertShaderCode = ReadFile("src/shaders/shader.vert.spv");
+    auto FragShaderCode = ReadFile("src/shaders/shader.frag.spv");
     VkShaderModule VertShaderModule = CreateShaderModule(VertShaderCode);
     VkShaderModule FragShaderModule = CreateShaderModule(FragShaderCode);
 
     // put the programmable shaders into the pipeline
     // {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.module = VertShaderModule;
     vertShaderStageInfo.pName = "main"; // entry point
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.pSpecializationInfo = nullptr; // we can define some constants for optimizatin here
+    vertShaderStageInfo.pSpecializationInfo =
+        nullptr; // we can define some constants for optimizatin here
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.module = FragShaderModule;
     fragShaderStageInfo.pName = "main";
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     fragShaderStageInfo.pSpecializationInfo = nullptr;
 
-    VkPipelineShaderStageCreateInfo shader_stages[] = {
-        vertShaderStageInfo,
-        fragShaderStageInfo};
+    VkPipelineShaderStageCreateInfo shader_stages[] = {vertShaderStageInfo,
+                                                       fragShaderStageInfo};
     // }
 
     // put the fixed into the pipeline
     // {
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.pVertexAttributeDescriptions = nullptr;
     vertexInputInfo.pVertexBindingDescriptions = nullptr;
     vertexInputInfo.vertexAttributeDescriptionCount = 0;
@@ -734,7 +846,8 @@ void cDrawScene::CreateGraphicsPipeline()
 
     // don't know what's this
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
@@ -761,13 +874,18 @@ void cDrawScene::CreateGraphicsPipeline()
 
     // rasterizer: vertices into fragments
     VkPipelineRasterizationStateCreateInfo raster_info{};
-    raster_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    raster_info.depthClampEnable = VK_FALSE;         // clamp the data outside of the near-far plane insteand of deleting them
-    raster_info.rasterizerDiscardEnable = VK_FALSE;  // disable the rasterization, it certainly should be disable
-    raster_info.polygonMode = VK_POLYGON_MODE_FILL;  // normal
-    raster_info.lineWidth = 1.0f;                    // if not 1.0, we need to enable the GPU "line_width" feature
-    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;    // back cull
-    raster_info.frontFace = VK_FRONT_FACE_CLOCKWISE; // define the vertex order for front-facing
+    raster_info.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    raster_info.depthClampEnable =
+        VK_FALSE; // clamp the data outside of the near-far plane insteand of deleting them
+    raster_info.rasterizerDiscardEnable =
+        VK_FALSE; // disable the rasterization, it certainly should be disable
+    raster_info.polygonMode = VK_POLYGON_MODE_FILL; // normal
+    raster_info.lineWidth =
+        1.0f; // if not 1.0, we need to enable the GPU "line_width" feature
+    raster_info.cullMode = VK_CULL_MODE_BACK_BIT; // back cull
+    raster_info.frontFace =
+        VK_FRONT_FACE_CLOCKWISE; // define the vertex order for front-facing
 
     // setting for possible shadow map
     raster_info.depthBiasEnable = VK_FALSE;
@@ -777,7 +895,8 @@ void cDrawScene::CreateGraphicsPipeline()
 
     // setting for multisampling
     VkPipelineMultisampleStateCreateInfo multisampling_info{};
-    multisampling_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling_info.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling_info.sampleShadingEnable = VK_FALSE;
     multisampling_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampling_info.minSampleShading = 1.0f;
@@ -789,12 +908,15 @@ void cDrawScene::CreateGraphicsPipeline()
     // configuration for each individual frame buffer
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
     // which channels will be effected?
-    colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachmentState.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachmentState.blendEnable = VK_FALSE;
 
     // the global color blending setting
     VkPipelineColorBlendStateCreateInfo colorBlendState_info{};
-    colorBlendState_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlendState_info.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlendState_info.logicOpEnable = VK_FALSE;
     colorBlendState_info.logicOp = VK_LOGIC_OP_COPY;
     colorBlendState_info.attachmentCount = 1;
@@ -826,7 +948,8 @@ void cDrawScene::CreateGraphicsPipeline()
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-    SIM_ASSERT(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) == VK_SUCCESS);
+    SIM_ASSERT(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr,
+                                      &mPipelineLayout) == VK_SUCCESS);
     // }
 
     // create the final pipeline
@@ -848,7 +971,9 @@ void cDrawScene::CreateGraphicsPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    SIM_ASSERT(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline) == VK_SUCCESS)
+    SIM_ASSERT(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1,
+                                         &pipelineInfo, nullptr,
+                                         &mGraphicsPipeline) == VK_SUCCESS)
 
     // destory the modules
     vkDestroyShaderModule(mDevice, VertShaderModule, nullptr);
@@ -862,24 +987,38 @@ void cDrawScene::CreateRenderPass()
     // describe the renderpass setting
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = mSwapChainImageFormat;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;                   // no multisampling
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;              // what to do with the data in the attachement before rendering: preserve, clear, don't care
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;            // what to do ... after rendering: preserve, don't care
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
+    colorAttachment.loadOp =
+        VK_ATTACHMENT_LOAD_OP_CLEAR; // what to do with the data in the attachement before rendering: preserve, clear, don't care
+    colorAttachment.storeOp =
+        VK_ATTACHMENT_STORE_OP_STORE; // what to do ... after rendering: preserve, don't care
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;   //
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; //
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;         // which layout will the image have, before render pass
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;     // which ... after render pass
+    colorAttachment.initialLayout =
+        VK_IMAGE_LAYOUT_UNDEFINED; // which layout will the image have, before render pass
+    colorAttachment.finalLayout =
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // which ... after render pass
 
     // attachment renference for attachment description, used for differnet subpasses
     VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0; // we have only one attachement, so it's 0
+    colorAttachmentRef.attachment =
+        0; // we have only one attachement, so it's 0
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // subpass
     VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // for display, not computing
+    subpass.pipelineBindPoint =
+        VK_PIPELINE_BIND_POINT_GRAPHICS; // for display, not computing
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     // render pass
     VkRenderPassCreateInfo renderPassInfo{};
@@ -888,5 +1027,115 @@ void cDrawScene::CreateRenderPass()
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-    SIM_ASSERT(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass) == VK_SUCCESS);
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+    SIM_ASSERT(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr,
+                                  &mRenderPass) == VK_SUCCESS);
+}
+
+void cDrawScene::CreateFrameBuffers()
+{
+    // framebuffers size = image views size
+    mSwapChainFramebuffers.resize(mSwapChainImageViews.size());
+
+    for (int i = 0; i < mSwapChainImageViews.size(); i++)
+    {
+        VkImageView attachments[] = {mSwapChainImageViews[i]};
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = mRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = mSwapChainExtent.width;
+        framebufferInfo.height = mSwapChainExtent.height;
+        framebufferInfo.layers = 1;
+        SIM_ASSERT(VK_SUCCESS ==
+                   vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr,
+                                       &(mSwapChainFramebuffers[i])));
+        // SIM_ASSERT;
+    }
+}
+
+void cDrawScene::CreateCommandPool()
+{
+    // VkCommandPool mCommandPool;
+    auto queue_families = findQueueFamilies(mPhysicalDevice, mSurface);
+    VkCommandPoolCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    info.queueFamilyIndex = queue_families.graphicsFamily.value();
+    SIM_ASSERT(vkCreateCommandPool(mDevice, &info, nullptr, &mCommandPool) ==
+               VK_SUCCESS);
+    SIM_INFO("Create Command Pool succ");
+}
+
+/**
+ * \brief           Create and fill the command buffer
+*/
+void cDrawScene::CreateCommandBuffers()
+{
+    // 1. create the command buffers
+    mCommandBuffers.resize(mSwapChainFramebuffers.size());
+    VkCommandBufferAllocateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    info.commandPool = mCommandPool;
+    info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    info.commandBufferCount = (uint32_t)mCommandBuffers.size();
+    SIM_ASSERT(vkAllocateCommandBuffers(mDevice, &info,
+                                        mCommandBuffers.data()) == VK_SUCCESS);
+
+    // 2. record the command buffers
+    for (int i = 0; i < mCommandBuffers.size(); i++)
+    {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.pInheritanceInfo = nullptr;
+        beginInfo.flags = 0;
+        SIM_ASSERT(VK_SUCCESS ==
+                   vkBeginCommandBuffer(mCommandBuffers[i], &beginInfo));
+
+        // 3. start a render pass
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = mRenderPass;
+        renderPassInfo.framebuffer = mSwapChainFramebuffers[i];
+
+        renderPassInfo.renderArea.extent = mSwapChainExtent;
+        renderPassInfo.renderArea.offset = {0, 0};
+
+        // full black clear color
+        VkClearValue clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clear_color;
+
+        // begin render pass
+        vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          mGraphicsPipeline);
+
+        // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
+        vkCmdDraw(mCommandBuffers[i], 3, 1, 0, 0);
+
+        // end render pass
+        vkCmdEndRenderPass(mCommandBuffers[i]);
+
+        SIM_ASSERT(VK_SUCCESS == vkEndCommandBuffer(mCommandBuffers[i]));
+    }
+    SIM_INFO("Create Command buffers succ");
+}
+
+/**
+ * \brief           Create (two) semaphores
+*/
+void cDrawScene::CreateSemaphores()
+{
+    VkSemaphoreCreateInfo semaphore_info{};
+    semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    SIM_ASSERT(
+        (VK_SUCCESS == vkCreateSemaphore(mDevice, &semaphore_info, nullptr,
+                                         &mImageAvailableSemaphore)) &&
+        (VK_SUCCESS == vkCreateSemaphore(mDevice, &semaphore_info, nullptr,
+                                         &mRenderFinishedSemaphore)));
+    SIM_INFO("Create semaphores succ");
 }

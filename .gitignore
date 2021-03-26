@@ -365,3 +365,4 @@ libs/
 .vscode/
 build/
 ClothSimulator/main
+*spv
