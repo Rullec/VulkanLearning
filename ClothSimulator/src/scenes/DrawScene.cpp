@@ -2,14 +2,26 @@
 #include <iostream>
 #include <set>
 #include "vulkan/vulkan.h"
-#include <utils/MathUtil.h>
+#include "utils/MathUtil.h"
 #include "utils/LogUtil.h"
 #include <optional>
+#ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif
+
+#ifdef __linux__
+#define VK_USE_PLATFORM_XCB_KHR
+#include <GLFW/glfw3.h>
+// #define GLFW_EXPOSE_NATIVE_
+#include <GLFW/glfw3native.h>
+#endif
+
 
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
@@ -659,7 +671,7 @@ void cDrawScene::CreateImageViews()
 #include "utils/FileUtil.h"
 std::vector<char> ReadFile(const std::string &filename)
 {
-    SIM_ASSERT(cFileUtil::ExistsFile(filename));
+    SIM_ASSERT(cFileUtil::ExistsFile(filename) == true);
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     size_t fileSize = (size_t)file.tellg();
     std::vector<char> buffer(fileSize);

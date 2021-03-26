@@ -8,6 +8,12 @@
 #include <map>
 #include <memory>
 #include <string.h>
+#ifdef __APPLE__
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
 #ifdef __linux__
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -66,7 +72,7 @@ void cFileUtil::DeleteFile(const char *file_name)
 
 void cFileUtil::DeleteDir(const char *dir_name)
 {
-#ifdef __linux__
+#ifdef __APPLE__
     std::cout << "delete a dir " << dir_name << " ";
     if (cFileUtil::ExistsDir(dir_name) == true &&
         std::experimental::filesystem::remove_all(dir_name))
@@ -80,7 +86,7 @@ void cFileUtil::DeleteDir(const char *dir_name)
 
 void cFileUtil::ClearDir(const char *dir_name)
 {
-#ifdef __linux__
+#ifdef __APPLE__
     SIM_INFO("Clear dir " + std::string(dir_name));
     if (cFileUtil::ExistsDir(dir_name))
     {
@@ -96,7 +102,7 @@ void cFileUtil::ClearDir(const char *dir_name)
 void cFileUtil::CreateDir(const char *dir_name)
 {
     // std::cout <<"create a dir " << dir_name << " ";
-#ifdef __linux__
+#ifdef __APPLE__
     if (cFileUtil::ExistsDir(dir_name) == false)
     {
         std::experimental::filesystem::create_directories(dir_name);
@@ -159,7 +165,7 @@ void cFileUtil::CopyFile(const std::string &ori_name,
         exit(1);
     }
 
-#ifdef __linux__
+#ifdef __APPLE__
     if (false == std::experimental::filesystem::copy_file(ori_name, des_name))
     {
         printf("[error] CopyFile: from %s to %s failed", ori_name.c_str(), des_name.c_str());
@@ -317,7 +323,7 @@ std::string cFileUtil::ConcatFilename(const std::string &dir_,
                                       const std::string &file_)
 {
     std::string final_name = "";
-#ifdef __linux__
+#ifdef __APPLE__
     std::experimental::filesystem::path dir(dir_), file(file_);
     std::experimental::filesystem::path full_path = dir / file;
     final_name = full_path.string();

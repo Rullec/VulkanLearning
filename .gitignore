@@ -364,3 +364,4 @@ FodyWeavers.xsd
 libs/
 .vscode/
 build/
+ClothSimulator/main
