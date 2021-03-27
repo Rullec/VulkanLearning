@@ -16,31 +16,38 @@
 #include <GLFW/glfw3native.h>
 #endif
 
+#include "scenes/DrawScene.h"
+#include "utils/TimeUtil.hpp"
 #include <iostream>
 #include <memory>
-#include "scenes/DrawScene.h"
 GLFWwindow *window;
+std::shared_ptr<cDrawScene> scene = nullptr;
+
+static void ResizeCallback(GLFWwindow *window, int w, int h)
+{
+    scene->Resize(w, h);
+}
+
 void InitGlfw()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr);
+    glfwSetFramebufferSizeCallback(window, ResizeCallback);
 }
+
 int main()
 {
     InitGlfw();
-    std::shared_ptr<cDrawScene> scene = std::make_shared<cDrawScene>();
+    scene = std::make_shared<cDrawScene>();
     scene->Init();
-    scene->MainLoop();
-    // double cur_time = glfwGetTime();
-    // while (!glfwWindowShouldClose(window))
-    // {
-    //     glfwPollEvents();
-    //     double now_time = glfwGetTime();
-    //     scene->Update(now_time - cur_time);
-    //     //std::cout << "cost " << now_time - cur_time << std::endl;
-    //     cur_time = now_time;
-    // }
+
+    double dt = 1e-3;
+    while (glfwWindowShouldClose(window) == false)
+    {
+        glfwPollEvents();
+        scene->Update(dt);
+    }
 
     glfwDestroyWindow(window);
 

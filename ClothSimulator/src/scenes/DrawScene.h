@@ -13,11 +13,12 @@ public:
     void Init();
     void Update(double dt);
     void MainLoop();
+    void Resize(int w, int h);
     void Reset();
 
 protected:
     void InitVulkan();
-    
+
     void DrawFrame();
     void CleanVulkan();
 
@@ -38,6 +39,13 @@ private:
     void CreateCommandPool();
     void CreateCommandBuffers();
     void CreateSemaphores();
+    void RecreateSwapChain();
+    void CleanSwapChain();
+    void CreateVertexBuffer();
+    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                              VkMemoryPropertyFlags props, VkBuffer &buffer,
+                              VkDeviceMemory &buffer_memory);
     VkInstance mInstance;
     VkPhysicalDevice mPhysicalDevice;
     VkDevice mDevice;       // logical device
@@ -57,8 +65,15 @@ private:
     std::vector<VkCommandBuffer>
         mCommandBuffers; // each command buffer(queue) serves a frame buffer
 
-    VkSemaphore
+    std::vector<VkSemaphore>
         mImageAvailableSemaphore; // the image acquired from the swap chain is ready to be rendered to
-    VkSemaphore
+    std::vector<VkSemaphore>
         mRenderFinishedSemaphore; // the rendering done, the image can be sent back to the swap chain for presentation on the screen.
+    std::vector<VkFence>
+        minFlightFences; // fences to do CPU-GPU synchronization
+    std::vector<VkFence> mImagesInFlight;
+    int mCurFrame;
+    bool mFrameBufferResized;
+    VkBuffer mVertexBuffer;
+    VkDeviceMemory mVertexBufferMemory;
 };

@@ -34,25 +34,81 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-cDrawScene::cDrawScene() { mInstance = nullptr; }
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
+#include "utils/MathUtil.h"
+#include <array>
+struct tVertex
+{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    tVector2f pos;
+    tVector3f color;
+    static VkVertexInputBindingDescription getBindingDescription()
+    {
+        VkVertexInputBindingDescription desc{};
+        desc.binding = 0;
+        desc.stride = sizeof(tVertex); // return the bytes of this type occupies
+        desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        return desc;
+    }
+
+    /**
+ * \brief       describe the description of the attributes. 
+ *      
+ *      we have two attributes, the position and color, we need to describe them individualy, use two strucutre.
+ *      The first strucutre describe the first attribute (inPosition), we give the binding, location of this attribute, and the offset
+ * 
+ */
+    static std::array<VkVertexInputAttributeDescription, 2>
+    getAttributeDescriptions()
+    {
+        std::array<VkVertexInputAttributeDescription, 2> desc{};
+
+        // position attribute
+        desc[0].binding = 0; // binding point: 0
+        desc[0].location = 0;
+        desc[0].format = VK_FORMAT_R32G32_SFLOAT; // used for vec2f
+        desc[0].offset = offsetof(tVertex, pos);
+
+        // color attribute
+        desc[1].binding = 0;
+        desc[1].location = 1;
+        desc[1].format = VK_FORMAT_R32G32B32_SFLOAT; // used for vec3f
+        desc[1].offset = offsetof(tVertex, color);
+        return desc;
+    }
+};
+
+/**
+ * \brief       manually point out the vertices info, include:
+    1. position: vec2f in NDC
+    2. color: vec3f \in [0, 1]
+*/
+const std::vector<tVertex> vertices = {{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+                                       {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
+                                       {{-0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}}};
+cDrawScene::cDrawScene()
+{
+    mInstance = nullptr;
+    mCurFrame = 0;
+    mFrameBufferResized = false;
+}
 
 cDrawScene::~cDrawScene() { CleanVulkan(); }
 
 void cDrawScene::CleanVulkan()
 {
-    vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
-    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
-    for (auto &x : mSwapChainFramebuffers)
-        vkDestroyFramebuffer(mDevice, x, nullptr);
-    vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
-    vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
-    for (auto &x : mSwapChainImageViews)
+    CleanSwapChain();
+    vkDestroyBuffer(mDevice, mVertexBuffer, nullptr);
+    vkFreeMemory(mDevice, mVertexBufferMemory, nullptr);
+
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        vkDestroyImageView(mDevice, x, nullptr);
+        vkDestroySemaphore(mDevice, mImageAvailableSemaphore[i], nullptr);
+        vkDestroySemaphore(mDevice, mRenderFinishedSemaphore[i], nullptr);
+        vkDestroyFence(mDevice, minFlightFences[i], nullptr);
     }
-    vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
+    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
     vkDestroyDevice(mDevice, nullptr);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyInstance(mInstance, nullptr);
@@ -73,8 +129,9 @@ void cDrawScene::Init()
 /**
  * \brief           Update the render
 */
-void cDrawScene::Update(double dt) {}
+void cDrawScene::Update(double dt) { DrawFrame(); }
 
+void cDrawScene::Resize(int w, int h) { mFrameBufferResized = true; }
 /**
  * \brief           Reset the whole scene
 */
@@ -98,21 +155,149 @@ void cDrawScene::InitVulkan()
     CreateGraphicsPipeline();
     CreateFrameBuffers();
     CreateCommandPool();
+    CreateVertexBuffer();
     CreateCommandBuffers();
     CreateSemaphores();
 }
 
-/**
- * \brief           Mainloop for vulkan rendering
-*/
-void cDrawScene::MainLoop()
+uint32_t findMemoryType(VkPhysicalDevice phy_device, uint32_t typeFilter,
+                        VkMemoryPropertyFlags props)
 {
-    while (glfwWindowShouldClose(window) == false)
+    // get the memory info from the physical device
+    VkPhysicalDeviceMemoryProperties mem_props{};
+    vkGetPhysicalDeviceMemoryProperties(phy_device, &mem_props);
+
+    for (uint32_t i = 0; i < mem_props.memoryTypeCount; i++)
     {
-        glfwPollEvents();
-        DrawFrame();
+        // 1, 2, 4, 8, ...
+        // the memory must meet the props (such as visible from the CPU)
+        if ((typeFilter & (1 << i)) &&
+            (mem_props.memoryTypes[i].propertyFlags & props) == props)
+        {
+            return i;
+        }
     }
+    SIM_ERROR("failed to find suitable memory type for filter {} in {} types",
+              typeFilter, mem_props.memoryTypeCount);
+    return 0;
 }
+
+void cDrawScene::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                              VkMemoryPropertyFlags props, VkBuffer &buffer,
+                              VkDeviceMemory &buffer_memory)
+{
+    // 1. create a vertex buffer
+    VkBufferCreateInfo buffer_info{};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    // buffer_info.size =
+    //     sizeof(vertices[0]) *
+    //     vertices
+    //         .size(); // do not use sizeof(vertices) because it will be a little bigger than what it needs (dynamic vector)
+    buffer_info.size = size;
+    buffer_info.usage = usage;
+    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    SIM_ASSERT(vkCreateBuffer(mDevice, &buffer_info, nullptr, &buffer) ==
+               VK_SUCCESS);
+
+    // 2. allocate: first meet the memory requirements
+    VkMemoryRequirements mem_reqs{};
+    vkGetBufferMemoryRequirements(mDevice, buffer, &mem_reqs);
+    // mem_reqs
+    //     .size; // the size of required amount of memorys in bytes, may differ from the "bufferInfo.size"
+    // mem_reqs.alignment;      // the beginning address of this buffer
+    // mem_reqs.memoryTypeBits; // unknown
+
+    // 3. allocate: memory allocation
+    VkMemoryAllocateInfo allo_info{};
+    allo_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allo_info.allocationSize = mem_reqs.size;
+    allo_info.memoryTypeIndex =
+        findMemoryType(mPhysicalDevice, mem_reqs.memoryTypeBits, props);
+
+    SIM_ASSERT(vkAllocateMemory(mDevice, &allo_info, nullptr, &buffer_memory) ==
+               VK_SUCCESS);
+
+    // 4. bind (connect) the buffer with the allocated memory
+    vkBindBufferMemory(mDevice, buffer, buffer_memory, 0);
+}
+
+void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
+                            VkDeviceSize size)
+{
+    // 1. create a command buffer
+    VkCommandBufferAllocateInfo allo_info{};
+    allo_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allo_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allo_info.commandPool = mCommandPool;
+    allo_info.commandBufferCount = 1;
+    VkCommandBuffer cmd_buffer;
+    vkAllocateCommandBuffers(mDevice, &allo_info, &cmd_buffer);
+
+    // 2. begin to record the command buffer
+    VkCommandBufferBeginInfo begin_info{};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags =
+        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we only use this command buffer for a single time
+    vkBeginCommandBuffer(cmd_buffer, &begin_info);
+
+    // 3. copy from src to dst buffer
+    VkBufferCopy copy_region{};
+    copy_region.srcOffset = 0;
+    copy_region.dstOffset = 0;
+    copy_region.size = size;
+    vkCmdCopyBuffer(cmd_buffer, srcBuffer, dstBuffer, 1, &copy_region);
+
+    // 4. end recording
+    vkEndCommandBuffer(cmd_buffer);
+
+    // 5. submit info
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cmd_buffer;
+
+    vkQueueSubmit(mGraphicsQueue, 1, &submit_info, VK_NULL_HANDLE);
+
+    // wait, till the queue is empty (which means all commands have been finished)
+    vkQueueWaitIdle(mGraphicsQueue);
+
+    // 6. deconstruct
+    vkFreeCommandBuffers(mDevice, mCommandPool, 1, &cmd_buffer);
+}
+
+void cDrawScene::CreateVertexBuffer()
+{
+    VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    CreateBuffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 stagingBuffer, stagingBufferMemory);
+
+    // 5. copy the vertex data to the buffer
+    void *data = nullptr;
+    // map the memory to "data" ptr;
+    vkMapMemory(mDevice, stagingBufferMemory, 0, buffer_size, 0, &data);
+
+    // write the data
+    memcpy(data, vertices.data(), buffer_size);
+
+    // unmap
+    vkUnmapMemory(mDevice, stagingBufferMemory);
+
+    CreateBuffer(buffer_size,
+                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer,
+                 mVertexBufferMemory);
+
+    CopyBuffer(stagingBuffer, mVertexBuffer, buffer_size);
+    vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
+    vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
+}
+
 /**
  * \brief           draw a single frame
         1. get an image from the swap chain
@@ -124,16 +309,38 @@ void cDrawScene::MainLoop()
 */
 void cDrawScene::DrawFrame()
 {
+    vkWaitForFences(mDevice, 1, &minFlightFences[mCurFrame], VK_TRUE,
+                    UINT64_MAX);
+
     // 1. acquire an image from the swap chain
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX,
-                          mImageAvailableSemaphore, VK_NULL_HANDLE,
-                          &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX,
+                                            mImageAvailableSemaphore[mCurFrame],
+                                            VK_NULL_HANDLE, &imageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || mFrameBufferResized == true)
+    {
+        // the window may be resized, we need to recreate it
+        mFrameBufferResized = false;
+        RecreateSwapChain();
+        return;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        SIM_ERROR("error");
+    }
+
+    if (mImagesInFlight[imageIndex] != VK_NULL_HANDLE)
+    {
+        vkWaitForFences(mDevice, 1, &mImagesInFlight[imageIndex], VK_TRUE,
+                        UINT64_MAX);
+    }
+    mImagesInFlight[imageIndex] = mImagesInFlight[mCurFrame];
 
     // 2. submitting the command buffer
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkSemaphore waitSemaphores[] = {mImageAvailableSemaphore};
+    VkSemaphore waitSemaphores[] = {mImageAvailableSemaphore[mCurFrame]};
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}; //
     submit_info.waitSemaphoreCount =
@@ -146,17 +353,19 @@ void cDrawScene::DrawFrame()
     submit_info.pCommandBuffers = &mCommandBuffers[imageIndex];
 
     // when the commands are finished, which semaphore do we need to send?
-    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphore};
+    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphore[mCurFrame]};
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signalSemaphores;
-    if (vkQueueSubmit(mGraphicsQueue, 1, &submit_info, VK_NULL_HANDLE) !=
-        VK_SUCCESS)
+
+    vkResetFences(mDevice, 1, &minFlightFences[mCurFrame]);
+    if (vkQueueSubmit(mGraphicsQueue, 1, &submit_info,
+                      minFlightFences[mCurFrame]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to submit draw command buffer!");
         exit(0);
     }
 
-    // // 3. render finish and present the image to the screen
+    // 3. render finish and present the image to the screen
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -167,6 +376,10 @@ void cDrawScene::DrawFrame()
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     vkQueuePresentKHR(mPresentQueue, &presentInfo);
+
+    // we wait the GPU to finish its work after submitting
+    vkQueueWaitIdle(mPresentQueue);
+    mCurFrame = (mCurFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 // which queues do we want to support?
@@ -834,15 +1047,18 @@ void cDrawScene::CreateGraphicsPipeline()
                                                        fragShaderStageInfo};
     // }
 
-    // put the fixed into the pipeline
+    // put the fixed stages into the pipeline
     // {
+    auto bindingDesc = tVertex::getBindingDescription();
+    auto attriDesc = tVertex::getAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+    vertexInputInfo.vertexAttributeDescriptionCount =
+        static_cast<uint32_t>(attriDesc.size());
+    vertexInputInfo.pVertexAttributeDescriptions = attriDesc.data();
 
     // don't know what's this
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -1114,6 +1330,11 @@ void cDrawScene::CreateCommandBuffers()
         vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                           mGraphicsPipeline);
 
+        VkBuffer vertexBuffers[] = {mVertexBuffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(mCommandBuffers[0], 0, 1, vertexBuffers,
+                               offsets);
+
         // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
         vkCmdDraw(mCommandBuffers[i], 3, 1, 0, 0);
 
@@ -1130,12 +1351,63 @@ void cDrawScene::CreateCommandBuffers()
 */
 void cDrawScene::CreateSemaphores()
 {
+    mImageAvailableSemaphore.resize(MAX_FRAMES_IN_FLIGHT);
+    mRenderFinishedSemaphore.resize(MAX_FRAMES_IN_FLIGHT);
+    minFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    mImagesInFlight.resize(mSwapChainImages.size(), VK_NULL_HANDLE);
+
     VkSemaphoreCreateInfo semaphore_info{};
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    SIM_ASSERT(
-        (VK_SUCCESS == vkCreateSemaphore(mDevice, &semaphore_info, nullptr,
-                                         &mImageAvailableSemaphore)) &&
-        (VK_SUCCESS == vkCreateSemaphore(mDevice, &semaphore_info, nullptr,
-                                         &mRenderFinishedSemaphore)));
+
+    VkFenceCreateInfo fence_info{};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        SIM_ASSERT(
+            (VK_SUCCESS == vkCreateSemaphore(mDevice, &semaphore_info, nullptr,
+                                             &mImageAvailableSemaphore[i])) &&
+            (VK_SUCCESS == vkCreateSemaphore(mDevice, &semaphore_info, nullptr,
+                                             &mRenderFinishedSemaphore[i])) &&
+            (vkCreateFence(mDevice, &fence_info, nullptr,
+                           &minFlightFences[i]) == VK_SUCCESS));
+    }
     SIM_INFO("Create semaphores succ");
+}
+
+/**
+ * \brief           recreate the swap chain when the window is resized
+*/
+void cDrawScene::RecreateSwapChain()
+{
+    // wait
+    vkDeviceWaitIdle(mDevice);
+
+    // clean
+    CleanSwapChain();
+
+    // recreate
+    CreateSwapChain();
+    CreateImageViews();
+    CreateRenderPass();
+    CreateGraphicsPipeline();
+    CreateFrameBuffers();
+    CreateCommandBuffers();
+}
+
+void cDrawScene::CleanSwapChain()
+{
+    for (auto &x : mSwapChainFramebuffers)
+        vkDestroyFramebuffer(mDevice, x, nullptr);
+    vkFreeCommandBuffers(mDevice, mCommandPool,
+                         static_cast<uint32_t>(mCommandBuffers.size()),
+                         mCommandBuffers.data());
+    vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+    vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
+    for (auto &x : mSwapChainImageViews)
+    {
+        vkDestroyImageView(mDevice, x, nullptr);
+    }
+    vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
 }
