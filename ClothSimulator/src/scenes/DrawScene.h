@@ -42,10 +42,16 @@ private:
     void RecreateSwapChain();
     void CleanSwapChain();
     void CreateVertexBuffer();
+    void CreateUniformBuffer();
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-                              VkMemoryPropertyFlags props, VkBuffer &buffer,
-                              VkDeviceMemory &buffer_memory);
+                      VkMemoryPropertyFlags props, VkBuffer &buffer,
+                      VkDeviceMemory &buffer_memory);
+    void CreateDescriptorSetLayout();
+    void UpdateUniformValue(int image_idx);
+
+    void CreateDescriptorPool();
+    void CreateDescriptorSets();
     VkInstance mInstance;
     VkPhysicalDevice mPhysicalDevice;
     VkDevice mDevice;       // logical device
@@ -57,8 +63,9 @@ private:
     std::vector<VkImageView> mSwapChainImageViews;
     VkFormat mSwapChainImageFormat;
     VkExtent2D mSwapChainExtent;
-    VkPipelineLayout mPipelineLayout; // uniform values in the shader
-    VkRenderPass mRenderPass;         // special settings for a render pass
+    VkDescriptorSetLayout mDescriptorSetLayout; // descriptors (uniform objects) layout used in the shader
+    VkPipelineLayout mPipelineLayout;           // uniform values in the shader
+    VkRenderPass mRenderPass;                   // special settings for a render pass
     VkPipeline mGraphicsPipeline;
     std::vector<VkFramebuffer> mSwapChainFramebuffers; //
     VkCommandPool mCommandPool;
@@ -76,4 +83,10 @@ private:
     bool mFrameBufferResized;
     VkBuffer mVertexBuffer;
     VkDeviceMemory mVertexBufferMemory;
+
+    // buffers used for uniform objects
+    std::vector<VkBuffer> mUniformBuffers;             // MVP uniform buffer
+    std::vector<VkDeviceMemory> mUniformBuffersMemory; // their memories
+    VkDescriptorPool mDescriptorPool;
+    std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
 };
