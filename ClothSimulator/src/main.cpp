@@ -16,10 +16,13 @@
 #include <GLFW/glfw3native.h>
 #endif
 
-#include "scenes/DrawScene.h"
-#include "utils/TimeUtil.hpp"
+#ifdef __APPLE__
+#include <GLFW/glfw3.h>
+#endif
+
 #include <iostream>
 #include <memory>
+#include "scenes/DrawScene.h"
 GLFWwindow *window;
 std::shared_ptr<cDrawScene> scene = nullptr;
 
@@ -48,10 +51,5 @@ int main()
         glfwPollEvents();
         scene->Update(dt);
     }
-
-    glfwDestroyWindow(window);
-
-    glfwTerminate();
-
     return 0;
 }

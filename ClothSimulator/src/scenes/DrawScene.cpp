@@ -22,10 +22,14 @@
 #include <GLFW/glfw3native.h>
 #endif
 
+#ifdef __APPLE__
+#include <GLFW/glfw3.h>
+#endif
+
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
 const std::vector<const char *> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_portability_subset"};
 extern GLFWwindow *window;
 
 #ifdef NDEBUG
@@ -94,7 +98,13 @@ cDrawScene::cDrawScene()
     mFrameBufferResized = false;
 }
 
-cDrawScene::~cDrawScene() { CleanVulkan(); }
+cDrawScene::~cDrawScene()
+{
+    CleanVulkan();
+    glfwDestroyWindow(window);
+
+    glfwTerminate();
+}
 
 void cDrawScene::CleanVulkan()
 {
@@ -616,10 +626,14 @@ int RateDeviceSutability(VkPhysicalDevice &dev, VkSurfaceKHR surface)
         std::cout << "device is not suitable\n";
         return 0;
     }
+    else
+    {
+        score += 1;
+    }
     if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         score += 1e3;
-    if (feas.geometryShader == false)
-        return 0;
+    // if (feas.geometryShader == false)
+    //     return 0;
     return score;
 }
 
@@ -659,12 +673,22 @@ void cDrawScene::CreateInstance()
         uint32_t glfwExtensionCount = 0;
         const char **glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-        createInfo.enabledExtensionCount = glfwExtensionCount;
-        createInfo.ppEnabledExtensionNames = glfwExtensions;
-        /*for (int i = 0; i < glfwExtensionCount; i++)
+
+        uint32_t total_extension_count = glfwExtensionCount + 1;
+        const char **total_extensions = new const char *[total_extension_count];
+        for (int i = 0; i < glfwExtensionCount; i++)
         {
-            std::cout << glfwExtensions[i] << std::endl;
-        }*/
+            total_extensions[i] = glfwExtensions[i];
+        }
+        total_extensions[total_extension_count - 1] = "VK_KHR_get_physical_device_properties2";
+        createInfo.enabledExtensionCount = total_extension_count;
+        createInfo.ppEnabledExtensionNames = total_extensions;
+        // for (int i = 0; i < total_extension_count; i++)
+        // {
+        //     std::cout << total_extensions[i] << std::endl;
+        // }
+        // //
+        // exit(0);
     }
 
     if (enableValidationLayers == true)
@@ -821,7 +845,7 @@ void cDrawScene::CreateLogicalDevice()
     createInfo.pEnabledFeatures = &deviceFeatures;
 
     {
-        // we don't need any more extensions here nowI
+        // we don't need any more extensions here now
         {
             // set extensions count in the DeviceCreateInfo
             createInfo.enabledExtensionCount =
@@ -1095,10 +1119,10 @@ void cDrawScene::CreateGraphicsPipeline()
     raster_info.depthClampEnable =
         VK_FALSE; // clamp the data outside of the near-far plane insteand of deleting them
     raster_info.rasterizerDiscardEnable =
-        VK_FALSE; // disable the rasterization, it certainly should be disable
+        VK_FALSE;                                   // disable the rasterization, it certainly should be disable
     raster_info.polygonMode = VK_POLYGON_MODE_FILL; // normal
     raster_info.lineWidth =
-        1.0f; // if not 1.0, we need to enable the GPU "line_width" feature
+        1.0f;                                     // if not 1.0, we need to enable the GPU "line_width" feature
     raster_info.cullMode = VK_CULL_MODE_BACK_BIT; // back cull
     raster_info.frontFace =
         VK_FRONT_FACE_CLOCKWISE; // define the vertex order for front-facing
@@ -1207,7 +1231,7 @@ void cDrawScene::CreateRenderPass()
     colorAttachment.loadOp =
         VK_ATTACHMENT_LOAD_OP_CLEAR; // what to do with the data in the attachement before rendering: preserve, clear, don't care
     colorAttachment.storeOp =
-        VK_ATTACHMENT_STORE_OP_STORE; // what to do ... after rendering: preserve, don't care
+        VK_ATTACHMENT_STORE_OP_STORE;                                  // what to do ... after rendering: preserve, don't care
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;   //
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; //
     colorAttachment.initialLayout =
@@ -1332,7 +1356,7 @@ void cDrawScene::CreateCommandBuffers()
 
         VkBuffer vertexBuffers[] = {mVertexBuffer};
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(mCommandBuffers[0], 0, 1, vertexBuffers,
+        vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
                                offsets);
 
         // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
@@ -1397,17 +1421,21 @@ void cDrawScene::RecreateSwapChain()
 
 void cDrawScene::CleanSwapChain()
 {
-    for (auto &x : mSwapChainFramebuffers)
-        vkDestroyFramebuffer(mDevice, x, nullptr);
-    vkFreeCommandBuffers(mDevice, mCommandPool,
-                         static_cast<uint32_t>(mCommandBuffers.size()),
-                         mCommandBuffers.data());
+    for (auto framebuffer : mSwapChainFramebuffers)
+    {
+        vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
+    }
+
+    vkFreeCommandBuffers(mDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+
     vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
-    for (auto &x : mSwapChainImageViews)
+
+    for (auto imageView : mSwapChainImageViews)
     {
-        vkDestroyImageView(mDevice, x, nullptr);
+        vkDestroyImageView(mDevice, imageView, nullptr);
     }
+
     vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
 }

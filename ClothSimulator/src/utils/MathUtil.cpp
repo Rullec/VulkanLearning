@@ -303,6 +303,11 @@ tVector cMathUtil::RotMatToEuler(const tMatrix &mat,
     return euler;
 }
 
+tMatrix cMathUtil::AxisAngleToRotmat(const tVector &angvel)
+{
+    return cMathUtil::RotMat(AxisAngleToQuaternion(angvel));
+}
+
 tVector cMathUtil::EulerangleToAxisAngle(const tVector &euler,
                                          const eRotationOrder gRotationOrder)
 {
@@ -499,7 +504,7 @@ tQuaternion cMathUtil::AxisAngleToQuaternion(const tVector &axis, double theta)
     // axis must be normalized
     // std::cout << axis.transpose() << std::endl;
     SIM_ASSERT(std::fabs(axis.norm() - 1) < 1e-10 ||
-                 std::fabs(axis.norm()) < 1e-10);
+               std::fabs(axis.norm()) < 1e-10);
     double c = std::cos(theta / 2);
     double s = std::sin(theta / 2);
     tQuaternion q;
