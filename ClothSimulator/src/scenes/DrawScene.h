@@ -36,7 +36,7 @@ private:
     void CreateSurface();
     void CreateSwapChain();
     void CreateImageViews(); // create "view" for swap chain images
-    void CreateGraphicsPipeline();
+    void CreateGraphicsPipeline(const std::string mode, VkPipeline &pipeline);
     VkShaderModule CreateShaderModule(const std::vector<char> &code);
     void CreateRenderPass();
     void CreateFrameBuffers();
@@ -73,7 +73,7 @@ private:
     VkDescriptorSetLayout mDescriptorSetLayout; // descriptors (uniform objects) layout used in the shader
     VkPipelineLayout mPipelineLayout;           // uniform values in the shader
     VkRenderPass mRenderPass;                   // special settings for a render pass
-    VkPipeline mGraphicsPipeline;
+    VkPipeline mTriangleGraphicsPipeline, mLinesGraphicsPipeline;
     std::vector<VkFramebuffer> mSwapChainFramebuffers; //
     VkCommandPool mCommandPool;
     std::vector<VkCommandBuffer>

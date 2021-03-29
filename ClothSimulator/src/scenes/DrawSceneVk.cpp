@@ -782,7 +782,8 @@ void cDrawScene::RecreateSwapChain()
     CreateSwapChain();
     CreateImageViews();
     CreateRenderPass();
-    CreateGraphicsPipeline();
+    CreateGraphicsPipeline("triangle", mTriangleGraphicsPipeline);
+    CreateGraphicsPipeline("line", mLinesGraphicsPipeline);
     CreateFrameBuffers();
     CreateUniformBuffer();
     CreateDescriptorPool();

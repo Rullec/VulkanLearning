@@ -150,7 +150,7 @@ std::vector<char> ReadFile(const std::string &filename)
     return buffer;
 }
 
-void cDrawScene::CreateGraphicsPipeline()
+void cDrawScene::CreateGraphicsPipeline(const std::string mode, VkPipeline &pipeline)
 {
     // load and create the module
     auto VertShaderCode = ReadFile("src/shaders/shader.vert.spv");
@@ -199,7 +199,21 @@ void cDrawScene::CreateGraphicsPipeline()
     inputAssembly.sType =
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    if (mode == "triangle")
+    {
+
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    }
+    else if (mode == "line")
+    {
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    }
+    else
+    {
+        SIM_ERROR("unsupported mode {}", mode);
+        exit(0);
+    }
 
     // Viewport: which part of framebuffer will be rendered to
     VkViewport viewport{};
@@ -325,7 +339,7 @@ void cDrawScene::CreateGraphicsPipeline()
 
     SIM_ASSERT(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1,
                                          &pipelineInfo, nullptr,
-                                         &mGraphicsPipeline) == VK_SUCCESS)
+                                         &pipeline) == VK_SUCCESS)
 
     // destory the modules
     vkDestroyShaderModule(mDevice, VertShaderModule, nullptr);
@@ -406,7 +420,8 @@ void cDrawScene::InitVulkan()
     CreateImageViews();
     CreateRenderPass();
     CreateDescriptorSetLayout();
-    CreateGraphicsPipeline();
+    CreateGraphicsPipeline("triangle", mTriangleGraphicsPipeline);
+    CreateGraphicsPipeline("line", mLinesGraphicsPipeline);
     CreateFrameBuffers();
     CreateCommandPool();
     CreateVertexBufferCloth();
@@ -671,7 +686,7 @@ void cDrawScene::CleanSwapChain()
     }
     vkFreeCommandBuffers(mDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
-    vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
+    vkDestroyPipeline(mDevice, mTriangleGraphicsPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
@@ -933,7 +948,7 @@ void cDrawScene::CreateCommandBuffers()
                              VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          mGraphicsPipeline);
+                          mTriangleGraphicsPipeline);
         {
             VkBuffer vertexBuffers[] = {mVertexBufferGround};
             // VkBuffer vertexBuffers[] = {mVertexBufferGround, mVertexBufferCloth};
