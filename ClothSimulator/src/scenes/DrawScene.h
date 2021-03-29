@@ -53,6 +53,7 @@ private:
                       VkDeviceMemory &buffer_memory);
     void CreateDescriptorSetLayout();
     void UpdateUniformValue(int image_idx);
+    void UpdateVertexBuffer(int idx);
 
     void CreateDescriptorPool();
     void CreateDescriptorSets();

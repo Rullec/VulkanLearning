@@ -25,6 +25,7 @@
 #include "scenes/SceneBuilder.h"
 GLFWwindow *window = nullptr;
 std::shared_ptr<cDrawScene> scene = nullptr;
+bool esc_pushed = false;
 
 static void ResizeCallback(GLFWwindow *window, int w, int h)
 {
@@ -40,6 +41,14 @@ void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
     scene->MouseButton(button, action, mods);
 }
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
+        esc_pushed = true;
+    }
+}
+
 void InitGlfw()
 {
     glfwInit();
@@ -48,6 +57,7 @@ void InitGlfw()
     glfwSetFramebufferSizeCallback(window, ResizeCallback);
     glfwSetCursorPosCallback(window, CursorPositionCallback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetKeyCallback(window, key_callback);
 }
 
 #include "utils/LogUtil.h"
@@ -58,7 +68,7 @@ int main()
     scene->Init("config/conf.json");
 
     double dt = 1e-3;
-    while (glfwWindowShouldClose(window) == false)
+    while (glfwWindowShouldClose(window) == false && esc_pushed == false)
     {
         glfwPollEvents();
         scene->Update(dt);

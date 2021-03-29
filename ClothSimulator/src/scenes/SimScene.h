@@ -26,10 +26,11 @@ public:
     virtual void Init(const std::string &conf_path) override final;
     virtual void Update(double dt) override final;
     virtual void Reset() override final;
-
+    const tVectorXf & GetDrawBuffer(); 
 protected:
     double mClothWidth;                // a square cloth
     int mSubdivision;                  // division number along with the line
+    tVectorXf mDrawBuffer;             // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
     tEigenArr<tVertex *> mVertexArray; // vertices info
     tEigenArr<tSpring *> mSpringArray; // springs info
     tVectorXd mIntForce;               // internal force
@@ -42,7 +43,7 @@ protected:
     void CalcExtForce() const;
     void CalcIntForce() const;
     void CalcNextPosition();        // forward simulation
-    void CalcVertexRenderingData(); //
+    void CalcDrawBuffer(); //
     void GetVertexRenderingData();
     int GetNumOfVertices() const;
     int GetNumOfFreedom() const;

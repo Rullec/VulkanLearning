@@ -50,7 +50,7 @@ void cSimScene::Update(double dt)
     // 3. forward simulation
     CalcNextPosition();
     // 4. post process
-    CalcVertexRenderingData();
+    CalcDrawBuffer();
 }
 
 /**
@@ -125,7 +125,15 @@ void cSimScene::InitGeometry()
                 printf("create vertex %d at (%.3f, %.3f)\n", mVertexArray.size() - 1, v->mPos[0], v->mPos[1]);
             }
     }
-    // exit(0);
+
+    // init the buffer
+    int num_of_square = mSubdivision * mSubdivision;
+    int num_of_triangles = num_of_square * 2;
+    int num_of_vertices = num_of_triangles * 3;
+    int size_per_vertices = 6;
+    mDrawBuffer.resize(num_of_vertices * size_per_vertices);
+
+    CalcDrawBuffer();
 }
 
 /**
@@ -164,13 +172,6 @@ void cSimScene::CalcIntForce() const
 void cSimScene::CalcNextPosition()
 {
 }
-
-/**
- * \brief           Calculate vertex rendering data
-*/
-void cSimScene::CalcVertexRenderingData() //
-{
-}
 void cSimScene::GetVertexRenderingData()
 {
 }
@@ -189,4 +190,43 @@ cSimScene::~cSimScene()
 
     mVertexArray.clear();
     mSpringArray.clear();
+}
+void CalcTriangleDrawBuffer(tVertex *v0, tVertex *v1, tVertex *v2, tVectorXf &buffer, int &st_pos)
+{
+    // std::cout << "buffer size " << buffer.size() << " st pos " << st_pos << std::endl;
+    buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
+    buffer.segment(st_pos + 3, 3) = v0->mColor.segment(0, 3).cast<float>();
+    st_pos += 6;
+    buffer.segment(st_pos, 3) = v1->mPos.segment(0, 3).cast<float>();
+    buffer.segment(st_pos + 3, 3) = v1->mColor.segment(0, 3).cast<float>();
+    st_pos += 6;
+    buffer.segment(st_pos, 3) = v2->mPos.segment(0, 3).cast<float>();
+    buffer.segment(st_pos + 3, 3) = v2->mColor.segment(0, 3).cast<float>();
+    st_pos += 6;
+}
+
+const tVectorXf &cSimScene::GetDrawBuffer()
+{
+    return mDrawBuffer;
+}
+/**
+ * \brief           Calculate vertex rendering data
+*/
+void cSimScene::CalcDrawBuffer()
+{
+    // counter clockwise
+    int gap = mSubdivision + 1;
+    int st = 0;
+    for (int i = 0; i < mSubdivision; i++)     // row
+        for (int j = 0; j < mSubdivision; j++) // column
+        {
+            // left up coner
+            int left_up = gap * i + j;
+            int right_up = left_up + 1;
+            int left_down = left_up + gap;
+            int right_down = right_up + gap;
+            // mVertexArray[left_up]->mPos *= (1 + 1e-3);
+            CalcTriangleDrawBuffer(mVertexArray[right_down], mVertexArray[left_up], mVertexArray[left_down], mDrawBuffer, st);
+            CalcTriangleDrawBuffer(mVertexArray[right_down], mVertexArray[right_up], mVertexArray[left_up], mDrawBuffer, st);
+        }
 }

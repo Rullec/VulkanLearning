@@ -1,5 +1,6 @@
 add_library(scenes_lib 
 DrawScene.cpp 
+DrawSceneVk.cpp 
 CameraBase.cpp
 FPSCamera.cpp
 ArcBallCamera.cpp
