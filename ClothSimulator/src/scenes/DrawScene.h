@@ -1,20 +1,24 @@
 //#pragma once
 #include <vector>
 #include <vulkan/vulkan.h>
-
+#include "Scene.h"
 /**
  * \brief			Main Vulkan Draw Scene for cloth simulator
 */
-class cDrawScene
+class cSimScene;
+class ArcBallCamera;
+class cDrawScene : public cScene
 {
 public:
     explicit cDrawScene();
     virtual ~cDrawScene();
-    void Init();
-    void Update(double dt);
+    virtual void Init(const std::string &conf_path) override final;
+    virtual void Update(double dt) override final;
     void MainLoop();
     void Resize(int w, int h);
-    void Reset();
+    void CursorMove(int xpos, int ypos);
+    void MouseButton(int button, int action, int mods);
+    virtual void Reset() override final;
 
 protected:
     void InitVulkan();
@@ -89,4 +93,9 @@ private:
     std::vector<VkDeviceMemory> mUniformBuffersMemory; // their memories
     VkDescriptorPool mDescriptorPool;
     std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
+    std::shared_ptr<ArcBallCamera> mCamera;
+    // simulation scene
+    std::shared_ptr<cSimScene> mSimScene;
+
+    bool mButtonPress;
 };

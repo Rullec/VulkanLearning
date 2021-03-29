@@ -22,8 +22,8 @@
 
 #include <iostream>
 #include <memory>
-#include "scenes/DrawScene.h"
-GLFWwindow *window;
+#include "scenes/SceneBuilder.h"
+GLFWwindow *window = nullptr;
 std::shared_ptr<cDrawScene> scene = nullptr;
 
 static void ResizeCallback(GLFWwindow *window, int w, int h)
@@ -31,19 +31,31 @@ static void ResizeCallback(GLFWwindow *window, int w, int h)
     scene->Resize(w, h);
 }
 
+static void CursorPositionCallback(GLFWwindow *window, double xpos, double ypos)
+{
+    scene->CursorMove(xpos, ypos);
+}
+
+void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
+{
+    scene->MouseButton(button, action, mods);
+}
 void InitGlfw()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr);
     glfwSetFramebufferSizeCallback(window, ResizeCallback);
+    glfwSetCursorPosCallback(window, CursorPositionCallback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 }
 
+#include "utils/LogUtil.h"
 int main()
 {
     InitGlfw();
-    scene = std::make_shared<cDrawScene>();
-    scene->Init();
+    scene = cSceneBuilder::BuildScene("cloth_sim_draw");
+    scene->Init("config/conf.json");
 
     double dt = 1e-3;
     while (glfwWindowShouldClose(window) == false)
@@ -51,5 +63,8 @@ int main()
         glfwPollEvents();
         scene->Update(dt);
     }
+    glfwDestroyWindow(window);
+
+    glfwTerminate();
     return 0;
 }

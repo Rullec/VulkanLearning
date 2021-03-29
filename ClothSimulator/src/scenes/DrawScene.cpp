@@ -42,16 +42,16 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 #include "utils/MathUtil.h"
 #include <array>
-struct tVertex
+struct tVkVertex
 {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    tVector2f pos;
+    tVector3f pos;
     tVector3f color;
     static VkVertexInputBindingDescription getBindingDescription()
     {
         VkVertexInputBindingDescription desc{};
         desc.binding = 0;
-        desc.stride = sizeof(tVertex); // return the bytes of this type occupies
+        desc.stride = sizeof(tVkVertex); // return the bytes of this type occupies
         desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         return desc;
     }
@@ -72,13 +72,13 @@ struct tVertex
         desc[0].binding = 0; // binding point: 0
         desc[0].location = 0;
         desc[0].format = VK_FORMAT_R32G32_SFLOAT; // used for vec2f
-        desc[0].offset = offsetof(tVertex, pos);
+        desc[0].offset = offsetof(tVkVertex, pos);
 
         // color attribute
         desc[1].binding = 0;
         desc[1].location = 1;
         desc[1].format = VK_FORMAT_R32G32B32_SFLOAT; // used for vec3f
-        desc[1].offset = offsetof(tVertex, color);
+        desc[1].offset = offsetof(tVkVertex, color);
         return desc;
     }
 };
@@ -91,29 +91,27 @@ struct tVertex
 // const std::vector<tVertex> vertices = {{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
 //                                        {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
 //                                        {{-0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}}};
-const std::vector<tVertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-    {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}},
+const std::vector<tVkVertex> vertices = {
+    {{0.0f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}},
+    {{0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 0.0f}},
 
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
-    {{1.0f, 0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{-0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
-    
-    };
+    {{0.5f, -0.5f, 1.0f}, {0.0f, 1.0f, 1.0f}},
+    {{1.0f, 0.5f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+    {{-0.0f, 0.5f, 1.0f}, {1.0f, 0.0f, 0.0f}}
+
+};
 cDrawScene::cDrawScene()
 {
     mInstance = nullptr;
     mCurFrame = 0;
     mFrameBufferResized = false;
+    mButtonPress = false;
 }
 
 cDrawScene::~cDrawScene()
 {
     CleanVulkan();
-    glfwDestroyWindow(window);
-
-    glfwTerminate();
 }
 
 void cDrawScene::CleanVulkan()
@@ -145,9 +143,14 @@ void cDrawScene::CleanVulkan()
 /**
  * \brief       Init vulkan and other stuff
 */
-void cDrawScene::Init()
+#include "SimScene.h"
+#include "ArcBallCamera.h"
+void cDrawScene::Init(const std::string &conf_path)
 {
     InitVulkan();
+    mSimScene = std::make_shared<cSimScene>();
+    mSimScene->Init(conf_path);
+    mCamera = std::make_shared<ArcBallCamera>(tVector3f(2, 2, 2), tVector3f(0, 0, 0), tVector3f(0, 0, 1));
     // uint32_t extensionCount = 0;
     // vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
@@ -160,6 +163,28 @@ void cDrawScene::Init()
 void cDrawScene::Update(double dt) { DrawFrame(); }
 
 void cDrawScene::Resize(int w, int h) { mFrameBufferResized = true; }
+
+void cDrawScene::CursorMove(int xpos, int ypos)
+{
+    if (mButtonPress)
+    {
+        mCamera->MouseMove(xpos, ypos);
+    }
+    // std::cout << "camera mouse move to " << xpos << " " << ypos << std::endl;
+}
+
+void cDrawScene::MouseButton(int button, int action, int mods)
+{
+    if (action == GLFW_RELEASE)
+    {
+        mButtonPress = false;
+        mCamera->ResetFlag();
+    }
+    else if (action == GLFW_PRESS)
+    {
+        mButtonPress = true;
+    }
+}
 /**
  * \brief           Reset the whole scene
 */
@@ -1098,8 +1123,8 @@ void cDrawScene::CreateGraphicsPipeline()
 
     // put the fixed stages into the pipeline
     // {
-    auto bindingDesc = tVertex::getBindingDescription();
-    auto attriDesc = tVertex::getAttributeDescriptions();
+    auto bindingDesc = tVkVertex::getBindingDescription();
+    auto attriDesc = tVkVertex::getAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -1147,7 +1172,9 @@ void cDrawScene::CreateGraphicsPipeline()
         VK_FALSE;                                   // disable the rasterization, it certainly should be disable
     raster_info.polygonMode = VK_POLYGON_MODE_FILL; // normal
     raster_info.lineWidth =
-        1.0f;                                     // if not 1.0, we need to enable the GPU "line_width" feature
+        1.0f; // if not 1.0, we need to enable the GPU "line_width" feature
+
+    // raster_info.cullMode = VK_CULL_MODE_NONE; // back cull
     raster_info.cullMode = VK_CULL_MODE_BACK_BIT; // back cull
     raster_info.frontFace =
         VK_FRONT_FACE_COUNTER_CLOCKWISE; // define the vertex order for front-facing
@@ -1537,6 +1564,21 @@ void cDrawScene::CreateUniformBuffer()
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+template <typename T, int m, int n>
+inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em)
+{
+    glm::mat<m, n, float, glm::precision::highp> mat;
+    for (int i = 0; i < m; ++i)
+    {
+        for (int j = 0; j < n; ++j)
+        {
+            mat[j][i] = em(i, j);
+        }
+    }
+    return mat;
+}
+
 void cDrawScene::UpdateUniformValue(int image_idx)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
@@ -1545,8 +1587,14 @@ void cDrawScene::UpdateUniformValue(int image_idx)
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.model = glm::rotate(glm::mat4(1.0f), 0 * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    // ubo.model = glm::identity();
+    tMatrix4f eigen_view = mCamera->ViewMatrix();
+    // mCamera->MoveBackward();
+    // std::cout << "eigen view = \n"
+    //           << eigen_view << std::endl;
+    ubo.view = E2GLM(eigen_view);
+    // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), mSwapChainExtent.width / (float)mSwapChainExtent.height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
 

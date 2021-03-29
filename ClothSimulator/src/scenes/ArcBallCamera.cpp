@@ -16,6 +16,22 @@ ArcBallCamera::ArcBallCamera() : CameraBase(eCameraType::ARCBALL_CAMERA)
     // front = center - pos;
     // front.normalize();
 }
+ArcBallCamera::ArcBallCamera(const tVector3f &pos_, const tVector3f &center_,
+                             const tVector3f &up_) : CameraBase(eCameraType::ARCBALL_CAMERA)
+{
+    pos = pos_;
+    center = center_;
+    up = up_;
+    front = center - pos;
+    front.normalize();
+    mouse_acc *= 5e-2;
+    key_acc *= 2e-2;
+    // pos = tVector3f(1, 1, 0);
+    // center = tVector3f(0, 1, 0);
+    // up = tVector3f(0, 1, 0);
+    // front = center - pos;
+    // front.normalize();
+}
 
 ArcBallCamera::~ArcBallCamera() {}
 
