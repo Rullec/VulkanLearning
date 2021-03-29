@@ -3,6 +3,7 @@
 #include "utils/MathUtil.h"
 #include "vulkan/vulkan.h"
 #include <iostream>
+#include "scenes/SimScene.h"
 #include <optional>
 #include <set>
 #ifdef _WIN32
@@ -637,7 +638,6 @@ void cDrawScene::CreateImageViews()
     }
 }
 
-
 VkShaderModule cDrawScene::CreateShaderModule(const std::vector<char> &code)
 {
     VkShaderModuleCreateInfo createInfo{};
@@ -789,4 +789,58 @@ void cDrawScene::RecreateSwapChain()
     CreateDescriptorPool();
     CreateDescriptorSets();
     CreateCommandBuffers();
+}
+
+std::vector<tVkVertex> axes_vertices = {
+    // X
+    {{0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    {{100.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    // Y
+    {{0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    {{0.0f, 100.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    // Z
+    {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+    {{0.0f, 0.0f, 100.0f}, {0.0f, 0.0f, 1.0f}},
+};
+
+void cDrawScene::CreateLineCommandBuffers(int i)
+{
+    vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mLinesGraphicsPipeline);
+
+    // SIM_ERROR("VkBuffer mLineBuffer; vkDeviceMemory mLineBufferMemory; need to be inited");
+    VkBuffer lineBuffers[] = {mLineBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, lineBuffers, offsets);
+
+    vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
+
+    vkCmdDraw(mCommandBuffers[i], axes_vertices.size(), 1, 0, 0);
+}
+
+void cDrawScene::CreateLineBuffer()
+{
+    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * axes_vertices.size();
+    CreateBuffer(buffer_size,
+                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 mLineBuffer,
+                 mLineBufferMemory);
+}
+
+void cDrawScene::UpdateLineBuffer(int idx)
+{
+    // update
+    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * axes_vertices.size();
+
+    // 5. copy the vertex data to the buffer
+    void *data = nullptr;
+    // map the memory to "data" ptr;
+    vkMapMemory(mDevice, mLineBufferMemory, 0, buffer_size, 0, &data);
+
+    // write the data
+    memcpy(data, axes_vertices.data(), buffer_size);
+
+    // unmap
+    vkUnmapMemory(mDevice, mLineBufferMemory);
 }

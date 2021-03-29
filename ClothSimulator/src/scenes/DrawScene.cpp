@@ -42,47 +42,41 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 #include "utils/MathUtil.h"
 #include <array>
-struct tVkVertex
+VkVertexInputBindingDescription tVkVertex::getBindingDescription()
 {
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    tVector3f pos;
-    tVector3f color;
-    static VkVertexInputBindingDescription getBindingDescription()
-    {
-        VkVertexInputBindingDescription desc{};
-        desc.binding = 0;
-        desc.stride = sizeof(tVkVertex); // return the bytes of this type occupies
-        desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        return desc;
-    }
+    VkVertexInputBindingDescription desc{};
+    desc.binding = 0;
+    desc.stride = sizeof(tVkVertex); // return the bytes of this type occupies
+    desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    return desc;
+}
 
-    /**
+/**
  * \brief       describe the description of the attributes. 
  *      
  *      we have two attributes, the position and color, we need to describe them individualy, use two strucutre.
  *      The first strucutre describe the first attribute (inPosition), we give the binding, location of this attribute, and the offset
  * 
  */
-    static std::array<VkVertexInputAttributeDescription, 2>
-    getAttributeDescriptions()
-    {
-        std::array<VkVertexInputAttributeDescription, 2> desc{};
+std::array<VkVertexInputAttributeDescription, 2>
+tVkVertex::getAttributeDescriptions()
+{
+    std::array<VkVertexInputAttributeDescription, 2> desc{};
 
-        // position attribute
-        desc[0].binding = 0; // binding point: 0
-        desc[0].location = 0;
-        desc[0].format = VK_FORMAT_R32G32B32_SFLOAT; // used for vec3f
-        // desc[0].format = VK_FORMAT_R32G32_SFLOAT; // used for vec2f
-        desc[0].offset = offsetof(tVkVertex, pos);
+    // position attribute
+    desc[0].binding = 0; // binding point: 0
+    desc[0].location = 0;
+    desc[0].format = VK_FORMAT_R32G32B32_SFLOAT; // used for vec3f
+    // desc[0].format = VK_FORMAT_R32G32_SFLOAT; // used for vec2f
+    desc[0].offset = offsetof(tVkVertex, pos);
 
-        // color attribute
-        desc[1].binding = 0;
-        desc[1].location = 1;
-        desc[1].format = VK_FORMAT_R32G32B32_SFLOAT; // used for vec3f
-        desc[1].offset = offsetof(tVkVertex, color);
-        return desc;
-    }
-};
+    // color attribute
+    desc[1].binding = 0;
+    desc[1].location = 1;
+    desc[1].format = VK_FORMAT_R32G32B32_SFLOAT; // used for vec3f
+    desc[1].offset = offsetof(tVkVertex, color);
+    return desc;
+}
 
 /**
  * \brief       manually point out the vertices info, include:
@@ -120,6 +114,9 @@ void cDrawScene::CleanVulkan()
     vkFreeMemory(mDevice, mVertexBufferMemoryCloth, nullptr);
     vkDestroyBuffer(mDevice, mVertexBufferGround, nullptr);
     vkFreeMemory(mDevice, mVertexBufferMemoryGround, nullptr);
+
+    vkDestroyBuffer(mDevice, mLineBuffer, nullptr);
+    vkFreeMemory(mDevice, mLineBufferMemory, nullptr);
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -426,6 +423,7 @@ void cDrawScene::InitVulkan()
     CreateCommandPool();
     CreateVertexBufferCloth();
     CreateVertexBufferGround();
+    CreateLineBuffer();
     CreateUniformBuffer();
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -612,6 +610,7 @@ void cDrawScene::DrawFrame()
     UpdateUniformValue(imageIndex);
     UpdateVertexBufferCloth(imageIndex);
     UpdateVertexBufferGround(imageIndex);
+    UpdateLineBuffer(imageIndex);
 
     // 2. submitting the command buffer
     VkSubmitInfo submit_info{};
@@ -687,6 +686,7 @@ void cDrawScene::CleanSwapChain()
     vkFreeCommandBuffers(mDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
     vkDestroyPipeline(mDevice, mTriangleGraphicsPipeline, nullptr);
+    vkDestroyPipeline(mDevice, mLinesGraphicsPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
@@ -947,42 +947,9 @@ void cDrawScene::CreateCommandBuffers()
         vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          mTriangleGraphicsPipeline);
-        {
-            VkBuffer vertexBuffers[] = {mVertexBufferGround};
-            // VkBuffer vertexBuffers[] = {mVertexBufferGround, mVertexBufferCloth};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
-                                   offsets);
-
-            // update the uniform objects (descriptors)
-            vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
-
-            // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
-            // uint32_t triangle_size =  / 3;
-
-            vkCmdDraw(mCommandBuffers[i], ground_vertices.size(), 1, 0, 0);
-        }
-        {
-            VkBuffer vertexBuffers[] = {mVertexBufferCloth};
-            // VkBuffer vertexBuffers[] = {, mVertexBufferCloth};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
-                                   offsets);
-
-            // update the uniform objects (descriptors)
-            vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
-
-            // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
-            // uint32_t triangle_size =  / 3;
-            const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
-            SIM_ASSERT(draw_buffer.size() % 3 == 0);
-            vkCmdDraw(mCommandBuffers[i], draw_buffer.size() / 3, 1, 0, 0);
-        }
-
-        // vkCmdDraw(mCommandBuffers[i], ground_vertices.size(), 1, 0, 0);
-
+        CreateTriangleCommandBuffers(i);
+        CreateLineCommandBuffers(i);
+        
         // end render pass
         vkCmdEndRenderPass(mCommandBuffers[i]);
 
@@ -1019,4 +986,41 @@ void cDrawScene::UpdateVertexBufferGround(int idx)
 
     // unmap
     vkUnmapMemory(mDevice, mVertexBufferMemoryGround);
+}
+
+void cDrawScene::CreateTriangleCommandBuffers(int i)
+{
+    vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      mTriangleGraphicsPipeline);
+    {
+        VkBuffer vertexBuffers[] = {mVertexBufferGround};
+        // VkBuffer vertexBuffers[] = {mVertexBufferGround, mVertexBufferCloth};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
+                               offsets);
+
+        // update the uniform objects (descriptors)
+        vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
+
+        // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
+        // uint32_t triangle_size =  / 3;
+
+        vkCmdDraw(mCommandBuffers[i], ground_vertices.size(), 1, 0, 0);
+    }
+    {
+        VkBuffer vertexBuffers[] = {mVertexBufferCloth};
+        // VkBuffer vertexBuffers[] = {, mVertexBufferCloth};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
+                               offsets);
+
+        // update the uniform objects (descriptors)
+        vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
+
+        // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
+        // uint32_t triangle_size =  / 3;
+        const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
+        SIM_ASSERT(draw_buffer.size() % 3 == 0);
+        vkCmdDraw(mCommandBuffers[i], draw_buffer.size() / 3, 1, 0, 0);
+    }
 }

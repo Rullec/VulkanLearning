@@ -2,6 +2,16 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "Scene.h"
+#include "utils/MathUtil.h"
+struct tVkVertex
+{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    tVector3f pos;
+    tVector3f color;
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 2>
+    getAttributeDescriptions();
+};
 /**
  * \brief			Main Vulkan Draw Scene for cloth simulator
 */
@@ -42,11 +52,14 @@ private:
     void CreateFrameBuffers();
     void CreateCommandPool();
     void CreateCommandBuffers();
+    void CreateTriangleCommandBuffers(int buffer_id);
+    void CreateLineCommandBuffers(int buffer_id);
     void CreateSemaphores();
     void RecreateSwapChain();
     void CleanSwapChain();
     void CreateVertexBufferCloth();
     void CreateVertexBufferGround();
+    void CreateLineBuffer();
     void CreateUniformBuffer();
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
@@ -56,6 +69,7 @@ private:
     void UpdateUniformValue(int image_idx);
     void UpdateVertexBufferCloth(int idx);
     void UpdateVertexBufferGround(int idx);
+    void UpdateLineBuffer(int idx);
 
     void CreateDescriptorPool();
     void CreateDescriptorSets();
@@ -93,6 +107,8 @@ private:
 
     VkBuffer mVertexBufferGround;
     VkDeviceMemory mVertexBufferMemoryGround;
+    VkBuffer mLineBuffer;
+    VkDeviceMemory mLineBufferMemory;
     // buffers used for uniform objects
     std::vector<VkBuffer> mUniformBuffers;             // MVP uniform buffer
     std::vector<VkDeviceMemory> mUniformBuffersMemory; // their memories
