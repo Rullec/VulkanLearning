@@ -89,14 +89,15 @@ struct tVkVertex
     1. position: vec2f in NDC
     2. color: vec3f \in [0, 1]
 */
-// std::vector<tVkVertex> vertices = {
-//     {{0.0f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}},
-//     {{0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 1.0f}},
-//     {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 0.0f}},
+std::vector<tVkVertex> ground_vertices = {
+    {{0.0f, 0.0f, -10.0f}, {1.0f, 1.0f, 1.0f}},
+    {{-10.0f, 0.0f, 10.0f}, {1.0f, 1.0f, 0.0f}},
+    {{0.0f, 0.0f, 10.0f}, {1.0f, 0.0f, 1.0f}},
 
-//     {{0.5f, -0.5f, 1.0f}, {0.0f, 1.0f, 1.0f}},
-//     {{1.0f, 0.5f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-//     {{-0.0f, 0.5f, 1.0f}, {1.0f, 0.0f, 0.0f}}
+    {{0.0f, 0.0f, -10.0f}, {1.0f, 1.0f, 1.0f}},
+    {{-10.0f, 0.0f, -10.0f}, {1.0f, 0.0f, 1.0f}},
+    {{-10.0f, 0.0f, 10.0f}, {1.0f, 1.0f, 0.0f}},
+};
 
 // };
 cDrawScene::cDrawScene()
@@ -115,8 +116,10 @@ void cDrawScene::CleanVulkan()
 {
     CleanSwapChain();
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-    vkDestroyBuffer(mDevice, mVertexBuffer, nullptr);
-    vkFreeMemory(mDevice, mVertexBufferMemory, nullptr);
+    vkDestroyBuffer(mDevice, mVertexBufferCloth, nullptr);
+    vkFreeMemory(mDevice, mVertexBufferMemoryCloth, nullptr);
+    vkDestroyBuffer(mDevice, mVertexBufferGround, nullptr);
+    vkFreeMemory(mDevice, mVertexBufferMemoryGround, nullptr);
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -406,7 +409,8 @@ void cDrawScene::InitVulkan()
     CreateGraphicsPipeline();
     CreateFrameBuffers();
     CreateCommandPool();
-    CreateVertexBuffer();
+    CreateVertexBufferCloth();
+    CreateVertexBufferGround();
     CreateUniformBuffer();
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -516,7 +520,7 @@ void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
     vkFreeCommandBuffers(mDevice, mCommandPool, 1, &cmd_buffer);
 }
 
-void cDrawScene::CreateVertexBuffer()
+void cDrawScene::CreateVertexBufferCloth()
 {
     const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
@@ -541,10 +545,10 @@ void cDrawScene::CreateVertexBuffer()
     CreateBuffer(buffer_size,
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer,
-                 mVertexBufferMemory);
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBufferCloth,
+                 mVertexBufferMemoryCloth);
 
-    CopyBuffer(stagingBuffer, mVertexBuffer, buffer_size);
+    CopyBuffer(stagingBuffer, mVertexBufferCloth, buffer_size);
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 }
@@ -554,7 +558,7 @@ void cDrawScene::CreateVertexBuffer()
         1. get an image from the swap chain
         2. executate the command buffer with that image as attachment in the framebuffer
         3. return the image to the swap chain for presentation
-    These 3 actions, ideally should be executed asynchronously. but the function calls will return before the operations are actually finished.
+    These 3 actions, ideally shvould be executed asynchronously. but the function calls will return before the operations are actually finished.
     So the order of execution is undefined. we need "fences" ans "semaphores" to synchronizing swap chain
 
 */
@@ -591,7 +595,8 @@ void cDrawScene::DrawFrame()
 
     // updating the uniform buffer values
     UpdateUniformValue(imageIndex);
-    UpdateVertexBuffer(imageIndex);
+    UpdateVertexBufferCloth(imageIndex);
+    UpdateVertexBufferGround(imageIndex);
 
     // 2. submitting the command buffer
     VkSubmitInfo submit_info{};
@@ -788,12 +793,8 @@ void cDrawScene::UpdateUniformValue(int image_idx)
     vkUnmapMemory(mDevice, mUniformBuffersMemory[image_idx]);
 }
 
-void cDrawScene::UpdateVertexBuffer(int image_idx)
+void cDrawScene::UpdateVertexBufferCloth(int image_idx)
 {
-    // for (auto &x : vertices)
-    // {
-    //     x.pos[2] += 1e-3;
-    // }
     const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
     // update
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
@@ -818,10 +819,10 @@ void cDrawScene::UpdateVertexBuffer(int image_idx)
     // CreateBuffer(buffer_size,
     //              VK_BUFFER_USAGE_TRANSFER_DST_BIT |
     //                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-    //              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer,
-    //              mVertexBufferMemory);
+    //              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBufferCloth,
+    //              mVertexBufferMemoryCloth);
 
-    CopyBuffer(stagingBuffer, mVertexBuffer, buffer_size);
+    CopyBuffer(stagingBuffer, mVertexBufferCloth, buffer_size);
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 }
@@ -933,20 +934,39 @@ void cDrawScene::CreateCommandBuffers()
 
         vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                           mGraphicsPipeline);
+        {
+            VkBuffer vertexBuffers[] = {mVertexBufferGround};
+            // VkBuffer vertexBuffers[] = {mVertexBufferGround, mVertexBufferCloth};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
+                                   offsets);
 
-        VkBuffer vertexBuffers[] = {mVertexBuffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
-                               offsets);
+            // update the uniform objects (descriptors)
+            vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
 
-        // update the uniform objects (descriptors)
-        vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
+            // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
+            // uint32_t triangle_size =  / 3;
 
-        // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
-        // uint32_t triangle_size =  / 3;
-        const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
-        SIM_ASSERT(draw_buffer.size() % 3 == 0);
-        vkCmdDraw(mCommandBuffers[i], draw_buffer.size() / 3, 1, 0, 0);
+            vkCmdDraw(mCommandBuffers[i], ground_vertices.size(), 1, 0, 0);
+        }
+        {
+            VkBuffer vertexBuffers[] = {mVertexBufferCloth};
+            // VkBuffer vertexBuffers[] = {, mVertexBufferCloth};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers,
+                                   offsets);
+
+            // update the uniform objects (descriptors)
+            vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
+
+            // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
+            // uint32_t triangle_size =  / 3;
+            const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
+            SIM_ASSERT(draw_buffer.size() % 3 == 0);
+            vkCmdDraw(mCommandBuffers[i], draw_buffer.size() / 3, 1, 0, 0);
+        }
+
+        // vkCmdDraw(mCommandBuffers[i], ground_vertices.size(), 1, 0, 0);
 
         // end render pass
         vkCmdEndRenderPass(mCommandBuffers[i]);
@@ -954,4 +974,34 @@ void cDrawScene::CreateCommandBuffers()
         SIM_ASSERT(VK_SUCCESS == vkEndCommandBuffer(mCommandBuffers[i]));
     }
     SIM_INFO("Create Command buffers succ");
+}
+
+void cDrawScene::CreateVertexBufferGround()
+{
+    VkDeviceSize buffer_size = sizeof(ground_vertices[0]) * ground_vertices.size();
+
+    // 5. copy the vertex data to the buffer
+    CreateBuffer(buffer_size,
+                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 mVertexBufferGround,
+                 mVertexBufferMemoryGround);
+}
+
+void cDrawScene::UpdateVertexBufferGround(int idx)
+{
+    // update
+    VkDeviceSize buffer_size = sizeof(ground_vertices[0]) * ground_vertices.size();
+
+    // 5. copy the vertex data to the buffer
+    void *data = nullptr;
+    // map the memory to "data" ptr;
+    vkMapMemory(mDevice, mVertexBufferMemoryGround, 0, buffer_size, 0, &data);
+
+    // write the data
+    memcpy(data, ground_vertices.data(), buffer_size);
+
+    // unmap
+    vkUnmapMemory(mDevice, mVertexBufferMemoryGround);
 }

@@ -11,10 +11,10 @@ find_package(GLFW3 REQUIRED)
 include_directories(./src)
 
 # add address sanitzer
-add_definitions(-std=c++17 -fsanitize=address -fno-omit-frame-pointer)
-# add_definitions(-std=c++17)
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+# add_definitions(-std=c++17 -fsanitize=address -fno-omit-frame-pointer)
+add_definitions(-std=c++17)
+# set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+# set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
 add_subdirectory(./src/utils)
 add_subdirectory(./src/scenes)

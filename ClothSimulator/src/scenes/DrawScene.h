@@ -45,7 +45,8 @@ private:
     void CreateSemaphores();
     void RecreateSwapChain();
     void CleanSwapChain();
-    void CreateVertexBuffer();
+    void CreateVertexBufferCloth();
+    void CreateVertexBufferGround();
     void CreateUniformBuffer();
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
@@ -53,7 +54,8 @@ private:
                       VkDeviceMemory &buffer_memory);
     void CreateDescriptorSetLayout();
     void UpdateUniformValue(int image_idx);
-    void UpdateVertexBuffer(int idx);
+    void UpdateVertexBufferCloth(int idx);
+    void UpdateVertexBufferGround(int idx);
 
     void CreateDescriptorPool();
     void CreateDescriptorSets();
@@ -86,15 +88,18 @@ private:
     std::vector<VkFence> mImagesInFlight;
     int mCurFrame;
     bool mFrameBufferResized;
-    VkBuffer mVertexBuffer;
-    VkDeviceMemory mVertexBufferMemory;
+    VkBuffer mVertexBufferCloth;
+    VkDeviceMemory mVertexBufferMemoryCloth;
 
+    VkBuffer mVertexBufferGround;
+    VkDeviceMemory mVertexBufferMemoryGround;
     // buffers used for uniform objects
     std::vector<VkBuffer> mUniformBuffers;             // MVP uniform buffer
     std::vector<VkDeviceMemory> mUniformBuffersMemory; // their memories
     VkDescriptorPool mDescriptorPool;
     std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
     std::shared_ptr<ArcBallCamera> mCamera;
+
     // simulation scene
     std::shared_ptr<cSimScene> mSimScene;
 
