@@ -5,14 +5,14 @@
 #include <iostream>
 #include <optional>
 #include <set>
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLFW_INCLUDE_VULKAN
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif
 
 #ifdef __linux__
@@ -421,6 +421,7 @@ void cDrawScene::InitVulkan()
     CreateGraphicsPipeline("line", mLinesGraphicsPipeline);
     CreateFrameBuffers();
     CreateCommandPool();
+    CreateDepthResources();
     CreateVertexBufferCloth();
     CreateVertexBufferGround();
     CreateLineBuffer();
@@ -949,7 +950,7 @@ void cDrawScene::CreateCommandBuffers()
 
         CreateTriangleCommandBuffers(i);
         CreateLineCommandBuffers(i);
-        
+
         // end render pass
         vkCmdEndRenderPass(mCommandBuffers[i]);
 

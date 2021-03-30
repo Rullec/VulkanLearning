@@ -50,6 +50,7 @@ private:
     VkShaderModule CreateShaderModule(const std::vector<char> &code);
     void CreateRenderPass();
     void CreateFrameBuffers();
+    void CreateDepthResources();
     void CreateCommandPool();
     void CreateCommandBuffers();
     void CreateTriangleCommandBuffers(int buffer_id);
@@ -115,6 +116,11 @@ private:
     VkDescriptorPool mDescriptorPool;
     std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
     std::shared_ptr<ArcBallCamera> mCamera;
+
+    // add depth attachment
+    VkImage mDepthImage;
+    VkDeviceMemory mDepthImageMemory;
+    VkImageView mDepthImageView;
 
     // simulation scene
     std::shared_ptr<cSimScene> mSimScene;
