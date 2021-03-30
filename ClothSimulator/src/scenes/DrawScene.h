@@ -46,7 +46,10 @@ private:
     void CreateSurface();
     void CreateSwapChain();
     void CreateTextureImage();
+    void CreateTextureImageView();
+    void CreateTextureSampler();
     void CreateImageViews(); // create "view" for swap chain images
+    // void CreateSingleImageView(VkImage image, VkFormat format);
     void CreateGraphicsPipeline(const std::string mode, VkPipeline &pipeline);
     VkShaderModule CreateShaderModule(const std::vector<char> &code);
     void CreateRenderPass();
@@ -120,12 +123,15 @@ private:
 
     // add ground texture image
     VkImage mTextureImage;
+    VkImageView mTextureImageView;
     VkDeviceMemory mTextureImageMemory;
 
     // add depth attachment
     VkImage mDepthImage;
     VkDeviceMemory mDepthImageMemory;
     VkImageView mDepthImageView;
+
+    VkSampler mTextureSampler;
 
     // simulation scene
     std::shared_ptr<cSimScene> mSimScene;

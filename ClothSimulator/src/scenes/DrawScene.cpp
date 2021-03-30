@@ -110,6 +110,8 @@ void cDrawScene::CleanVulkan()
 {
     CleanSwapChain();
 
+    vkDestroySampler(mDevice, mTextureSampler, nullptr);
+    vkDestroyImageView(mDevice, mTextureImageView, nullptr);
     vkDestroyImage(mDevice, mTextureImage, nullptr);
     vkFreeMemory(mDevice, mTextureImageMemory, nullptr);
 
@@ -426,6 +428,8 @@ void cDrawScene::InitVulkan()
     CreateFrameBuffers();
     CreateCommandPool();
     CreateTextureImage();
+    CreateTextureImageView();
+    CreateTextureSampler();
     CreateDepthResources();
     CreateVertexBufferCloth();
     CreateVertexBufferGround();
