@@ -3,8 +3,8 @@
 #include "utils/MathUtil.h"
 ArcBallCamera::ArcBallCamera() : CameraBase(eCameraType::ARCBALL_CAMERA)
 {
-    pos = tVector3f(2, 2, 4);
-    center = tVector3f(0, 0, 0.2);
+    pos = tVector3f(2, 2, 2);
+    center = tVector3f(0, 0, 0);
     up = tVector3f(0, 1, 0);
     front = center - pos;
     front.normalize();

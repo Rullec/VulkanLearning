@@ -84,13 +84,13 @@ tVkVertex::getAttributeDescriptions()
     2. color: vec3f \in [0, 1]
 */
 std::vector<tVkVertex> ground_vertices = {
-    {{0.0f, 0.0f, -10.0f}, {1.0f, 1.0f, 1.0f}},
-    {{-10.0f, 0.0f, 10.0f}, {1.0f, 1.0f, 0.0f}},
-    {{0.0f, 0.0f, 10.0f}, {1.0f, 0.0f, 1.0f}},
+    {{10.0f, 0.0f, -10.0f}, {1.0f, 1.0f, 1.0f}},
+    {{-10.0f, 0.0f, -10.0f}, {1.0f, 1.0f, 0.0f}},
+    {{-10.0f, 0.0f, 10.0f}, {1.0f, 0.0f, 1.0f}},
 
-    {{0.0f, 0.0f, -10.0f}, {1.0f, 1.0f, 1.0f}},
-    {{-10.0f, 0.0f, -10.0f}, {1.0f, 0.0f, 1.0f}},
-    {{-10.0f, 0.0f, 10.0f}, {1.0f, 1.0f, 0.0f}},
+    {{10.0f, 0.0f, -10.0f}, {1.0f, 1.0f, 1.0f}},
+    {{-10.0f, 0.0f, 10.0f}, {1.0f, 0.0f, 1.0f}},
+    {{10.0f, 0.0f, 10.0f}, {1.0f, 1.0f, 0.0f}},
 };
 
 // };
@@ -358,7 +358,7 @@ void cDrawScene::Init(const std::string &conf_path)
 {
     mSimScene = std::make_shared<cSimScene>();
     mSimScene->Init(conf_path);
-    mCamera = std::make_shared<ArcBallCamera>(tVector3f(2, 2, 2), tVector3f(0, 0, 0), tVector3f(0, 0, 1));
+    mCamera = std::make_shared<ArcBallCamera>(tVector3f(2, 2, 2), tVector3f(0, 0, 0), tVector3f(0, 1, 0));
 
     InitVulkan();
 
@@ -814,14 +814,23 @@ void cDrawScene::UpdateUniformValue(int image_idx)
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), 0 * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    // ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    ubo.model = glm::mat4(1.0f);
     // ubo.model = glm::identity();
     tMatrix4f eigen_view = mCamera->ViewMatrix();
     // mCamera->MoveBackward();
     // std::cout << "eigen view = \n"
     //           << eigen_view << std::endl;
+    // glm::
+    // auto eigen_to_glm_vec3 = [](const tVector3f &eigen_vec) -> glm::vec3 {
+    //     return glm::vec3(eigen_vec[0], eigen_vec[1], eigen_vec[2]);
+    // };
     ubo.view = E2GLM(eigen_view);
-    // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    // std::cout << "camera pos = " << mCamera->pos.transpose() << std::endl;
+    // std::cout << "camera center = " << mCamera->center.transpose() << std::endl;
+    // std::cout << "camera up = " << mCamera->up.transpose() << std::endl;
+    // ubo.view = glm::lookAt(eigen_to_glm_vec3(mCamera->pos), eigen_to_glm_vec3(mCamera->center), eigen_to_glm_vec3(mCamera->up));
+    // ubo.view = glm::lookAt(eigen_to_glm_vec3(mCamera->pos), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), mSwapChainExtent.width / (float)mSwapChainExtent.height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
 
