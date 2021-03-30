@@ -109,6 +109,10 @@ cDrawScene::~cDrawScene()
 void cDrawScene::CleanVulkan()
 {
     CleanSwapChain();
+
+    vkDestroyImage(mDevice, mTextureImage, nullptr);
+    vkFreeMemory(mDevice, mTextureImageMemory, nullptr);
+
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
     vkDestroyBuffer(mDevice, mVertexBufferCloth, nullptr);
     vkFreeMemory(mDevice, mVertexBufferMemoryCloth, nullptr);
@@ -421,6 +425,7 @@ void cDrawScene::InitVulkan()
     CreateGraphicsPipeline("line", mLinesGraphicsPipeline);
     CreateFrameBuffers();
     CreateCommandPool();
+    CreateTextureImage();
     CreateDepthResources();
     CreateVertexBufferCloth();
     CreateVertexBufferGround();
@@ -470,24 +475,60 @@ void cDrawScene::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
     vkBindBufferMemory(mDevice, buffer, buffer_memory, 0);
 }
 
+VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
+{
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = commandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    return commandBuffer;
+}
+
+void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkCommandBuffer commandBuffer)
+{
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(graphicsQueue);
+
+    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+}
+
 void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
                             VkDeviceSize size)
 {
-    // 1. create a command buffer
-    VkCommandBufferAllocateInfo allo_info{};
-    allo_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allo_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allo_info.commandPool = mCommandPool;
-    allo_info.commandBufferCount = 1;
-    VkCommandBuffer cmd_buffer;
-    vkAllocateCommandBuffers(mDevice, &allo_info, &cmd_buffer);
+    auto cmd_buffer = beginSingleTimeCommands(mDevice, mCommandPool);
+    // // 1. create a command buffer
+    // VkCommandBufferAllocateInfo allo_info{};
+    // allo_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    // allo_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    // allo_info.commandPool = mCommandPool;
+    // allo_info.commandBufferCount = 1;
+    // VkCommandBuffer cmd_buffer;
+    // vkAllocateCommandBuffers(mDevice, &allo_info, &cmd_buffer);
 
-    // 2. begin to record the command buffer
-    VkCommandBufferBeginInfo begin_info{};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags =
-        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we only use this command buffer for a single time
-    vkBeginCommandBuffer(cmd_buffer, &begin_info);
+    // // 2. begin to record the command buffer
+    // VkCommandBufferBeginInfo begin_info{};
+    // begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // begin_info.flags =
+    //     VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we only use this command buffer for a single time
+    // vkBeginCommandBuffer(cmd_buffer, &begin_info);
 
     // 3. copy from src to dst buffer
     VkBufferCopy copy_region{};
@@ -496,22 +537,23 @@ void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
     copy_region.size = size;
     vkCmdCopyBuffer(cmd_buffer, srcBuffer, dstBuffer, 1, &copy_region);
 
-    // 4. end recording
-    vkEndCommandBuffer(cmd_buffer);
+    endSingleTimeCommands(mDevice, mCommandPool, mGraphicsQueue, cmd_buffer);
+    // // 4. end recording
+    // vkEndCommandBuffer(cmd_buffer);
 
-    // 5. submit info
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &cmd_buffer;
+    // // 5. submit info
+    // VkSubmitInfo submit_info{};
+    // submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    // submit_info.commandBufferCount = 1;
+    // submit_info.pCommandBuffers = &cmd_buffer;
 
-    vkQueueSubmit(mGraphicsQueue, 1, &submit_info, VK_NULL_HANDLE);
+    // vkQueueSubmit(mGraphicsQueue, 1, &submit_info, VK_NULL_HANDLE);
 
-    // wait, till the queue is empty (which means all commands have been finished)
-    vkQueueWaitIdle(mGraphicsQueue);
+    // // wait, till the queue is empty (which means all commands have been finished)
+    // vkQueueWaitIdle(mGraphicsQueue);
 
-    // 6. deconstruct
-    vkFreeCommandBuffers(mDevice, mCommandPool, 1, &cmd_buffer);
+    // // 6. deconstruct
+    // vkFreeCommandBuffers(mDevice, mCommandPool, 1, &cmd_buffer);
 }
 
 void cDrawScene::CreateVertexBufferCloth()

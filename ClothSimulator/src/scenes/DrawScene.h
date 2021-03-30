@@ -45,6 +45,7 @@ private:
     void CreateLogicalDevice();
     void CreateSurface();
     void CreateSwapChain();
+    void CreateTextureImage();
     void CreateImageViews(); // create "view" for swap chain images
     void CreateGraphicsPipeline(const std::string mode, VkPipeline &pipeline);
     VkShaderModule CreateShaderModule(const std::vector<char> &code);
@@ -116,6 +117,10 @@ private:
     VkDescriptorPool mDescriptorPool;
     std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
     std::shared_ptr<ArcBallCamera> mCamera;
+
+    // add ground texture image
+    VkImage mTextureImage;
+    VkDeviceMemory mTextureImageMemory;
 
     // add depth attachment
     VkImage mDepthImage;
