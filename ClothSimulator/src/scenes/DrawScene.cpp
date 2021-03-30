@@ -58,10 +58,10 @@ VkVertexInputBindingDescription tVkVertex::getBindingDescription()
  *      The first strucutre describe the first attribute (inPosition), we give the binding, location of this attribute, and the offset
  * 
  */
-std::array<VkVertexInputAttributeDescription, 2>
+std::array<VkVertexInputAttributeDescription, 3>
 tVkVertex::getAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 2> desc{};
+    std::array<VkVertexInputAttributeDescription, 3> desc{};
 
     // position attribute
     desc[0].binding = 0; // binding point: 0
@@ -75,6 +75,13 @@ tVkVertex::getAttributeDescriptions()
     desc[1].location = 1;
     desc[1].format = VK_FORMAT_R32G32B32_SFLOAT; // used for vec3f
     desc[1].offset = offsetof(tVkVertex, color);
+
+    // texture atrribute
+    desc[2].binding = 0;
+    desc[2].location = 2;
+    desc[2].format = VK_FORMAT_R32G32_SFLOAT; // used for vec2f
+    desc[2].offset = offsetof(tVkVertex, texCoord);
+
     return desc;
 }
 
@@ -84,13 +91,13 @@ tVkVertex::getAttributeDescriptions()
     2. color: vec3f \in [0, 1]
 */
 std::vector<tVkVertex> ground_vertices = {
-    {{10.0f, 0.0f, -10.0f}, {0.7f, 0.7f, 0.7f}},
-    {{-10.0f, 0.0f, -10.0f}, {0.7f, 0.7f, 0.7f}},
-    {{-10.0f, 0.0f, 10.0f}, {0.7f, 0.7f, 0.7f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {50.0f, 0.0f}},
+    {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 50.0f}},
 
-    {{10.0f, 0.0f, -10.0f}, {0.7f, 0.7f, 0.7f}},
-    {{-10.0f, 0.0f, 10.0f}, {0.7f, 0.7f, 0.7f}},
-    {{10.0f, 0.0f, 10.0f}, {0.7f, 0.7f, 0.7f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {50.0f, 0.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 50.0f}},
+    {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {50.0f, 50.0f}},
 };
 
 // };
@@ -205,7 +212,6 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode, VkPipeline &pipe
 
     if (mode == "triangle")
     {
-
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }
     else if (mode == "line")
@@ -434,7 +440,7 @@ void cDrawScene::InitVulkan()
     CreateVertexBufferCloth();
     CreateVertexBufferGround();
     CreateLineBuffer();
-    CreateUniformBuffer();
+    CreateMVPUniformBuffer();
     CreateDescriptorPool();
     CreateDescriptorSets();
     CreateCommandBuffers();
@@ -634,7 +640,7 @@ void cDrawScene::DrawFrame()
     mImagesInFlight[imageIndex] = mImagesInFlight[mCurFrame];
 
     // updating the uniform buffer values
-    UpdateUniformValue(imageIndex);
+    UpdateMVPUniformValue(imageIndex);
     UpdateVertexBufferCloth(imageIndex);
     UpdateVertexBufferGround(imageIndex);
     UpdateLineBuffer(imageIndex);
@@ -726,15 +732,15 @@ void cDrawScene::CleanSwapChain()
 
     for (size_t i = 0; i < mSwapChainImages.size(); i++)
     {
-        vkDestroyBuffer(mDevice, mUniformBuffers[i], nullptr);
-        vkFreeMemory(mDevice, mUniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(mDevice, mMVPUniformBuffers[i], nullptr);
+        vkFreeMemory(mDevice, mMVPUniformBuffersMemory[i], nullptr);
     }
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 }
 #include "glm/glm.hpp"
 
-struct UniformBufferObject
+struct MVPUniformBufferObject
 {
     glm::mat4 model;
     glm::mat4 view;
@@ -748,18 +754,34 @@ struct UniformBufferObject
 void cDrawScene::CreateDescriptorSetLayout()
 {
     // given the binding: offer the same info in C++ side as the shaders
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0; // the binding info should be the same
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // we use the descriptor in vertex shader
-    uboLayoutBinding.pImmutableSamplers = nullptr;            // Optional
+    VkDescriptorSetLayoutBinding mvpLayoutBinding{};
+    mvpLayoutBinding.binding = 0; // the binding info should be the same
+    mvpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    mvpLayoutBinding.descriptorCount = 1;
+    mvpLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // we use the descriptor in vertex shader
+    mvpLayoutBinding.pImmutableSamplers = nullptr;            // Optional
+
+    // sampler
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    // std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, };
+    // VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    // layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    // layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    // layoutInfo.pBindings = bindings.data();
 
     // create the layout
+    std::array<VkDescriptorSetLayoutBinding, 2> ubo_set = {
+        mvpLayoutBinding, samplerLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
+    layoutInfo.bindingCount = ubo_set.size();
+    layoutInfo.pBindings = ubo_set.data();
 
     if (vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
     {
@@ -771,19 +793,19 @@ void cDrawScene::CreateDescriptorSetLayout()
 /**
  * \brief       Create buffer for uniform objects
 */
-void cDrawScene::CreateUniformBuffer()
+void cDrawScene::CreateMVPUniformBuffer()
 {
     // check the size of uniform buffer object
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+    VkDeviceSize bufferSize = sizeof(MVPUniformBufferObject);
 
     // set up the memory
-    mUniformBuffers.resize(mSwapChainImages.size());
-    mUniformBuffersMemory.resize(mSwapChainImages.size());
+    mMVPUniformBuffers.resize(mSwapChainImages.size());
+    mMVPUniformBuffersMemory.resize(mSwapChainImages.size());
 
     // create each uniform object buffer
     for (size_t i = 0; i < mSwapChainImages.size(); i++)
     {
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mUniformBuffers[i], mUniformBuffersMemory[i]);
+        CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mMVPUniformBuffers[i], mMVPUniformBuffersMemory[i]);
     }
 }
 
@@ -810,38 +832,19 @@ inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T,
     return mat;
 }
 
-void cDrawScene::UpdateUniformValue(int image_idx)
+void cDrawScene::UpdateMVPUniformValue(int image_idx)
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    UniformBufferObject ubo{};
-    // ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    MVPUniformBufferObject ubo{};
     ubo.model = glm::mat4(1.0f);
-    // ubo.model = glm::identity();
     tMatrix4f eigen_view = mCamera->ViewMatrix();
-    // mCamera->MoveBackward();
-    // std::cout << "eigen view = \n"
-    //           << eigen_view << std::endl;
-    // glm::
-    // auto eigen_to_glm_vec3 = [](const tVector3f &eigen_vec) -> glm::vec3 {
-    //     return glm::vec3(eigen_vec[0], eigen_vec[1], eigen_vec[2]);
-    // };
     ubo.view = E2GLM(eigen_view);
-    // std::cout << "camera pos = " << mCamera->pos.transpose() << std::endl;
-    // std::cout << "camera center = " << mCamera->center.transpose() << std::endl;
-    // std::cout << "camera up = " << mCamera->up.transpose() << std::endl;
-    // ubo.view = glm::lookAt(eigen_to_glm_vec3(mCamera->pos), eigen_to_glm_vec3(mCamera->center), eigen_to_glm_vec3(mCamera->up));
-    // ubo.view = glm::lookAt(eigen_to_glm_vec3(mCamera->pos), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), mSwapChainExtent.width / (float)mSwapChainExtent.height, 0.1f, 10.0f);
+    ubo.proj = glm::perspective(glm::radians(45.0f), mSwapChainExtent.width / (float)mSwapChainExtent.height, 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
 
     void *data;
-    vkMapMemory(mDevice, mUniformBuffersMemory[image_idx], 0, sizeof(ubo), 0, &data);
+    vkMapMemory(mDevice, mMVPUniformBuffersMemory[image_idx], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(mDevice, mUniformBuffersMemory[image_idx]);
+    vkUnmapMemory(mDevice, mMVPUniformBuffersMemory[image_idx]);
 }
 
 void cDrawScene::UpdateVertexBufferCloth(int image_idx)
@@ -883,15 +886,31 @@ void cDrawScene::UpdateVertexBufferCloth(int image_idx)
 */
 void cDrawScene::CreateDescriptorPool()
 {
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(mSwapChainImages.size());
+    // VkDescriptorPoolSize poolSize{};
+    // poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    // poolSize.descriptorCount = static_cast<uint32_t>(mSwapChainImages.size());
+
+    // VkDescriptorPoolCreateInfo poolInfo{};
+    // poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    // poolInfo.poolSizeCount = 1;
+    // poolInfo.pPoolSizes = &poolSize;
+
+    // poolInfo.maxSets = static_cast<uint32_t>(mSwapChainImages.size());
+
+    // if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS)
+    // {
+    //     throw std::runtime_error("failed to create descriptor pool!");
+    // }
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(mSwapChainImages.size());
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(mSwapChainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
-
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(mSwapChainImages.size());
 
     if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS)
@@ -903,6 +922,7 @@ void cDrawScene::CreateDescriptorPool()
 void cDrawScene::CreateDescriptorSets()
 
 {
+    // std::cout << "begin to create descriptor set\n";
     // create the descriptor set
     std::vector<VkDescriptorSetLayout> layouts(mSwapChainImages.size(), mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -920,24 +940,41 @@ void cDrawScene::CreateDescriptorSets()
     // mSwapChainImages; mUniformBuffers;
     for (size_t i = 0; i < mSwapChainImages.size(); i++)
     {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = mUniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+        // printf("---------------%d----------------\n", i);
+        VkDescriptorBufferInfo mvpbufferinfo{};
+        mvpbufferinfo.buffer = mMVPUniformBuffers[i];
+        mvpbufferinfo.offset = 0;
+        mvpbufferinfo.range = sizeof(MVPUniformBufferObject);
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = mTextureImageView;
+        imageInfo.sampler = mTextureSampler;
 
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pImageInfo = nullptr;       // Optional
-        descriptorWrite.pTexelBufferView = nullptr; // Optional
-        vkUpdateDescriptorSets(mDevice, 1, &descriptorWrite, 0, nullptr);
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = mDescriptorSets[i];
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &mvpbufferinfo;
+
+        {
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = mDescriptorSets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &imageInfo;
+        }
+        vkUpdateDescriptorSets(mDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
     }
+    // std::cout << "end to create descriptor set\n";
+    // exit(0);
 }
 
 /**

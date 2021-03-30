@@ -130,7 +130,7 @@ void cSimScene::InitGeometry()
     int num_of_square = mSubdivision * mSubdivision;
     int num_of_triangles = num_of_square * 2;
     int num_of_vertices = num_of_triangles * 3;
-    int size_per_vertices = 6;
+    int size_per_vertices = 8;
     mDrawBuffer.resize(num_of_vertices * size_per_vertices);
 
     CalcDrawBuffer();
@@ -196,13 +196,13 @@ void CalcTriangleDrawBuffer(tVertex *v0, tVertex *v1, tVertex *v2, tVectorXf &bu
     // std::cout << "buffer size " << buffer.size() << " st pos " << st_pos << std::endl;
     buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = v0->mColor.segment(0, 3).cast<float>();
-    st_pos += 6;
+    st_pos += 8;
     buffer.segment(st_pos, 3) = v1->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = v1->mColor.segment(0, 3).cast<float>();
-    st_pos += 6;
+    st_pos += 8;
     buffer.segment(st_pos, 3) = v2->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = v2->mColor.segment(0, 3).cast<float>();
-    st_pos += 6;
+    st_pos += 8;
 }
 
 const tVectorXf &cSimScene::GetDrawBuffer()
@@ -214,6 +214,7 @@ const tVectorXf &cSimScene::GetDrawBuffer()
 */
 void cSimScene::CalcDrawBuffer()
 {
+    mDrawBuffer.fill(std::nan(""));
     // counter clockwise
     int gap = mSubdivision + 1;
     int st = 0;

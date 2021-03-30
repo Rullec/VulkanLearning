@@ -791,10 +791,12 @@ void cDrawScene::RecreateSwapChain()
     CreateGraphicsPipeline("triangle", mTriangleGraphicsPipeline);
     CreateGraphicsPipeline("line", mLinesGraphicsPipeline);
     CreateFrameBuffers();
-    CreateUniformBuffer();
+    CreateMVPUniformBuffer();
     CreateDescriptorPool();
     CreateDescriptorSets();
     CreateCommandBuffers();
+
+    mImagesInFlight.resize(mSwapChainImages.size(), VK_NULL_HANDLE);
 }
 
 std::vector<tVkVertex> axes_vertices = {

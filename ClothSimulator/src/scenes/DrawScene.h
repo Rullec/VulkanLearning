@@ -8,8 +8,9 @@ struct tVkVertex
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     tVector3f pos;
     tVector3f color;
+    tVector2f texCoord;
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 2>
+    static std::array<VkVertexInputAttributeDescription, 3>
     getAttributeDescriptions();
 };
 /**
@@ -65,13 +66,13 @@ private:
     void CreateVertexBufferCloth();
     void CreateVertexBufferGround();
     void CreateLineBuffer();
-    void CreateUniformBuffer();
+    void CreateMVPUniformBuffer();
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
                       VkMemoryPropertyFlags props, VkBuffer &buffer,
                       VkDeviceMemory &buffer_memory);
     void CreateDescriptorSetLayout();
-    void UpdateUniformValue(int image_idx);
+    void UpdateMVPUniformValue(int image_idx);
     void UpdateVertexBufferCloth(int idx);
     void UpdateVertexBufferGround(int idx);
     void UpdateLineBuffer(int idx);
@@ -115,8 +116,8 @@ private:
     VkBuffer mLineBuffer;
     VkDeviceMemory mLineBufferMemory;
     // buffers used for uniform objects
-    std::vector<VkBuffer> mUniformBuffers;             // MVP uniform buffer
-    std::vector<VkDeviceMemory> mUniformBuffersMemory; // their memories
+    std::vector<VkBuffer> mMVPUniformBuffers;                   // MVP uniform buffer
+    std::vector<VkDeviceMemory> mMVPUniformBuffersMemory;       // their memories
     VkDescriptorPool mDescriptorPool;
     std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
     std::shared_ptr<ArcBallCamera> mCamera;
