@@ -801,14 +801,14 @@ void cDrawScene::RecreateSwapChain()
 
 std::vector<tVkVertex> axes_vertices = {
     // X
-    {{0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    {{100.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    {{0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {std::nan(""), std::nan("")}},
+    {{100.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {std::nan(""), std::nan("")}},
     // Y
-    {{0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-    {{0.0f, 100.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    {{0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {std::nan(""), std::nan("")}},
+    {{0.0f, 100.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {std::nan(""), std::nan("")}},
     // Z
-    {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-    {{0.0f, 0.0f, 100.0f}, {0.0f, 0.0f, 1.0f}},
+    {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {std::nan(""), std::nan("")}},
+    {{0.0f, 0.0f, 100.0f}, {0.0f, 0.0f, 1.0f}, {std::nan(""), std::nan("")}},
 };
 
 void cDrawScene::CreateLineCommandBuffers(int i)
@@ -822,12 +822,12 @@ void cDrawScene::CreateLineCommandBuffers(int i)
 
     vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
 
-    vkCmdDraw(mCommandBuffers[i], axes_vertices.size(), 1, 0, 0);
+    vkCmdDraw(mCommandBuffers[i], GetNumOfLineVertices(), 1, 0, 0);
 }
 
 void cDrawScene::CreateLineBuffer()
 {
-    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * axes_vertices.size();
+    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * GetNumOfLineVertices();
     CreateBuffer(buffer_size,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -839,7 +839,7 @@ void cDrawScene::CreateLineBuffer()
 void cDrawScene::UpdateLineBuffer(int idx)
 {
     // update
-    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * axes_vertices.size();
+    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * GetNumOfLineVertices();
 
     // 5. copy the vertex data to the buffer
     void *data = nullptr;
@@ -847,7 +847,10 @@ void cDrawScene::UpdateLineBuffer(int idx)
     vkMapMemory(mDevice, mLineBufferMemory, 0, buffer_size, 0, &data);
 
     // write the data
-    memcpy(data, axes_vertices.data(), buffer_size);
+    const tVectorXf &cloth_edge_data = mSimScene->GetEdgesDrawBuffer();
+    char *char_data = static_cast<char *>(data);
+    memcpy(char_data, axes_vertices.data(), sizeof(axes_vertices[0]) * axes_vertices.size());
+    memcpy(char_data + sizeof(axes_vertices[0]) * axes_vertices.size(), cloth_edge_data.data(), sizeof(cloth_edge_data[0]) * cloth_edge_data.size());
 
     // unmap
     vkUnmapMemory(mDevice, mLineBufferMemory);
@@ -1133,4 +1136,10 @@ void cDrawScene::CreateTextureSampler()
     {
         throw std::runtime_error("failed to create texture sampler!");
     }
+}
+
+int cDrawScene::GetNumOfLineVertices() const
+{
+    const tVectorXf &result = mSimScene->GetEdgesDrawBuffer();
+    return axes_vertices.size() + result.size() / 8;
 }

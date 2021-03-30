@@ -79,6 +79,7 @@ private:
 
     void CreateDescriptorPool();
     void CreateDescriptorSets();
+    int GetNumOfLineVertices() const;
     VkInstance mInstance;
     VkPhysicalDevice mPhysicalDevice;
     VkDevice mDevice;       // logical device
@@ -116,8 +117,8 @@ private:
     VkBuffer mLineBuffer;
     VkDeviceMemory mLineBufferMemory;
     // buffers used for uniform objects
-    std::vector<VkBuffer> mMVPUniformBuffers;                   // MVP uniform buffer
-    std::vector<VkDeviceMemory> mMVPUniformBuffersMemory;       // their memories
+    std::vector<VkBuffer> mMVPUniformBuffers;             // MVP uniform buffer
+    std::vector<VkDeviceMemory> mMVPUniformBuffersMemory; // their memories
     VkDescriptorPool mDescriptorPool;
     std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
     std::shared_ptr<ArcBallCamera> mCamera;

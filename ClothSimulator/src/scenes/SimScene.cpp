@@ -50,7 +50,8 @@ void cSimScene::Update(double dt)
     // 3. forward simulation
     CalcNextPosition();
     // 4. post process
-    CalcDrawBuffer();
+    CalcTriangleDrawBuffer();
+    CalcEdgesDrawBuffer();
 }
 
 /**
@@ -120,20 +121,28 @@ void cSimScene::InitGeometry()
                     unit_edge_length * j,
                     0,
                     1);
-                v->mColor = tVector::Ones();
+                v->mColor = tVector(0, 196.0 / 255, 1, 0);
                 mVertexArray.push_back(v);
                 printf("create vertex %d at (%.3f, %.3f)\n", mVertexArray.size() - 1, v->mPos[0], v->mPos[1]);
             }
     }
 
     // init the buffer
-    int num_of_square = mSubdivision * mSubdivision;
-    int num_of_triangles = num_of_square * 2;
-    int num_of_vertices = num_of_triangles * 3;
-    int size_per_vertices = 8;
-    mDrawBuffer.resize(num_of_vertices * size_per_vertices);
+    {
+        int num_of_square = mSubdivision * mSubdivision;
+        int num_of_triangles = num_of_square * 2;
+        int num_of_vertices = num_of_triangles * 3;
+        int size_per_vertices = 8;
+        mTriangleDrawBuffer.resize(num_of_vertices * size_per_vertices);
+    }
+    {
+        int num_of_edges = 2 * (gap - 1) * gap;
+        int size_per_edge = 16;
+        mEdgesDrawBuffer.resize(num_of_edges * size_per_edge);
+    }
 
-    CalcDrawBuffer();
+    CalcTriangleDrawBuffer();
+    CalcEdgesDrawBuffer();
 }
 
 /**
@@ -191,7 +200,7 @@ cSimScene::~cSimScene()
     mVertexArray.clear();
     mSpringArray.clear();
 }
-void CalcTriangleDrawBuffer(tVertex *v0, tVertex *v1, tVertex *v2, tVectorXf &buffer, int &st_pos)
+void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2, tVectorXf &buffer, int &st_pos)
 {
     // std::cout << "buffer size " << buffer.size() << " st pos " << st_pos << std::endl;
     buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
@@ -204,17 +213,27 @@ void CalcTriangleDrawBuffer(tVertex *v0, tVertex *v1, tVertex *v2, tVectorXf &bu
     buffer.segment(st_pos + 3, 3) = v2->mColor.segment(0, 3).cast<float>();
     st_pos += 8;
 }
-
-const tVectorXf &cSimScene::GetDrawBuffer()
+void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, tVectorXf &buffer, int &st_pos)
 {
-    return mDrawBuffer;
+
+    buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
+    buffer.segment(st_pos + 3, 3) = tVector3f(0, 0, 0);
+    st_pos += 8;
+    buffer.segment(st_pos, 3) = v1->mPos.segment(0, 3).cast<float>();
+    buffer.segment(st_pos + 3, 3) = tVector3f(0, 0, 0);
+    st_pos += 8;
+}
+
+const tVectorXf &cSimScene::GetTriangleDrawBuffer()
+{
+    return mTriangleDrawBuffer;
 }
 /**
  * \brief           Calculate vertex rendering data
 */
-void cSimScene::CalcDrawBuffer()
+void cSimScene::CalcTriangleDrawBuffer()
 {
-    mDrawBuffer.fill(std::nan(""));
+    mTriangleDrawBuffer.fill(std::nan(""));
     // counter clockwise
     int gap = mSubdivision + 1;
     int st = 0;
@@ -227,7 +246,41 @@ void cSimScene::CalcDrawBuffer()
             int left_down = left_up + gap;
             int right_down = right_up + gap;
             // mVertexArray[left_up]->mPos *= (1 + 1e-3);
-            CalcTriangleDrawBuffer(mVertexArray[right_down], mVertexArray[left_up], mVertexArray[left_down], mDrawBuffer, st);
-            CalcTriangleDrawBuffer(mVertexArray[right_down], mVertexArray[right_up], mVertexArray[left_up], mDrawBuffer, st);
+            CalcTriangleDrawBufferSingle(mVertexArray[right_down], mVertexArray[left_up], mVertexArray[left_down], mTriangleDrawBuffer, st);
+            CalcTriangleDrawBufferSingle(mVertexArray[right_down], mVertexArray[right_up], mVertexArray[left_up], mTriangleDrawBuffer, st);
         }
+}
+
+const tVectorXf &cSimScene::GetEdgesDrawBuffer()
+{
+    return mEdgesDrawBuffer;
+}
+
+void cSimScene::CalcEdgesDrawBuffer()
+{
+    mEdgesDrawBuffer.fill(std::nan(""));
+    int st = 0;
+    int gap = mSubdivision + 1;
+
+    // for all row lines' edges
+    for (int i = 0; i < mSubdivision + 1; i++)
+    {
+        for (int j = 0; j < mSubdivision; j++)
+        {
+            // printf("[debug] edge from %d to %d: st %d / %d\n", i, j, st, mEdgesDrawBuffer.size());
+            // if i is row index
+            {
+                int Id0 = gap * i + j;
+                int Id1 = gap * i + j + 1;
+                CalcEdgeDrawBufferSingle(mVertexArray[Id0], mVertexArray[Id1], mEdgesDrawBuffer, st);
+            }
+            // if i is column index
+            {
+
+                int Id0 = gap * j + i;
+                int Id1 = gap * (j + 1) + i;
+                CalcEdgeDrawBufferSingle(mVertexArray[Id0], mVertexArray[Id1], mEdgesDrawBuffer, st);
+            }
+        }
+    }
 }

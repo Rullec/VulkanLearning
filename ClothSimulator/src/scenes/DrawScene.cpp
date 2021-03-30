@@ -91,13 +91,13 @@ tVkVertex::getAttributeDescriptions()
     2. color: vec3f \in [0, 1]
 */
 std::vector<tVkVertex> ground_vertices = {
-    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {50.0f, 0.0f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {500.0f, 0.0f}},
     {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
-    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 50.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 500.0f}},
 
-    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {50.0f, 0.0f}},
-    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 50.0f}},
-    {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {50.0f, 50.0f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {500.0f, 0.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 500.0f}},
+    {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {500.0f, 500.0f}},
 };
 
 // };
@@ -568,7 +568,7 @@ void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
 
 void cDrawScene::CreateVertexBufferCloth()
 {
-    const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
+    const tVectorXf &draw_buffer = mSimScene->GetTriangleDrawBuffer();
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -849,7 +849,7 @@ void cDrawScene::UpdateMVPUniformValue(int image_idx)
 
 void cDrawScene::UpdateVertexBufferCloth(int image_idx)
 {
-    const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
+    const tVectorXf &draw_buffer = mSimScene->GetTriangleDrawBuffer();
     // update
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
     VkBuffer stagingBuffer;
@@ -1012,7 +1012,7 @@ void cDrawScene::CreateCommandBuffers()
         renderPassInfo.renderArea.offset = {0, 0};
 
         // full black clear color
-        VkClearValue clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
+        VkClearValue clear_color = {1.0f, 1.0f, 1.0f, 1.0f};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clear_color;
 
@@ -1092,7 +1092,7 @@ void cDrawScene::CreateTriangleCommandBuffers(int i)
 
         // draaaaaaaaaaaaaaaaaaaaaaaaaaaaw!
         // uint32_t triangle_size =  / 3;
-        const tVectorXf &draw_buffer = mSimScene->GetDrawBuffer();
+        const tVectorXf &draw_buffer = mSimScene->GetTriangleDrawBuffer();
         SIM_ASSERT(draw_buffer.size() % 3 == 0);
         vkCmdDraw(mCommandBuffers[i], draw_buffer.size() / 3, 1, 0, 0);
     }
