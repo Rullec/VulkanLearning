@@ -848,9 +848,9 @@ void cDrawScene::UpdateLineBuffer(int idx)
 /**
  * \brief           Given physical device and tiling/feature requirements, select the cnadidates VkFormat used for depth attachment.
 */
-VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice, std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice, const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
-    for (VkFormat &format : candidates)
+    for (const auto &format : candidates)
     {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(mPhyDevice, format, &props);
@@ -876,8 +876,7 @@ VkFormat findDepthFormat(VkPhysicalDevice phy_device)
         VK_FORMAT_D32_SFLOAT_S8_UINT: both depth and stencil buffer
         VK_FORMAT_D24_UNORM_S8_UINT: both depth and stencil buffer
     */
-    return findSupportedFormat(phy_device,
-                               {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+    return findSupportedFormat(phy_device, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
                                VK_IMAGE_TILING_OPTIMAL,
                                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
@@ -890,10 +889,26 @@ bool HasStencilComponent(VkFormat format)
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
+uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+    {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
+}
+
 /**
  * \brief           create image
 */
-void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory)
+void createImage(VkDevice device, VkPhysicalDevice phy_device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -921,7 +936,7 @@ void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = findMemoryType(phy_device, memRequirements.memoryTypeBits, properties);
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
     {
@@ -934,7 +949,7 @@ void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling
 /**
  * \brief           Create image view
 */
-VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -965,8 +980,8 @@ void cDrawScene::CreateDepthResources()
     VkFormat depth_format = findDepthFormat(mPhysicalDevice);
 
     // create depth image
-    createImage(mSwapChainExtent.width, mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage, mDepthImageMemory);
+    createImage(mDevice, mPhysicalDevice, mSwapChainExtent.width, mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage, mDepthImageMemory);
 
     // create image view
-    mDepthImageView =  CreateImageView(mDepthImage, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+    mDepthImageView = CreateImageView(mDevice, mDepthImage, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 }

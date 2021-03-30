@@ -432,28 +432,8 @@ void cDrawScene::InitVulkan()
     CreateSemaphores();
 }
 
-uint32_t findMemoryType(VkPhysicalDevice phy_device, uint32_t typeFilter,
-                        VkMemoryPropertyFlags props)
-{
-    // get the memory info from the physical device
-    VkPhysicalDeviceMemoryProperties mem_props{};
-    vkGetPhysicalDeviceMemoryProperties(phy_device, &mem_props);
-
-    for (uint32_t i = 0; i < mem_props.memoryTypeCount; i++)
-    {
-        // 1, 2, 4, 8, ...
-        // the memory must meet the props (such as visible from the CPU)
-        if ((typeFilter & (1 << i)) &&
-            (mem_props.memoryTypes[i].propertyFlags & props) == props)
-        {
-            return i;
-        }
-    }
-    SIM_ERROR("failed to find suitable memory type for filter {} in {} types",
-              typeFilter, mem_props.memoryTypeCount);
-    return 0;
-}
-
+extern uint32_t findMemoryType(VkPhysicalDevice phy_device, uint32_t typeFilter,
+                               VkMemoryPropertyFlags props);
 void cDrawScene::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
                               VkMemoryPropertyFlags props, VkBuffer &buffer,
                               VkDeviceMemory &buffer_memory)
