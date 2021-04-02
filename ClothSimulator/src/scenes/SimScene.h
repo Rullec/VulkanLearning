@@ -38,16 +38,17 @@ protected:
     tVectorXd mIntForce;                             // internal force
     tVectorXd mExtForce;                             // external force
     tVectorXd mInvMassMatrixDiag;                    // diag inv mass matrix
-
-    void InitGeometry();            // discretazation from square cloth to
-    void ClearForce();              // clear all forces
-    void CalcInvMassMatrix() const; // inv mass mat
-    void CalcExtForce() const;
-    void CalcIntForce() const;
-    void CalcNextPosition();       // forward simulation
+    tVectorXd mXpre, mXcur;                          // previous node position & current node position
+    void InitGeometry();                             // discretazation from square cloth to
+    void ClearForce();                               // clear all forces
+    void CalcInvMassMatrix() const;                  // inv mass mat
+    void CalcExtForce(tVectorXd &ext_force) const;
+    void CalcIntForce(tVectorXd &int_force) const;
+    tVectorXd CalcNextPosition();  // forward simulation
     void CalcTriangleDrawBuffer(); //
     void CalcEdgesDrawBuffer();    //
     void GetVertexRenderingData();
     int GetNumOfVertices() const;
     int GetNumOfFreedom() const;
+    void CalcNodePositionVector(tVectorXd &pos) const;
 };

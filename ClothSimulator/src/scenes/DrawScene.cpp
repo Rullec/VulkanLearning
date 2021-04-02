@@ -28,8 +28,15 @@
 
 std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
+
+#ifdef __APPLE__
+std::vector<const char *> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_portability_subset"};
+#else
 std::vector<const char *> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+#endif
+
 extern GLFWwindow *window;
 
 #ifdef NDEBUG
@@ -90,14 +97,15 @@ tVkVertex::getAttributeDescriptions()
     1. position: vec2f in NDC
     2. color: vec3f \in [0, 1]
 */
+const float ground_scale = 100.0;
 std::vector<tVkVertex> ground_vertices = {
-    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {500.0f, 0.0f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
     {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
-    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 500.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
 
-    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {500.0f, 0.0f}},
-    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 500.0f}},
-    {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {500.0f, 500.0f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
+    {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, ground_scale}},
 };
 
 // };
@@ -327,6 +335,19 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode, VkPipeline &pipe
                                       &mPipelineLayout) == VK_SUCCESS);
     // }
 
+    // add depth test
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f; // Optional
+    depthStencil.maxDepthBounds = 1.0f; // Optional
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.front = {}; // Optional
+    depthStencil.back = {};  // Optional
+
     // create the final pipeline
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -337,7 +358,7 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode, VkPipeline &pipe
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &raster_info;
     pipelineInfo.pMultisampleState = &multisampling_info;
-    pipelineInfo.pDepthStencilState = nullptr;
+    pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlendState_info;
     pipelineInfo.pDynamicState = nullptr;
     pipelineInfo.layout = mPipelineLayout;
@@ -345,7 +366,6 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode, VkPipeline &pipe
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
-
     SIM_ASSERT(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1,
                                          &pipelineInfo, nullptr,
                                          &pipeline) == VK_SUCCESS)
@@ -440,12 +460,12 @@ void cDrawScene::InitVulkan()
     CreateDescriptorSetLayout();
     CreateGraphicsPipeline("triangle", mTriangleGraphicsPipeline);
     CreateGraphicsPipeline("line", mLinesGraphicsPipeline);
-    CreateFrameBuffers();
     CreateCommandPool();
+    CreateDepthResources();
+    CreateFrameBuffers();
     CreateTextureImage();
     CreateTextureImageView();
     CreateTextureSampler();
-    CreateDepthResources();
     CreateVertexBufferCloth();
     CreateVertexBufferGround();
     CreateLineBuffer();
@@ -755,6 +775,7 @@ void cDrawScene::CleanSwapChain()
 
 struct MVPUniformBufferObject
 {
+    glm::vec4 camera_pos;
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
@@ -848,6 +869,8 @@ inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T,
 void cDrawScene::UpdateMVPUniformValue(int image_idx)
 {
     MVPUniformBufferObject ubo{};
+    ubo.camera_pos = glm::vec4(mCamera->pos[0], mCamera->pos[1], mCamera->pos[2], 1.0f);
+    // std::cout << "camera pos = " << mCamera->pos.transpose() << std::endl;
     ubo.model = glm::mat4(1.0f);
     tMatrix4f eigen_view = mCamera->ViewMatrix();
     ubo.view = E2GLM(eigen_view);
@@ -1024,10 +1047,17 @@ void cDrawScene::CreateCommandBuffers()
         renderPassInfo.renderArea.extent = mSwapChainExtent;
         renderPassInfo.renderArea.offset = {0, 0};
 
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = {1.0f, 1.0f, 1.0f, 1.0f};
+        clearValues[1].depthStencil = {1.0f, 0};
+
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
         // full black clear color
-        VkClearValue clear_color = {1.0f, 1.0f, 1.0f, 1.0f};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clear_color;
+        // VkClearValue clear_color = {1.0f, 1.0f, 1.0f, 1.0f};
+        renderPassInfo.clearValueCount = clearValues.size();
+        renderPassInfo.pClearValues = clearValues.data();
 
         // begin render pass
         vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo,

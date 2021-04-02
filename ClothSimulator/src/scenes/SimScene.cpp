@@ -34,6 +34,17 @@ void cSimScene::Init(const std::string &conf_path)
     SIM_INFO("cloth total width {} subdivision {}", mClothWidth, mSubdivision);
     // 2. create geometry, dot allocation
     InitGeometry();
+
+    // 3. set up the init pos
+    CalcNodePositionVector(mXpre);
+    mXcur.noalias() = mXpre;
+
+    // 4. init the inv mass vector
+    mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        mInvMassMatrixDiag.segment(i * 3, 3).fill(1.0 / mVertexArray[i]->mMass);
+    }
     std::cout << "init sim scene done\n";
 }
 
@@ -42,16 +53,28 @@ void cSimScene::Init(const std::string &conf_path)
 */
 void cSimScene::Update(double dt)
 {
+    cScene::Update(dt);
+    printf("[debug] sim scene update %.4f\n", dt);
     // 1. clear force
     ClearForce();
     // 2. calculate force
-    CalcIntForce();
-    CalcExtForce();
+    CalcIntForce(mIntForce);
+    CalcExtForce(mExtForce);
+    std::cout << "mInt force = " << mIntForce.transpose() << std::endl;
+    std::cout << "mExt force = " << mExtForce.transpose() << std::endl;
     // 3. forward simulation
-    CalcNextPosition();
+    tVectorXd mXnext = CalcNextPosition();
+    mXpre = mXcur;
+    mXcur = mXnext;
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        mVertexArray[i]->mPos.segment(0, 3).noalias() = mXcur.segment(i * 3, 3);
+    }
     // 4. post process
     CalcTriangleDrawBuffer();
     CalcEdgesDrawBuffer();
+    std::cout << "xcur = " << mXcur.transpose() << std::endl;
+    SIM_ASSERT(mXcur.hasNaN() == false);
 }
 
 /**
@@ -152,6 +175,7 @@ void cSimScene::ClearForce()
 {
     int dof = GetNumOfFreedom();
     mIntForce.noalias() = tVectorXd::Zero(dof);
+    mExtForce.noalias() = tVectorXd::Zero(dof);
 }
 
 /**
@@ -164,22 +188,52 @@ void cSimScene::CalcInvMassMatrix() const
 /**
  * \brief       external force
 */
-void cSimScene::CalcExtForce() const
+extern const tVector gGravity;
+void cSimScene::CalcExtForce(tVectorXd &ext_force) const
 {
+    // apply gravity
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        ext_force.segment(3 * i, 3) += gGravity.segment(0, 3) * mVertexArray[i]->mMass;
+    }
 }
 
 /**
  * \brief       internal force
 */
-void cSimScene::CalcIntForce() const
+void cSimScene::CalcIntForce(tVectorXd &int_force) const
 {
+    int id0, id1;
+    tVector pos0, pos1;
+    double dist;
+    for (auto &spr : this->mSpringArray)
+    {
+        // 1. calcualte internal force for each spring
+        id0 = spr->mId0;
+        id1 = spr->mId1;
+        pos0 = mVertexArray[id0]->mPos;
+        pos1 = mVertexArray[id1]->mPos;
+        dist = (pos0 - pos1).norm();
+        tVector3d force0 = spr->mK * (dist - spr->mRawLength) * (pos0 - pos1).segment(0, 3) / dist;
+        tVector3d force1 = -force0;
+
+        // 2. add force
+        int_force.segment(3 * id0, 3) += force0.segment(0, 3);
+        int_force.segment(3 * id1, 3) += force1.segment(0, 3);
+    }
 }
 
 /**
  * \brief       Given total force, calcualte the next vertices' position
 */
-void cSimScene::CalcNextPosition()
+tVectorXd cSimScene::CalcNextPosition()
 {
+    /*
+        semi implicit
+        X_next = dt2 * Minv * Ftotal + 2 * Xcur - Xpre
+    */
+    double dt2 = mCurdt * mCurdt;
+    return dt2 * mInvMassMatrixDiag.cwiseProduct(mIntForce + mExtForce) + 2 * mXcur - mXpre;
 }
 void cSimScene::GetVertexRenderingData()
 {
@@ -282,5 +336,17 @@ void cSimScene::CalcEdgesDrawBuffer()
                 CalcEdgeDrawBufferSingle(mVertexArray[Id0], mVertexArray[Id1], mEdgesDrawBuffer, st);
             }
         }
+    }
+}
+
+void cSimScene::CalcNodePositionVector(tVectorXd &pos) const
+{
+    if (pos.size() != GetNumOfFreedom())
+    {
+        pos.noalias() = tVectorXd::Zero(GetNumOfFreedom());
+    }
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        pos.segment(i * 3, 3) = mVertexArray[i]->mPos.segment(0, 3);
     }
 }

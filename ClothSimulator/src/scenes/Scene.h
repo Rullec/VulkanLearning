@@ -7,6 +7,9 @@ public:
     explicit cScene();
     virtual ~cScene();
     virtual void Init(const std::string &conf_path) = 0;
-    virtual void Update(double dt) = 0;
+    virtual void Update(double dt);
     virtual void Reset() = 0;
+
+protected:
+    double mCurdt;
 };

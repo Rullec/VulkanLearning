@@ -228,10 +228,10 @@ bool IsDeviceSuitable(VkPhysicalDevice &dev, VkSurfaceKHR surface)
     }
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(dev, &supportedFeatures);
-    std::cout << "indices complete " << indices.IsComplete() << std::endl;
-    std::cout << "extensions support " << extensionsSupported << std::endl;
-    std::cout << "swapChainAdequate " << swapChainAdequate << std::endl;
-    std::cout << "supportedFeatures.samplerAnisotropy " << supportedFeatures.samplerAnisotropy << std::endl;
+    // std::cout << "indices complete " << indices.IsComplete() << std::endl;
+    // std::cout << "extensions support " << extensionsSupported << std::endl;
+    // std::cout << "swapChainAdequate " << swapChainAdequate << std::endl;
+    // std::cout << "supportedFeatures.samplerAnisotropy " << supportedFeatures.samplerAnisotropy << std::endl;
     return indices.IsComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
@@ -653,6 +653,42 @@ VkShaderModule cDrawScene::CreateShaderModule(const std::vector<char> &code)
     return module;
 }
 
+/**
+ * \brief           Given physical device and tiling/feature requirements, select the cnadidates VkFormat used for depth attachment.
+*/
+VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice, const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+    for (const auto &format : candidates)
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(mPhyDevice, format, &props);
+
+        // tiling feature
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+        {
+            return format;
+        }
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+        {
+            return format;
+        }
+    }
+    exit(0);
+}
+
+VkFormat findDepthFormat(VkPhysicalDevice phy_device)
+{
+    /*
+        For these candidates:
+        VK_FORMAT_D32_SFLOAT: only depth buffer
+        VK_FORMAT_D32_SFLOAT_S8_UINT: both depth and stencil buffer
+        VK_FORMAT_D24_UNORM_S8_UINT: both depth and stencil buffer
+    */
+    return findSupportedFormat(phy_device, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+                               VK_IMAGE_TILING_OPTIMAL,
+                               VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
 void cDrawScene::CreateRenderPass()
 {
     // describe the renderpass setting: an attachment is an image used in a framebuffer.
@@ -676,27 +712,44 @@ void cDrawScene::CreateRenderPass()
         0; // we have only one attachement, so it's 0
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    // add depth attachment
+    VkAttachmentDescription depthAttachment{};
+    depthAttachment.format = findDepthFormat(mPhysicalDevice);
+    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthAttachmentRef{};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     // subpass
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint =
         VK_PIPELINE_BIND_POINT_GRAPHICS; // for display, not computing
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     // which is the precedence this subpass comes from? where will it go?
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    // support color and depth attachment
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
     // render pass
+    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.attachmentCount = attachments.size();
+    renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 1;
@@ -712,12 +765,15 @@ void cDrawScene::CreateFrameBuffers()
 
     for (int i = 0; i < mSwapChainImageViews.size(); i++)
     {
-        VkImageView attachments[] = {mSwapChainImageViews[i]};
+        std::array<VkImageView, 2> attachments = {
+            mSwapChainImageViews[i],
+            mDepthImageView};
+        // VkImageView attachments[] = {mSwapChainImageViews[i]};
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = mRenderPass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.attachmentCount = attachments.size();
+        framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = mSwapChainExtent.width;
         framebufferInfo.height = mSwapChainExtent.height;
         framebufferInfo.layers = 1;
@@ -854,42 +910,6 @@ void cDrawScene::UpdateLineBuffer(int idx)
 }
 
 /**
- * \brief           Given physical device and tiling/feature requirements, select the cnadidates VkFormat used for depth attachment.
-*/
-VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice, const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
-{
-    for (const auto &format : candidates)
-    {
-        VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(mPhyDevice, format, &props);
-
-        // tiling feature
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-        {
-            return format;
-        }
-        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-        {
-            return format;
-        }
-    }
-    exit(0);
-}
-
-VkFormat findDepthFormat(VkPhysicalDevice phy_device)
-{
-    /*
-        For these candidates:
-        VK_FORMAT_D32_SFLOAT: only depth buffer
-        VK_FORMAT_D32_SFLOAT_S8_UINT: both depth and stencil buffer
-        VK_FORMAT_D24_UNORM_S8_UINT: both depth and stencil buffer
-    */
-    return findSupportedFormat(phy_device, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-                               VK_IMAGE_TILING_OPTIMAL,
-                               VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-}
-
-/**
  * \brief       judge whether a format contains the stencil buffer
 */
 bool HasStencilComponent(VkFormat format)
@@ -954,21 +974,6 @@ void CreateImage(VkDevice device, VkPhysicalDevice phy_device, uint32_t width, u
     vkBindImageMemory(device, image, imageMemory, 0);
 }
 
-/**
- * \brief           create depth resource
-*/
-void cDrawScene::CreateDepthResources()
-{
-    // 1. select a suitable depth format
-    VkFormat depth_format = findDepthFormat(mPhysicalDevice);
-
-    // create depth image
-    CreateImage(mDevice, mPhysicalDevice, mSwapChainExtent.width, mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage, mDepthImageMemory);
-
-    // create image view
-    mDepthImageView = CreateImageView(mDevice, mDepthImage, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
-}
-
 extern VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
 extern void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkCommandBuffer commandBuffer);
 
@@ -992,6 +997,16 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool
     VkPipelineStageFlags sourceStage;
     VkPipelineStageFlags destinationStage;
 
+    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+    else
+    {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+
+    // set up the source and destination mask
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
     {
         barrier.srcAccessMask = 0;
@@ -1008,6 +1023,13 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    }
     else
     {
         throw std::invalid_argument("unsupported layout transition!");
@@ -1022,6 +1044,24 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool
         1, &barrier);
 
     endSingleTimeCommands(device, commandPool, graphicsQueue, commandBuffer);
+}
+
+/**
+ * \brief           create depth resource
+*/
+void cDrawScene::CreateDepthResources()
+{
+    // 1. select a suitable depth format
+    VkFormat depth_format = findDepthFormat(mPhysicalDevice);
+
+    // create depth image
+    CreateImage(mDevice, mPhysicalDevice, mSwapChainExtent.width, mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage, mDepthImageMemory);
+
+    // create image view
+    mDepthImageView = CreateImageView(mDevice, mDepthImage, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    // cannot understand why we need to do transition
+    transitionImageLayout(mDevice, mGraphicsQueue, mCommandPool, mDepthImage, depth_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 /**
