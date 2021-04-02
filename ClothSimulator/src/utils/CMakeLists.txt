@@ -7,4 +7,4 @@ MathUtil.cpp
 Rand.cpp
 TimeUtil.cpp
 )
-target_link_libraries(utils_lib spdlog::spdlog JSON)
+target_link_libraries(utils_lib spdlog JSON)

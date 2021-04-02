@@ -49,6 +49,10 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     }
 }
 
+void scroll_name(GLFWwindow *window, double xoffset, double yoffset)
+{
+    scene->Scroll(xoffset, yoffset);
+}
 void InitGlfw()
 {
     glfwInit();
@@ -58,6 +62,7 @@ void InitGlfw()
     glfwSetCursorPosCallback(window, CursorPositionCallback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetScrollCallback(window, scroll_name);
 }
 
 #include "utils/LogUtil.h"

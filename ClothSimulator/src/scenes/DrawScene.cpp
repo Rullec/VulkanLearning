@@ -26,16 +26,16 @@
 #include <GLFW/glfw3.h>
 #endif
 
-const std::vector<const char *> validationLayers = {
+std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
-const std::vector<const char *> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_portability_subset"};
+std::vector<const char *> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 extern GLFWwindow *window;
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
+bool enableValidationLayers = false;
 #else
-const bool enableValidationLayers = true;
+bool enableValidationLayers = true;
 #endif
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -408,6 +408,15 @@ void cDrawScene::MouseButton(int button, int action, int mods)
         mButtonPress = true;
     }
 }
+
+void cDrawScene::Scroll(double xoff, double yoff)
+{
+    if (yoff > 0)
+        mCamera->MoveForward();
+    else if (yoff < 0)
+        mCamera->MoveBackward();
+}
+
 /**
  * \brief           Reset the whole scene
 */
@@ -704,6 +713,10 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device)
     for (const auto &x : availableExtensions)
     {
         requiredExtensions.erase(x.extensionName);
+    }
+    for (const auto &x : requiredExtensions)
+    {
+        std::cout << "physical device lack extension " << x << std::endl;
     }
 
     // if required extensions are empty, means that all requred extensions are supported, return true;

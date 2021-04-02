@@ -27,17 +27,10 @@
 #include <GLFW/glfw3.h>
 #endif
 
-const std::vector<const char *> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"};
-const std::vector<const char *> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_portability_subset"};
+extern std::vector<const char *> validationLayers;
+extern std::vector<const char *> deviceExtensions;
 extern GLFWwindow *window;
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
+extern bool enableValidationLayers;
 
 /**
  * \brief           the details about the support for swapchain, on current surface and physical device
@@ -235,6 +228,10 @@ bool IsDeviceSuitable(VkPhysicalDevice &dev, VkSurfaceKHR surface)
     }
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(dev, &supportedFeatures);
+    std::cout << "indices complete " << indices.IsComplete() << std::endl;
+    std::cout << "extensions support " << extensionsSupported << std::endl;
+    std::cout << "swapChainAdequate " << swapChainAdequate << std::endl;
+    std::cout << "supportedFeatures.samplerAnisotropy " << supportedFeatures.samplerAnisotropy << std::endl;
     return indices.IsComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
