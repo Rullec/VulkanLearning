@@ -8,8 +8,9 @@ public:
     virtual ~cScene();
     virtual void Init(const std::string &conf_path) = 0;
     virtual void Update(double dt);
-    virtual void Reset() = 0;
+    virtual void Reset();
 
 protected:
     double mCurdt;
+    double mCurTime;
 };

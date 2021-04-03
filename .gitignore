@@ -363,6 +363,6 @@ FodyWeavers.xsd
 
 libs/
 .vscode/
-build/
+build*/
 ClothSimulator/main
 *spv

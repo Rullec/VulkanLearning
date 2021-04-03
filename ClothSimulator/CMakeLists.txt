@@ -25,3 +25,10 @@ set(libs ${Vulkan_LIBRARIES} ${GLFW3_LIBRARY} ${my_libs})
 
 add_executable(main ./src/main.cpp)
 target_link_libraries(main ${libs} scenes_lib utils_lib)
+
+add_custom_command(
+    TARGET main POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rename
+        ${CMAKE_CURRENT_BINARY_DIR}/main        
+        ${CMAKE_SOURCE_DIR}/main    
+)

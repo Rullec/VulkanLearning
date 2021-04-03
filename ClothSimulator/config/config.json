@@ -1,0 +1,19 @@
+{
+    "integration_scheme": "implicit",
+    "cloth_size": 1,
+    "cloth_mass": 1,
+    "subdivision": 5,
+    "stiffness": 100,
+    "constraints": {
+        "fixed_point": [
+            [
+                0,
+                1
+            ],
+            [
+                1,
+                1
+            ]
+        ]
+    }
+}

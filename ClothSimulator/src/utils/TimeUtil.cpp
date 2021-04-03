@@ -59,3 +59,15 @@ void cTimeUtil::ClearLazy(const std::string &name)
               << " cost time = " << mLazyTimeTable[name] << " ms\n";
     mLazyTimeTable[name] = 0;
 }
+
+std::chrono::system_clock::time_point cTimeUtil::GetCurrentTime()
+{
+    return std::chrono::system_clock::now();
+}
+double
+cTimeUtil::CalcTimeElaspedms(const std::chrono::system_clock::time_point &st,
+                             const std::chrono::system_clock::time_point &ed)
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(ed - st)
+        .count();
+}

@@ -20,13 +20,13 @@
 #include <GLFW/glfw3.h>
 #endif
 
+#include "scenes/SceneBuilder.h"
 #include <iostream>
 #include <memory>
-#include "scenes/SceneBuilder.h"
 GLFWwindow *window = nullptr;
 std::shared_ptr<cDrawScene> scene = nullptr;
 bool esc_pushed = false;
-
+bool gPause = false;
 static void ResizeCallback(GLFWwindow *window, int w, int h)
 {
     scene->Resize(w, h);
@@ -41,15 +41,21 @@ void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
     scene->MouseButton(button, action, mods);
 }
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+void key_callback(GLFWwindow *window, int key, int scancode, int action,
+                  int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
         esc_pushed = true;
     }
+    else if (key == GLFW_KEY_I && action == GLFW_PRESS)
+    {
+        gPause = !gPause;
+        std::cout << "[log] simulation paused\n";
+    }
 }
 
-void scroll_name(GLFWwindow *window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
     scene->Scroll(xoffset, yoffset);
 }
@@ -62,22 +68,37 @@ void InitGlfw()
     glfwSetCursorPosCallback(window, CursorPositionCallback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetKeyCallback(window, key_callback);
-    glfwSetScrollCallback(window, scroll_name);
+    glfwSetScrollCallback(window, scroll_callback);
 }
 
 #include "utils/LogUtil.h"
+#include "utils/TimeUtil.hpp"
 int main()
 {
     InitGlfw();
     scene = cSceneBuilder::BuildScene("cloth_sim_draw");
-    scene->Init("config/conf.json");
+    scene->Init("config/config.json");
 
-    double dt = 1e-3;
+    auto last = cTimeUtil::GetCurrentTime();
     while (glfwWindowShouldClose(window) == false && esc_pushed == false)
     {
         glfwPollEvents();
-        scene->Update(dt);
+
+        // 1. calc delta time for real time simulation
+        auto cur = cTimeUtil::GetCurrentTime();
+        double delta_time = cTimeUtil::CalcTimeElaspedms(last, cur) * 1e-3;
+
+        // 2. update
+        // delta_time = 1e-3;
+        delta_time /= 4;
+        if (gPause == false)
+        {
+            scene->Update(delta_time);
+        }
+
+        last = cur;
     }
+
     glfwDestroyWindow(window);
 
     glfwTerminate();
