@@ -63,7 +63,7 @@ void InitGlfw()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr);
+    window = glfwCreateWindow(800, 600, "Cloth Simulator", nullptr, nullptr);
     glfwSetFramebufferSizeCallback(window, ResizeCallback);
     glfwSetCursorPosCallback(window, CursorPositionCallback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
@@ -91,7 +91,8 @@ int main()
         // 2. update
         // delta_time = 1e-3;
         // delta_time /= 4;
-        double limit = 1.0 / 30;
+        double limit = 1.0 / 10;
+        // double limit = 1e-4;
         delta_time = std::min(delta_time, limit);
         if (gPause == false)
         {

@@ -19,8 +19,10 @@ namespace Json
 
 enum eIntegrationScheme
 {
+    // MS means mass-spring system
     MS_SEMI_IMPLICIT = 0,
     MS_IMPLICIT,
+    MS_OPT_IMPLICIT, // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
     NUM_OF_INTEGRATION_SCHEMES
 };
 

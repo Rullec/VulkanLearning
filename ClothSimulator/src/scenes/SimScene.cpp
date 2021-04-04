@@ -4,7 +4,7 @@
 
 std::string gIntegrationSchemeStr
     [eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
-        "semi_implicit", "implicit"};
+        "semi_implicit", "implicit", "opt_implicit"};
 
 eIntegrationScheme BuildIntegrationScheme(const std::string &str)
 {
@@ -32,6 +32,7 @@ tVertex::tVertex()
 cSimScene::cSimScene()
 {
     mVertexArray.clear();
+    mFixedPointIds.clear();
 }
 
 void cSimScene::Init(const std::string &conf_path)
@@ -68,13 +69,13 @@ void cSimScene::Init(const std::string &conf_path)
 void cSimScene::Update(double delta_time)
 {
     double default_dt = mIdealDefaultTimestep;
-    if (delta_time < default_dt)
-        default_dt = delta_time;
+    // if (delta_time < default_dt)
+    //     default_dt = delta_time;
     printf("[debug] sim scene update cur time = %.4f\n", mCurTime);
     while (delta_time > 1e-7)
     {
-        if (delta_time < default_dt)
-            default_dt = delta_time;
+        // if (delta_time < default_dt)
+        //     default_dt = delta_time;
         cScene::Update(default_dt);
 
         UpdateSubstep();
@@ -242,6 +243,7 @@ void cSimScene::InitConstraint(const Json::Value &root)
         tEigenArr<tVector2f> fixed_tex_coords(num_of_fixed_pts);
         for (int i = 0; i < num_of_fixed_pts; i++)
         {
+            SIM_ASSERT(fixed_cons[i].size() == 2);
             fixed_tex_coords[i] = tVector2f(fixed_cons[i][0].asDouble(),
                                             fixed_cons[i][1].asDouble());
         }

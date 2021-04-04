@@ -26,8 +26,62 @@ void cMSScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
 
+    mMaxNewtonIters = cJsonUtil::ParseAsInt("max_newton_iters", root);
+
     cSimScene::Init(conf_path);
-    mMaxNewtonIters = cJsonUtil::ParseAsDouble("max_newton_iters", root);
+    if (mScheme == eIntegrationScheme::MS_OPT_IMPLICIT)
+    {
+        mMaxSteps_Opt = cJsonUtil::ParseAsInt("max_steps_opt", root);
+    }
+    if (mScheme == eIntegrationScheme::MS_OPT_IMPLICIT)
+    {
+        InitVarsOptImplicit();
+    }
+}
+
+/**
+ * \brief           calculate the matrix used in fast simulation
+ *      x_a^i - x_bi = Si * x
+ *      J = [k1S1T; k2S2T, ... knSnT]
+ *      Jinv = J.inverse()
+ *      L = \sum_i ki * Si^T * Si
+ *      (M + dt2 * L).inv()
+*/
+void cMSScene::InitVarsOptImplicit()
+{
+    int num_of_sprs = GetNumOfSprings();
+    int node_dof = GetNumOfFreedom();
+    int spr_dof = 3 * num_of_sprs;
+    J.noalias() = tMatrixXd::Zero(node_dof, spr_dof);
+    Jinv.noalias() = tMatrixXd::Zero(node_dof, spr_dof);
+    tMatrixXd L = tMatrixXd::Zero(node_dof, node_dof);
+
+    tMatrixXd Si = tMatrixXd::Zero(3, node_dof);
+    for (int i = 0; i < num_of_sprs; i++)
+    {
+        // 1. calc Si
+        auto spr = mSpringArray[i];
+        int id0 = spr->mId0, id1 = spr->mId1;
+        double k = spr->mK;
+        Si.setZero();
+        Si.block(0, 3 * id0, 3, 3).setIdentity();
+        Si.block(0, 3 * id1, 3, 3).noalias() = tMatrix3d::Identity(3, 3) * -1;
+
+        J.block(0, 3 * i, node_dof, 3).noalias() = k * Si.transpose();
+        L += k * Si.transpose() * Si;
+    }
+
+    double dt2 = mIdealDefaultTimestep * mIdealDefaultTimestep;
+    SIM_ASSERT(dt2 > 0);
+    I_plus_dt2_Minv_L_inv = (tMatrixXd::Identity(node_dof, node_dof) + dt2 * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * L).inverse();
+    // std::cout << "J = \n"
+    //           << J << std::endl;
+    // std::cout << "Jinv = \n"
+    //           << Jinv << std::endl;
+    // std::cout << "(I + dt2 Minv L).inv = \n"
+    //           << I_plus_dt2_Minv_L_inv << std::endl;
+    SIM_INFO("init vars succ");
+    // exit(0);
 }
 
 void cMSScene::Update(double dt)
@@ -127,6 +181,7 @@ void cMSScene::InitGeometry()
 
 void cMSScene::UpdateSubstep()
 {
+    SIM_ASSERT(std::fabs(mCurdt - mIdealDefaultTimestep) < 1e-10);
     // std::cout << "[update] x = " << mXcur.transpose() << std::endl;
     // 1. clear force
     ClearForce();
@@ -143,11 +198,21 @@ void cMSScene::UpdateSubstep()
         CalcIntForce(mXcur, mIntForce);
         CalcExtForce(mExtForce);
         CalcDampingForce((mXcur - mXpre) / mCurdt, mDampingForce);
+        std::cout << "-----------------\n";
+        std::cout << "before x = " << mXcur.transpose() << std::endl;
+        std::cout << "fint = " << mIntForce.transpose() << std::endl;
+        std::cout << "fext = " << mExtForce.transpose() << std::endl;
+        std::cout << "fdamp = " << mDampingForce.transpose() << std::endl;
         mXnext = CalcNextPositionSemiImplicit();
+        std::cout << "after x = " << mXnext.transpose() << std::endl;
+        // exit(0);
         break;
     }
     case eIntegrationScheme::MS_IMPLICIT:
         mXnext = CalcNextPositionImplicit();
+        break;
+    case eIntegrationScheme::MS_OPT_IMPLICIT:
+        mXnext = CalcNextPositionOptImplicit();
         break;
     default:
         SIM_ERROR("Unsupported integration scheme {}", mScheme);
@@ -157,11 +222,6 @@ void cMSScene::UpdateSubstep()
     UpdatePreNodalPosition(mXcur);
     UpdateCurNodalPosition(mXnext);
 }
-
-/**
- * \brief            calculate inv mass mat
-*/
-void cMSScene::CalcInvMassMatrix() const {}
 
 /**
  * \brief       external force
@@ -313,9 +373,12 @@ void cMSScene::InitConstraint(const Json::Value &root)
     {
         mInvMassMatrixDiag.segment(i * 3, 3).setZero();
         // printf("[debug] fixed point id %d at ", i);
+        // exit(0);
         // next_pos.segment(i * 3, 3) = mXcur.segment(i * 3, 3);
         // std::cout << mXcur.segment(i * 3, 3).transpose() << std::endl;
     }
+    // std::cout << "inv mass = " << mInvMassMatrixDiag.transpose() << std::endl;
+    // exit(0);
 }
 
 // -----------implicit methods-------------
@@ -517,4 +580,81 @@ void cMSScene::PopState(const std::string &name) {}
 void cMSScene::CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const
 {
     damping.noalias() = -vel * mDamping;
+}
+
+/**
+ * \brief           calculat next position by optimization implciit method (fast simulation)
+ * 
+ *      1. set up the init solution, caluclate the b
+ *      2. begin to do iteration
+ *      3. return the result
+*/
+tVectorXd cMSScene::CalcNextPositionOptImplicit() const
+{
+    // std::cout << "begin CalcNextPositionOptImplicit\n";
+    tVectorXd y = 2 * mXcur - mXpre;
+    tVectorXd Xnext = y;
+    tVectorXd d = tVectorXd::Zero(3 * GetNumOfSprings());
+
+    // 1. calculate b = dt2 * fext - M * y
+    // y = 2 * xcur - xpre
+    tVectorXd fext = tVectorXd::Zero(GetNumOfFreedom());
+    tVectorXd fdamping = tVectorXd::Zero(GetNumOfFreedom());
+    CalcExtForce(fext);
+
+    CalcDampingForce((mXcur - mXpre) / mCurdt, fdamping);
+    fext += fdamping;
+    // tVectorXd b;
+    double dt2 = mCurdt * mCurdt;
+    // {
+    //     tVectorXd mass_diag = mInvMassMatrixDiag;
+    //     // for (int i = 0; i < mass_diag.size(); i++)
+    //     // {
+    //     //     if (std::fabs(mass_diag[i]) < 1e-17)
+    //     //     {
+    //     //         mass_diag[i] += 1e-17;
+    //     //     }
+    //     // }
+    //     mass_diag = mass_diag.cwiseInverse();
+    //     SIM_ASSERT(mass_diag.hasNaN() == false);
+    //     b = dt2 * fext + mass_diag.asDiagonal().toDenseMatrix() * y;
+    // }
+
+    SIM_ASSERT(std::fabs(mCurdt - mIdealDefaultTimestep) < 1e-10);
+    // std::cout << "max step = " << mMaxSteps_Opt << std::endl;
+    for (int i = 0; i < mMaxSteps_Opt; i++)
+    {
+        /*
+            1. fixed x, calculate the d
+            d = [d1, d2, ... dn]
+            di = (x0^i - x1^i).normalized()
+        */
+        // std::cout << "step " << i << " X = " << Xnext.transpose() << std::endl;
+        for (int j = 0; j < GetNumOfSprings(); j++)
+        {
+            int id0 = mSpringArray[j]->mId0, id1 = mSpringArray[j]->mId1;
+            d.segment(j * 3, 3).noalias() = (Xnext.segment(3 * id0, 3) - Xnext.segment(3 * id1, 3)).normalized() * mSpringArray[j]->mRawLength;
+        }
+        // std::cout << "d = " << d.transpose() << std::endl;
+        // std::cout << "J * d = " << (J * d).transpose() << std::endl;
+        // std::cout << "b= " << b.transpose() << std::endl;
+        /*
+            2. fixed the d, calulcate the x
+            x = (M + dt2 * L).inv() * (dt2 * J * d - b)
+        */
+        Xnext = I_plus_dt2_Minv_L_inv * (mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * dt2 * (J * d + fext) + y);
+        if (Xnext.hasNaN())
+        {
+            std::cout << "Xnext has Nan, exit = " << Xnext.transpose() << std::endl;
+            exit(0);
+        }
+    }
+    // std::cout << "done, xnext = " << Xnext.transpose() << std::endl;
+    // exit(0);
+    return Xnext;
+}
+
+int cMSScene::GetNumOfSprings() const
+{
+    return mSpringArray.size();
 }

@@ -35,8 +35,6 @@ protected:
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
 
-    void CalcInvMassMatrix() const; // inv mass mat
-
     tVectorXd
     CalcNextPositionSemiImplicit() const; // calculate xnext by semi implicit
 
@@ -49,7 +47,13 @@ protected:
     void CalcdGxdxImplicitSparse(const tVectorXd &xcur, tSparseMat &Gx) const;
     void TestdGxdxImplicit(const tVectorXd &x0, const tMatrixXd &Gx_ana);
 
+    // optimization implicit methods (fast simulation)
+    int mMaxSteps_Opt; // iterations used in fast simulation
+    tVectorXd CalcNextPositionOptImplicit() const;
+    void InitVarsOptImplicit();
+    tMatrixXd Jinv, J, I_plus_dt2_Minv_L_inv; // vars used in fast simulation
     void PushState(const std::string &name) const;
     void PopState(const std::string &name);
     virtual void UpdateSubstep() override final;
+    int GetNumOfSprings() const;
 };

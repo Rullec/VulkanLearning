@@ -1,12 +1,13 @@
 {
-    "integration_scheme": "implicit",
+    "integration_scheme": "opt_implicit",
     "cloth_size": 1,
     "cloth_mass": 1,
     "subdivision": 10,
     "damping": 3e-2,
-    "max_newton_iters": 5,
+    "max_newton_iters": 1,
     "stiffness": 300,
     "default_timestep": 1e-3,
+    "max_steps_opt": 1,
     "constraints": {
         "fixed_point": [
             [
