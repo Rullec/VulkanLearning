@@ -2,7 +2,7 @@
 // Created by Xudong on 2021/01/30
 //
 #pragma once
-#include "scenes/CameraBase.h"
+#include "CameraBase.h"
 
 /**
  * \brief           Arcball camera

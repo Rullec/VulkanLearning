@@ -1,6 +1,7 @@
 #pragma once
 #include "Scene.h"
 #include "utils/MathUtil.h"
+
 struct tVertex
 {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -11,82 +12,59 @@ struct tVertex
         muv; // "texture" coordinate 2d, it means the plane coordinate for a vertex over a cloth, but now the texture in rendering
     tVector mColor;
 };
-struct tSpring
-{
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    tSpring();
-    double mRawLength;
-    double mK;
-    int mId0, mId1;
-};
-
 namespace Json
 {
     class Value;
 };
 
+enum eIntegrationScheme
+{
+    MS_SEMI_IMPLICIT = 0,
+    MS_IMPLICIT,
+    NUM_OF_INTEGRATION_SCHEMES
+};
+
 class cSimScene : public cScene
 {
 public:
-    enum eIntegrationScheme
-    {
-        SEMI_IMPLICIT = 0,
-        IMPLICIT,
-        NUM_OF_INTEGRATION_SCHEMES
-    };
     explicit cSimScene();
     ~cSimScene();
-    virtual void Init(const std::string &conf_path) override final;
-    virtual void Update(double dt) override final;
-    virtual void Reset() override final;
+    virtual void Init(const std::string &conf_path) override;
+    virtual void Update(double dt) override;
+    virtual void Reset() override;
     const tVectorXf &GetTriangleDrawBuffer();
     const tVectorXf &GetEdgesDrawBuffer();
 
 protected:
     eIntegrationScheme mScheme;
-    double mClothWidth; // a square cloth
-    double mClothMass;  // cloth mass
-    int mSubdivision;   // division number along with the line
-    double mStiffness;  // K
-    double mDamping;    // damping coeff
-    int mMaxNewtonIters;
+    double mClothWidth;           // a square cloth
+    double mClothMass;            // cloth mass
+    int mSubdivision;             // division number along with the line
+    double mStiffness;            // K
+    double mDamping;              // damping coeff
+    double mIdealDefaultTimestep; // default substep dt
     tVectorXf mTriangleDrawBuffer,
-        mEdgesDrawBuffer;              // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
+        mEdgesDrawBuffer; // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
+
     tEigenArr<tVertex *> mVertexArray; // vertices info
-    tEigenArr<tSpring *> mSpringArray; // springs info
     tVectorXd mIntForce;               // internal force
     tVectorXd mExtForce;               // external force
     tVectorXd mDampingForce;           // external force
-    tVectorXd mInvMassMatrixDiag;      // diag inv mass matrix
-    tVectorXd mXpre, mXcur;            // previous node position & current node position
-    std::vector<int> mFixedPointIds;   // fixed constraint point
-    void InitGeometry();               // discretazation from square cloth to
-    void ClearForce();                 // clear all forces
-    void CalcInvMassMatrix() const;    // inv mass mat
-    void CalcExtForce(tVectorXd &ext_force) const;
-    void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
-    void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
-    tVectorXd
-    CalcNextPositionSemiImplicit() const; // calculate xnext by semi implicit
-    void UpdatePreNodalPosition(const tVectorXd &xpre);
-    void UpdateCurNodalPosition(const tVectorXd &xcur);
-    void CalcTriangleDrawBuffer(); //
-    void CalcEdgesDrawBuffer();    //
+
+    tVectorXd mXpre, mXcur;          // previous node position & current node position
+    std::vector<int> mFixedPointIds; // fixed constraint point
+
+    // base methods
+    virtual void InitGeometry() = 0; // discretazation from square cloth to
+    void ClearForce();               // clear all forces
+    void CalcTriangleDrawBuffer();   //
+    void CalcEdgesDrawBuffer();      //
     void GetVertexRenderingData();
     int GetNumOfVertices() const;
     int GetNumOfFreedom() const;
     void CalcNodePositionVector(tVectorXd &pos) const;
-    void InitConstraint(const Json::Value &root);
-
-    // implicit methods
-    tVectorXd CalcNextPositionImplicit();
-    void CalcGxImplicit(const tVectorXd &xcur, tVectorXd &Gx,
-                        tVectorXd &fint_buf, tVectorXd &fext_buf, tVectorXd &fdamp_buffer) const;
-
-    void CalcdGxdxImplicit(const tVectorXd &xcur, tMatrixXd &Gx) const;
-    void CalcdGxdxImplicitSparse(const tVectorXd &xcur, tSparseMat &Gx) const;
-    void TestdGxdxImplicit(const tVectorXd &x0, const tMatrixXd &Gx_ana);
-
-    void PushState(const std::string &name) const;
-    void PopState(const std::string &name);
+    virtual void InitConstraint(const Json::Value &root);
+    void UpdatePreNodalPosition(const tVectorXd &xpre);
+    void UpdateCurNodalPosition(const tVectorXd &xcur);
+    virtual void UpdateSubstep() = 0;
 };

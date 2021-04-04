@@ -261,7 +261,7 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
     raster_info.depthClampEnable =
         VK_FALSE; // clamp the data outside of the near-far plane insteand of deleting them
     raster_info.rasterizerDiscardEnable =
-        VK_FALSE; // disable the rasterization, it certainly should be disable
+        VK_FALSE;                                   // disable the rasterization, it certainly should be disable
     raster_info.polygonMode = VK_POLYGON_MODE_FILL; // normal
     raster_info.lineWidth =
         1.0f; // if not 1.0, we need to enable the GPU "line_width" feature
@@ -382,11 +382,12 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
 /**
  * \brief       Init vulkan and other stuff
 */
-#include "ArcBallCamera.h"
-#include "SimScene.h"
+#include "cameras/ArcBallCamera.h"
+// #include "SimScene.h"
+#include "MassSpringScene.h"
 void cDrawScene::Init(const std::string &conf_path)
 {
-    mSimScene = std::make_shared<cSimScene>();
+    mSimScene = std::make_shared<cMSScene>();
     mSimScene->Init(conf_path);
     mCamera = std::make_shared<ArcBallCamera>(
         tVector3f(2, 2, 2), tVector3f(0, 0, 0), tVector3f(0, 1, 0));
@@ -800,7 +801,7 @@ void cDrawScene::CreateDescriptorSetLayout()
     mvpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     mvpLayoutBinding.descriptorCount = 1;
     mvpLayoutBinding.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT; // we use the descriptor in vertex shader
+        VK_SHADER_STAGE_VERTEX_BIT;                // we use the descriptor in vertex shader
     mvpLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
     // sampler
