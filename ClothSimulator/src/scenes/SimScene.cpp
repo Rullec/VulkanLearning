@@ -53,6 +53,8 @@ void cSimScene::Init(const std::string &conf_path)
     mClothMass = cJsonUtil::ParseAsDouble("cloth_mass", root);
     mSubdivision = cJsonUtil::ParseAsInt("subdivision", root);
     mStiffness = cJsonUtil::ParseAsDouble("stiffness", root);
+    mDamping = cJsonUtil::ParseAsDouble("damping", root);
+    mMaxNewtonIters = cJsonUtil::ParseAsDouble("max_newton_iters", root);
     mScheme = BuildIntegrationScheme(
         cJsonUtil::ParseAsString("integration_scheme", root));
     SIM_INFO("cloth total width {} subdivision {} K {}", mClothWidth,
@@ -73,12 +75,14 @@ void cSimScene::Init(const std::string &conf_path)
 */
 void cSimScene::Update(double delta_time)
 {
-    double default_dt = 3e-3;
+    double default_dt = 1e-3;
     if (delta_time < default_dt)
         default_dt = delta_time;
     printf("[debug] sim scene update cur time = %.4f\n", mCurTime);
     while (delta_time > 1e-7)
     {
+        if (delta_time < default_dt)
+            default_dt = delta_time;
         cScene::Update(default_dt);
 
         // std::cout << "[update] x = " << mXcur.transpose() << std::endl;
@@ -87,6 +91,7 @@ void cSimScene::Update(double delta_time)
         // 2. calculate force
         CalcIntForce(mXcur, mIntForce);
         CalcExtForce(mExtForce);
+        CalcDampingForce((mXcur - mXpre) / default_dt, mDampingForce);
         // std::cout << "mInt force = " << mIntForce.transpose() << std::endl;
         // std::cout << "mExt force = " << mExtForce.transpose() << std::endl;
         // 3. forward simulation
@@ -283,7 +288,7 @@ tVectorXd cSimScene::CalcNextPositionSemiImplicit() const
 
     double dt2 = mCurdt * mCurdt;
     tVectorXd next_pos =
-        dt2 * mInvMassMatrixDiag.cwiseProduct(mIntForce + mExtForce) +
+        dt2 * mInvMassMatrixDiag.cwiseProduct(mIntForce + mExtForce + mDampingForce) +
         2 * mXcur - mXpre;
 
     return next_pos;
@@ -292,6 +297,7 @@ tVectorXd cSimScene::CalcNextPositionSemiImplicit() const
 /**
  * \brief           Calcualte Xnext by implicit integration, which means, solve the system equation by newton iteration
 */
+#include <Eigen/SparseLU>
 tVectorXd cSimScene::CalcNextPositionImplicit()
 {
     /*
@@ -306,44 +312,67 @@ tVectorXd cSimScene::CalcNextPositionImplicit()
         5. return res
     */
 
-    int max_iters = 30;
+    int max_iters = mMaxNewtonIters;
     double cnvg_thre = 1e-4; // convergence threshold
     tVectorXd x0 = mXcur;
     int dof = GetNumOfFreedom();
     tVectorXd res = tVectorXd::Zero(dof);
-    tMatrixXd dGdx = tMatrixXd::Zero(dof, dof);
+    tSparseMat dGdx(dof, dof);
     int cur_iter = 0;
+
+    Eigen::SparseLU<tSparseMat> solver;
+
     while (true)
     {
         // step 1
-        CalcGxImplicit(x0, res, mIntForce, mExtForce);
+        CalcGxImplicit(x0, res, mIntForce, mExtForce, mDampingForce);
         double res_norm = res.norm();
         if (cur_iter > max_iters || res_norm < cnvg_thre)
             break;
 
         // step 2
-        CalcdGxdxImplicit(x0, dGdx);
+        // CalcdGxdxImplicit(x0, dGdx);
+        CalcdGxdxImplicitSparse(x0, dGdx);
         // TestdGxdxImplicit(x0, dGdx);
 
-        x0 = x0 - dGdx.inverse() * res;
+        // if (cur_iter == 3)
+        // {
+        //     tSparseMat mat(dof, dof);
+        //     CalcdGxdxImplicitSparse(x0, mat);
+        //     std::cout << "diff norm = " << (mat - dGdx).norm() << std::endl;
+        //     std::cout << "dense = \n"
+        //               << dGdx << std::endl;
+        //     std::cout << "sparse = \n"
+        //               << mat << std::endl;
+        //     exit(0);
+        // }
+        if (cur_iter == 0)
+            solver.analyzePattern(dGdx);
+
+        solver.factorize(dGdx);
+        //Use the factors to solve the linear system
+        // x = ;
+        x0 = x0 - solver.solve(res);
         cur_iter++;
         // printf("iter %d diff %.5f\n", cur_iter, res_norm);
         if (x0.hasNaN())
         {
             std::cout << "x0 has Nan = " << x0.transpose() << std::endl;
             std::cout << "x0 init = " << mXcur.transpose() << std::endl;
-            std::cout << "dGdx = \n" << dGdx << std::endl;
-            std::cout << "dGdx inv = \n" << dGdx.inverse() << std::endl;
+            // std::cout << "dGdx = \n"
+            //           << dGdx << std::endl;
+            // std::cout << "dGdx inv = \n"
+            //           << dGdx.inverse() << std::endl;
 
             exit(0);
         }
-        // std::cout << "iter " << cur_iter << " x = " << x0.transpose()
+        // std::cout << "iter " << cur_iter << " res = " << res.norm()
         //           << std::endl;
         // exit(0);
     }
 
-    printf("[debug] newton solver done, iters %d/%d, res norm %.5f\n",
-           cur_iter, max_iters, res.norm());
+    printf("[debug] newton solver done, iters %d/%d, res norm %.5f\n", cur_iter,
+           max_iters, res.norm());
     // exit(0);
     return x0;
 }
@@ -529,14 +558,16 @@ void cSimScene::InitConstraint(const Json::Value &root)
 */
 void cSimScene::CalcGxImplicit(const tVectorXd &x, tVectorXd &Gx,
                                tVectorXd &fint_buffer,
-                               tVectorXd &fext_buffer) const
+                               tVectorXd &fext_buffer,
+                               tVectorXd &damp_buffer) const
 {
     CalcIntForce(x, fint_buffer);
     CalcExtForce(fext_buffer);
+    CalcDampingForce((mXcur - mXpre) / mCurdt, damp_buffer);
     Gx.noalias() =
         2 * mXcur - mXpre - x +
         mCurdt * mCurdt *
-            mInvMassMatrixDiag.cwiseProduct(fext_buffer + fint_buffer);
+            mInvMassMatrixDiag.cwiseProduct(fext_buffer + fint_buffer + damp_buffer);
 }
 
 /**
@@ -591,7 +622,8 @@ void cSimScene::CalcdGxdxImplicit(const tVectorXd &x, tMatrixXd &dGdx) const
         {
             printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
                    id0, id0, id1, dist);
-            std::cout << "dfidxi = \n" << dfidxi << std::endl;
+            std::cout << "dfidxi = \n"
+                      << dfidxi << std::endl;
             std::cout << "pos0 = " << pos0.transpose() << std::endl;
             std::cout << "pos1 = " << pos1.transpose() << std::endl;
             std::cout << "x = " << x.transpose() << std::endl;
@@ -618,12 +650,12 @@ void cSimScene::TestdGxdxImplicit(const tVectorXd &x0, const tMatrixXd &Gx_ana)
     double eps = 1e-6;
     tVectorXd Gx_old, Gx_new;
     tVectorXd x_now = x0;
-    CalcGxImplicit(x_now, Gx_old, mIntForce, mExtForce);
+    CalcGxImplicit(x_now, Gx_old, mIntForce, mExtForce, mDampingForce);
 
     for (int i = 0; i < x0.size(); i++)
     {
         x_now[i] += eps;
-        CalcGxImplicit(x_now, Gx_new, mIntForce, mExtForce);
+        CalcGxImplicit(x_now, Gx_new, mIntForce, mExtForce, mDampingForce);
         tVectorXd dGdxi_num = (Gx_new - Gx_old) / eps;
         tVectorXd dGdxi_ana = Gx_ana.col(i);
         tVectorXd diff = dGdxi_ana - dGdxi_num;
@@ -640,6 +672,74 @@ void cSimScene::TestdGxdxImplicit(const tVectorXd &x0, const tMatrixXd &Gx_ana)
     SIM_INFO("test dG/dx succ");
 }
 
+typedef Eigen::Triplet<double> tTriplet;
+void cSimScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
+                                        tSparseMat &dGdx) const
+{
+    int dof = GetNumOfFreedom();
+    Eigen::SparseMatrix<double> spMat(dof, dof);
+    int id0, id1;
+    double dist;
+    tVector3d pos0, pos1;
+    double dt2 = mCurdt * mCurdt;
+    tEigenArr<tTriplet> tri_lst(0);
+    for (auto &spr : this->mSpringArray)
+    {
+        id0 = spr->mId0;
+        id1 = spr->mId1;
+
+        pos0 = x.segment(3 * id0, 3);
+        pos1 = x.segment(3 * id1, 3);
+        double dist = (pos0 - pos1).norm();
+        const tMatrix3d &I3 = tMatrix3d::Identity(3, 3);
+        tMatrix3d dfidxi =
+            spr->mK * I3 -
+            spr->mK * spr->mRawLength *
+                (I3 * dist - (pos0 - pos1) * (pos0 - pos1).transpose() / dist) /
+                (dist * dist);
+
+        if (dfidxi.hasNaN() == true)
+        {
+            printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
+                   id0, id0, id1, dist);
+            std::cout << "dfidxi = \n"
+                      << dfidxi << std::endl;
+            std::cout << "pos0 = " << pos0.transpose() << std::endl;
+            std::cout << "pos1 = " << pos1.transpose() << std::endl;
+            std::cout << "x = " << x.transpose() << std::endl;
+            exit(0);
+        }
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+            {
+                double val = dfidxi(i, j);
+                {
+                    tri_lst.push_back(tTriplet(3 * id0 + i, 3 * id0 + j, val));
+                    tri_lst.push_back(tTriplet(3 * id1 + i, 3 * id1 + j, val));
+                    tri_lst.push_back(tTriplet(3 * id0 + i, 3 * id1 + j, -val));
+                    tri_lst.push_back(tTriplet(3 * id1 + i, 3 * id0 + j, -val));
+                }
+            }
+    }
+    dGdx.setFromTriplets(tri_lst.begin(), tri_lst.end());
+    dGdx = dt2 * mInvMassMatrixDiag.asDiagonal() * dGdx;
+
+    for (int i = 0; i < GetNumOfFreedom(); i++)
+    {
+        dGdx.coeffRef(i, i) -= 1;
+    }
+    //     tri_lst.push_back(tTriplet(i, i, -1));
+    // dGdx.resize(GetNumOfFreedom(), GetNumOfFreedom());
+    // dGdx.setFromTriplets(tri_lst.begin(), tri_lst.end());
+    /*
+        dt2 * inv
+    */
+    // std::cout << "dFdx = \n" << dGdx << std::endl;
+    // dGdx = dt2 * Minv * dFdX - I
+    // dGdx = mCurdt * mCurdt * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() *
+    //            dGdx -
+    //        tMatrixXd::Identity(GetNumOfFreedom(), GetNumOfFreedom());
+}
 void cSimScene::PushState(const std::string &name) const {}
 
 void cSimScene::PopState(const std::string &name) {}
@@ -653,4 +753,12 @@ cSimScene::~cSimScene()
 
     mVertexArray.clear();
     mSpringArray.clear();
+}
+
+/**
+ * \brief           add damping forces
+*/
+void cSimScene::CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const
+{
+    damping.noalias() = -vel * this->mDamping;
 }

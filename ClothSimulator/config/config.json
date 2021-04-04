@@ -2,12 +2,18 @@
     "integration_scheme": "implicit",
     "cloth_size": 1,
     "cloth_mass": 1,
-    "subdivision": 5,
+    "subdivision": 20,
+    "damping": 3e-2,
+    "max_newton_iters": 5,
     "stiffness": 100,
     "constraints": {
         "fixed_point": [
             [
                 0,
+                1
+            ],
+            [
+                0.5,
                 1
             ],
             [

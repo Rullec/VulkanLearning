@@ -22,7 +22,7 @@ struct tSpring
 
 namespace Json
 {
-class Value;
+    class Value;
 };
 
 class cSimScene : public cScene
@@ -48,19 +48,23 @@ protected:
     double mClothMass;  // cloth mass
     int mSubdivision;   // division number along with the line
     double mStiffness;  // K
+    double mDamping;    // damping coeff
+    int mMaxNewtonIters;
     tVectorXf mTriangleDrawBuffer,
-        mEdgesDrawBuffer; // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
+        mEdgesDrawBuffer;              // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
     tEigenArr<tVertex *> mVertexArray; // vertices info
     tEigenArr<tSpring *> mSpringArray; // springs info
     tVectorXd mIntForce;               // internal force
     tVectorXd mExtForce;               // external force
+    tVectorXd mDampingForce;           // external force
     tVectorXd mInvMassMatrixDiag;      // diag inv mass matrix
-    tVectorXd mXpre, mXcur; // previous node position & current node position
-    std::vector<int> mFixedPointIds; // fixed constraint point
-    void InitGeometry();             // discretazation from square cloth to
-    void ClearForce();               // clear all forces
-    void CalcInvMassMatrix() const;  // inv mass mat
+    tVectorXd mXpre, mXcur;            // previous node position & current node position
+    std::vector<int> mFixedPointIds;   // fixed constraint point
+    void InitGeometry();               // discretazation from square cloth to
+    void ClearForce();                 // clear all forces
+    void CalcInvMassMatrix() const;    // inv mass mat
     void CalcExtForce(tVectorXd &ext_force) const;
+    void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
     tVectorXd
     CalcNextPositionSemiImplicit() const; // calculate xnext by semi implicit
@@ -77,8 +81,10 @@ protected:
     // implicit methods
     tVectorXd CalcNextPositionImplicit();
     void CalcGxImplicit(const tVectorXd &xcur, tVectorXd &Gx,
-                        tVectorXd &fint_buf, tVectorXd &fext_buf) const;
+                        tVectorXd &fint_buf, tVectorXd &fext_buf, tVectorXd &fdamp_buffer) const;
+
     void CalcdGxdxImplicit(const tVectorXd &xcur, tMatrixXd &Gx) const;
+    void CalcdGxdxImplicitSparse(const tVectorXd &xcur, tSparseMat &Gx) const;
     void TestdGxdxImplicit(const tVectorXd &x0, const tMatrixXd &Gx_ana);
 
     void PushState(const std::string &name) const;

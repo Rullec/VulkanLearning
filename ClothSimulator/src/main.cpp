@@ -90,7 +90,9 @@ int main()
 
         // 2. update
         // delta_time = 1e-3;
-        delta_time /= 4;
+        // delta_time /= 4;
+        double limit = 5e-3;
+        delta_time = std::min(delta_time, limit);
         if (gPause == false)
         {
             scene->Update(delta_time);
