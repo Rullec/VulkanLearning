@@ -198,13 +198,13 @@ void cMSScene::UpdateSubstep()
         CalcIntForce(mXcur, mIntForce);
         CalcExtForce(mExtForce);
         CalcDampingForce((mXcur - mXpre) / mCurdt, mDampingForce);
-        std::cout << "-----------------\n";
-        std::cout << "before x = " << mXcur.transpose() << std::endl;
-        std::cout << "fint = " << mIntForce.transpose() << std::endl;
-        std::cout << "fext = " << mExtForce.transpose() << std::endl;
-        std::cout << "fdamp = " << mDampingForce.transpose() << std::endl;
+        // std::cout << "-----------------\n";
+        // std::cout << "before x = " << mXcur.transpose() << std::endl;
+        // std::cout << "fint = " << mIntForce.transpose() << std::endl;
+        // std::cout << "fext = " << mExtForce.transpose() << std::endl;
+        // std::cout << "fdamp = " << mDampingForce.transpose() << std::endl;
         mXnext = CalcNextPositionSemiImplicit();
-        std::cout << "after x = " << mXnext.transpose() << std::endl;
+        // std::cout << "after x = " << mXnext.transpose() << std::endl;
         // exit(0);
         break;
     }

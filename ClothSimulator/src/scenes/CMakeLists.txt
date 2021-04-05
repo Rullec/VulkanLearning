@@ -5,6 +5,7 @@ SceneBuilder.cpp
 Scene.cpp
 SimScene.cpp
 MassSpringScene.cpp
+TrimeshScene.cpp
 cameras/CameraBase.cpp
 cameras/FPSCamera.cpp
 cameras/ArcBallCamera.cpp

@@ -12,6 +12,7 @@ struct tVertex
         muv; // "texture" coordinate 2d, it means the plane coordinate for a vertex over a cloth, but now the texture in rendering
     tVector mColor;
 };
+
 namespace Json
 {
     class Value;
@@ -22,7 +23,9 @@ enum eIntegrationScheme
     // MS means mass-spring system
     MS_SEMI_IMPLICIT = 0,
     MS_IMPLICIT,
-    MS_OPT_IMPLICIT, // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
+    MS_OPT_IMPLICIT,            // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
+    TRI_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
+    TRI_BARAFF,                 // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
     NUM_OF_INTEGRATION_SCHEMES
 };
 
@@ -36,6 +39,7 @@ public:
     virtual void Reset() override;
     const tVectorXf &GetTriangleDrawBuffer();
     const tVectorXf &GetEdgesDrawBuffer();
+    static eIntegrationScheme BuildIntegrationScheme(const std::string &str);
 
 protected:
     eIntegrationScheme mScheme;
@@ -59,8 +63,8 @@ protected:
     // base methods
     virtual void InitGeometry() = 0; // discretazation from square cloth to
     void ClearForce();               // clear all forces
-    void CalcTriangleDrawBuffer();   //
-    void CalcEdgesDrawBuffer();      //
+    virtual void CalcTriangleDrawBuffer();   //
+    virtual void CalcEdgesDrawBuffer();      //
     void GetVertexRenderingData();
     int GetNumOfVertices() const;
     int GetNumOfFreedom() const;

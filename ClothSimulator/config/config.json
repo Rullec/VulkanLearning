@@ -1,8 +1,8 @@
 {
-    "integration_scheme": "opt_implicit",
+    "integration_scheme": "tri_pbd",
     "cloth_size": 1,
     "cloth_mass": 1,
-    "subdivision": 10,
+    "subdivision": 4,
     "damping": 3e-2,
     "max_newton_iters": 1,
     "stiffness": 300,

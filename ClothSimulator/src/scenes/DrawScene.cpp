@@ -2,6 +2,7 @@
 #include "utils/LogUtil.h"
 #include "utils/MathUtil.h"
 #include "vulkan/vulkan.h"
+#include "scenes/SimScene.h"
 #include <iostream>
 #include <optional>
 #include <set>
@@ -384,10 +385,11 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
 */
 #include "cameras/ArcBallCamera.h"
 // #include "SimScene.h"
-#include "MassSpringScene.h"
+#include "SceneBuilder.h"
 void cDrawScene::Init(const std::string &conf_path)
 {
-    mSimScene = std::make_shared<cMSScene>();
+
+    mSimScene = cSceneBuilder::BuildSimScene(conf_path);
     mSimScene->Init(conf_path);
     mCamera = std::make_shared<ArcBallCamera>(
         tVector3f(2, 2, 2), tVector3f(0, 0, 0), tVector3f(0, 1, 0));

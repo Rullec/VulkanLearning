@@ -4,9 +4,10 @@
 
 std::string gIntegrationSchemeStr
     [eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
-        "semi_implicit", "implicit", "opt_implicit"};
+        "semi_implicit", "implicit", "opt_implicit",
+        "tri_pbd", "tri_baraff"};
 
-eIntegrationScheme BuildIntegrationScheme(const std::string &str)
+eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
 {
     int i = 0;
     for (i = 0; i < eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES;
