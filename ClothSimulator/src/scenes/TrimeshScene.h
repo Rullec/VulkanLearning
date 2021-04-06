@@ -35,16 +35,27 @@ protected:
     tEigenArr<tEdge *> mEdgeArray;
     tVectorXd mVcur; // velocity vector
     tVectorXd mInvMassMatrixDiag;
-    int mItersPBD, mStiffnessPBD;
+
     virtual void InitGeometry() override final;
     virtual void InitConstraint(const Json::Value &root) override final;
     virtual void UpdateSubstep() override final;
     virtual void CalcTriangleDrawBuffer() override final;
     virtual void CalcEdgesDrawBuffer() override final;
 
+    // PBD methods
+    int mItersPBD;
+    double mStiffnessPBD;
+    bool mEnableParallelPBD;                      // enable parallel pbd
+    // std::vector<std::vector<int>> mColorGroupPBD; // divide all constraints into several groups, which there is not shared vertices in a same group
+
+    // void InitColorGroupPBD();
     void UpdateSubstepPBD();
     void UpdateVelAndPosUnconstrained(const tVectorXd &fext);
+    virtual void CalcExtForce(tVectorXd &ext_force) const override;
     // void ConstraintSetupPBD();
     void ConstraintProcessPBD();
     void PostProcessPBD();
+
+    // Projective dynamic
+    void UpdateSubstepProjDyn();
 };

@@ -76,6 +76,7 @@ void InitGlfw()
 void ParseConfig(std::string path);
 int main()
 {
+    // Eigen::initParallel();
     InitGlfw();
     std::string conf = "config/config.json";
     ParseConfig(conf);
@@ -97,6 +98,7 @@ int main()
         double limit = 1.0 / 10;
         // double limit = 1e-4;
         delta_time = std::min(delta_time, limit);
+        // delta_time = 1e-4;
         if (gPause == false)
         {
             scene->Update(delta_time);
