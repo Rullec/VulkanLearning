@@ -143,7 +143,8 @@ void cMSScene::InitGeometry()
                 tVertex *v = new tVertex();
                 v->mMass = mClothMass / (gap * gap);
                 v->mPos =
-                    tVector(unit_edge_length * i, unit_edge_length * j, 0, 1);
+                    tVector(unit_edge_length * j, mClothWidth - unit_edge_length * i, 0, 1) + mClothInitPos;
+                v->mPos[3] = 1;
                 v->mColor = tVector(0, 196.0 / 255, 1, 0);
                 mVertexArray.push_back(v);
                 v->muv =
@@ -219,22 +220,9 @@ void cMSScene::UpdateSubstep()
         break;
     }
     // std::cout << "mXnext = " << mXnext.transpose() << std::endl;
-    UpdatePreNodalPosition(mXcur);
-    UpdateCurNodalPosition(mXnext);
-}
-
-/**
- * \brief       external force
-*/
-extern const tVector gGravity;
-void cMSScene::CalcExtForce(tVectorXd &ext_force) const
-{
-    // apply gravity
-    for (int i = 0; i < mVertexArray.size(); i++)
-    {
-        ext_force.segment(3 * i, 3) +=
-            gGravity.segment(0, 3) * mVertexArray[i]->mMass;
-    }
+    mXpre.noalias() = mXcur;
+    mXcur.noalias() = mXnext;
+    UpdateCurNodalPosition(mXcur);
 }
 
 /**

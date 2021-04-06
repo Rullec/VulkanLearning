@@ -1,8 +1,14 @@
 {
-    "integration_scheme": "tri_pbd",
+    "integration_scheme": "semi_implicit",
+    "integration_scheme_pbd": "tri_pbd",
     "cloth_size": 1,
     "cloth_mass": 1,
-    "subdivision": 4,
+    "cloth_init_pos": [
+        0,
+        1,
+        0
+    ],
+    "subdivision": 10,
     "damping": 3e-2,
     "max_newton_iters": 1,
     "stiffness": 300,
@@ -12,16 +18,25 @@
         "fixed_point": [
             [
                 0,
-                1
+                0
             ],
             [
-                0.5,
-                1
-            ],
-            [
-                1,
+                0,
                 1
             ]
+        ]
+    },
+    "pause_at_first": false,
+    "camera": {
+        "camera_pos": [
+            2.5,
+            2,
+            2
+        ],
+        "camera_focus": [
+            0.5,
+            1.5,
+            0
         ]
     }
 }

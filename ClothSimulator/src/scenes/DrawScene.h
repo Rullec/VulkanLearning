@@ -140,4 +140,5 @@ private:
     std::shared_ptr<cSimScene> mSimScene;
 
     bool mButtonPress;
+    tVector3f mCameraInitPos, mCameraInitFocus;
 };

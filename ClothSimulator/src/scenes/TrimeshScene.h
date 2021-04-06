@@ -32,8 +32,17 @@ public:
 protected:
     tEigenArr<tTriangle *> mTriangleArray;
     tEigenArr<tEdge *> mEdgeArray;
+    tVectorXd mVcur; // velocity vector
+    tVectorXd mInvMassMatrixDiag;
     virtual void InitGeometry() override final;
+    virtual void InitConstraint(const Json::Value &root) override final;
     virtual void UpdateSubstep() override final;
     virtual void CalcTriangleDrawBuffer() override final;
     virtual void CalcEdgesDrawBuffer() override final;
+
+    void UpdateSubstepPBD();
+    void UpdateVelAndPosUnconstrained(const tVectorXd &fext);
+    void ConstraintSetupPBD();
+    void ConstraintProcessPBD();
+    void PostProcessPBD();
 };

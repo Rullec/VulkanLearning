@@ -1,5 +1,6 @@
 #include "TrimeshScene.h"
 #include "utils/LogUtil.h"
+#include <iostream>
 
 tTriangle::tTriangle()
 {
@@ -22,6 +23,7 @@ cTrimeshScene::cTrimeshScene()
 {
     mTriangleArray.clear();
     mEdgeArray.clear();
+    mVcur.resize(0);
 }
 
 cTrimeshScene::~cTrimeshScene()
@@ -79,7 +81,8 @@ void cTrimeshScene::InitGeometry()
                 tVertex *v = new tVertex();
                 v->mMass = unit_mass;
                 v->mPos =
-                    tVector(unit_edge_length * j, mClothWidth - unit_edge_length * i, 0, 1);
+                    tVector(unit_edge_length * j, mClothWidth - unit_edge_length * i, 0, 1) + mClothInitPos;
+                v->mPos[3] = 1;
                 v->mColor = tVector(0, 196.0 / 255, 1, 0);
                 mVertexArray.push_back(v);
                 v->muv =
@@ -189,22 +192,15 @@ void cTrimeshScene::InitGeometry()
     CalcEdgesDrawBuffer();
 
     // init the inv mass vector
-    // mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());
-    // for (int i = 0; i < mVertexArray.size(); i++)
-    // {
-    //     mInvMassMatrixDiag.segment(i * 3, 3).fill(1.0 / mVertexArray[i]->mMass);
-    // }
+    mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        mInvMassMatrixDiag.segment(i * 3, 3).fill(1.0 / mVertexArray[i]->mMass);
+    }
 
-    SIM_INFO("init geo done");
+    mVcur.noalias() = tVectorXd::Zero(GetNumOfFreedom());
+    // SIM_INFO("init geo done");
     // exit(0);
-}
-
-/**
- * \brief           Update the sub timstep
-*/
-void cTrimeshScene::UpdateSubstep()
-{
-    SIM_WARN("hasn't been impled");
 }
 
 extern void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
@@ -214,6 +210,7 @@ extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, tVectorXf &buffer
 
 void cTrimeshScene::CalcTriangleDrawBuffer()
 {
+    std::cout << "CalcTriangleDrawBuffer\n";
     mTriangleDrawBuffer.fill(std::nan(""));
     int st = 0;
     for (auto &x : mTriangleArray)
@@ -237,5 +234,95 @@ void cTrimeshScene::CalcEdgesDrawBuffer()
             mVertexArray[x->mId0],
             mVertexArray[x->mId1],
             mEdgesDrawBuffer, st);
+    }
+}
+
+/**
+ * \brief           Update substeps
+*/
+void cTrimeshScene::UpdateSubstep()
+{
+
+    switch (mScheme)
+    {
+    case eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC:
+        UpdateSubstepPBD();
+        break;
+    case eIntegrationScheme::TRI_BARAFF:
+        SIM_ERROR("baraff hasn't been impled");
+        break;
+    default:
+        SIM_ERROR("unsupported scheme {}", mScheme);
+        break;
+    }
+}
+
+/**
+ * \brief           Update for position based dynamics
+*/
+void cTrimeshScene::UpdateSubstepPBD()
+{
+    ClearForce();
+
+    // 1. calc ext force
+    CalcExtForce(mExtForce);
+    // 2. update unconstrained
+    UpdateVelAndPosUnconstrained(mExtForce);
+    /*
+        3. collision detect
+            build constraint
+    */
+    ConstraintSetupPBD();
+
+    // 4. solve constraint
+    ConstraintProcessPBD();
+
+    // 5. post process vel
+    PostProcessPBD();
+}
+
+/**
+ * \brief           Update the unconstrained vel and pos 
+*/
+void cTrimeshScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
+{
+    // std::cout << "fext = " << fext.transpose() << std::endl;
+    mVcur += mInvMassMatrixDiag.cwiseProduct(fext) * mCurdt;
+    // std::cout << "mVcur = " << mVcur.transpose() << std::endl;
+    mXcur += mVcur * mCurdt;
+    // std::cout << "mXcur = " << mXcur.transpose() << std::endl;
+}
+/**
+ * \brief           create the constraint for PBD
+*/
+void cTrimeshScene::ConstraintSetupPBD()
+{
+    // SIM_WARN("ConstraintSetupPBD hasn't been impled");
+}
+/**
+ * \brief           
+*/
+void cTrimeshScene::ConstraintProcessPBD()
+{
+    // SIM_WARN("ConstraintProcessPBD hasn't been impled");
+}
+
+/**
+ * \brief           
+*/
+void cTrimeshScene::PostProcessPBD()
+{
+    // SIM_WARN("PostProcessPBD hasn't been impled");
+    UpdateCurNodalPosition(mXcur);
+}
+
+void cTrimeshScene::InitConstraint(const Json::Value &root)
+{
+    cSimScene::InitConstraint(root);
+
+    for (auto &i : mFixedPointIds)
+    {
+        // std::cout << "fixed id = " << i << std::endl;
+        mInvMassMatrixDiag.segment(i * 3, 3).setZero();
     }
 }

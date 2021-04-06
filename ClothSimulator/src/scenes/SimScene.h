@@ -45,6 +45,7 @@ protected:
     eIntegrationScheme mScheme;
     double mClothWidth;           // a square cloth
     double mClothMass;            // cloth mass
+    tVector mClothInitPos;      //
     int mSubdivision;             // division number along with the line
     double mStiffness;            // K
     double mDamping;              // damping coeff
@@ -63,14 +64,14 @@ protected:
     // base methods
     virtual void InitGeometry() = 0; // discretazation from square cloth to
     void ClearForce();               // clear all forces
-    virtual void CalcTriangleDrawBuffer();   //
-    virtual void CalcEdgesDrawBuffer();      //
+    void CalcExtForce(tVectorXd &ext_force) const;
+    virtual void CalcTriangleDrawBuffer(); //
+    virtual void CalcEdgesDrawBuffer();    //
     void GetVertexRenderingData();
     int GetNumOfVertices() const;
     int GetNumOfFreedom() const;
     void CalcNodePositionVector(tVectorXd &pos) const;
     virtual void InitConstraint(const Json::Value &root);
-    void UpdatePreNodalPosition(const tVectorXd &xpre);
     void UpdateCurNodalPosition(const tVectorXd &xcur);
     virtual void UpdateSubstep() = 0;
 };

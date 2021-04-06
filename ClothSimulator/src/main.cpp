@@ -26,7 +26,7 @@
 GLFWwindow *window = nullptr;
 std::shared_ptr<cDrawScene> scene = nullptr;
 bool esc_pushed = false;
-bool gPause = false;
+bool gPause = true;
 static void ResizeCallback(GLFWwindow *window, int w, int h)
 {
     scene->Resize(w, h);
@@ -73,11 +73,14 @@ void InitGlfw()
 
 #include "utils/LogUtil.h"
 #include "utils/TimeUtil.hpp"
+void ParseConfig(std::string path);
 int main()
 {
     InitGlfw();
+    std::string conf = "config/config.json";
+    ParseConfig(conf);
     scene = cSceneBuilder::BuildScene("cloth_sim_draw");
-    scene->Init("config/config.json");
+    scene->Init(conf);
 
     auto last = cTimeUtil::GetCurrentTime();
     while (glfwWindowShouldClose(window) == false && esc_pushed == false)
@@ -106,4 +109,13 @@ int main()
 
     glfwTerminate();
     return 0;
+}
+#include "utils/JsonUtil.h"
+#include "utils/LogUtil.h"
+void ParseConfig(std::string path)
+{
+    Json::Value root;
+    cJsonUtil::LoadJson(path, root);
+    gPause = cJsonUtil::ParseAsBool("pause_at_first", root);
+    SIM_INFO("pause at first = {}", gPause);
 }

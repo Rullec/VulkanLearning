@@ -34,6 +34,7 @@ cSimScene::cSimScene()
 {
     mVertexArray.clear();
     mFixedPointIds.clear();
+    mClothInitPos.setZero();
 }
 
 void cSimScene::Init(const std::string &conf_path)
@@ -44,6 +45,12 @@ void cSimScene::Init(const std::string &conf_path)
 
     mClothWidth = cJsonUtil::ParseAsDouble("cloth_size", root);
     mClothMass = cJsonUtil::ParseAsDouble("cloth_mass", root);
+    Json::Value init_pos_json = cJsonUtil::ParseAsValue("cloth_init_pos", root);
+    SIM_ASSERT(init_pos_json.size() == 3);
+    mClothInitPos = tVector(
+        init_pos_json[0].asDouble(),
+        init_pos_json[1].asDouble(),
+        init_pos_json[2].asDouble(), 1);
     mSubdivision = cJsonUtil::ParseAsInt("subdivision", root);
     mStiffness = cJsonUtil::ParseAsDouble("stiffness", root);
     mDamping = cJsonUtil::ParseAsDouble("damping", root);
@@ -53,6 +60,8 @@ void cSimScene::Init(const std::string &conf_path)
         cJsonUtil::ParseAsString("integration_scheme", root));
     SIM_INFO("cloth total width {} subdivision {} K {}", mClothWidth,
              mSubdivision, mStiffness);
+
+
     // 2. create geometry, dot allocation
     InitGeometry();
     InitConstraint(root);
@@ -124,7 +133,6 @@ void cSimScene::UpdateCurNodalPosition(const tVectorXd &newpos)
     }
 }
 
-void cSimScene::UpdatePreNodalPosition(const tVectorXd &xpre) { mXpre = xpre; }
 void cSimScene::GetVertexRenderingData() {}
 
 int cSimScene::GetNumOfFreedom() const { return GetNumOfVertices() * 3; }
@@ -143,6 +151,20 @@ void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
     buffer.segment(st_pos + 3, 3) = v2->mColor.segment(0, 3).cast<float>();
     st_pos += 8;
 }
+/**
+ * \brief       external force
+*/
+extern const tVector gGravity;
+void cSimScene::CalcExtForce(tVectorXd &ext_force) const
+{
+    // apply gravity
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        ext_force.segment(3 * i, 3) +=
+            gGravity.segment(0, 3) * mVertexArray[i]->mMass;
+    }
+}
+
 void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, tVectorXf &buffer,
                               int &st_pos)
 {

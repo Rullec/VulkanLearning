@@ -31,7 +31,6 @@ protected:
     virtual void InitGeometry() override final;
     virtual void InitConstraint(const Json::Value &root) override final;
     // derived methods
-    void CalcExtForce(tVectorXd &ext_force) const;
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
 

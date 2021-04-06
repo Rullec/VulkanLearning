@@ -386,13 +386,35 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
 #include "cameras/ArcBallCamera.h"
 // #include "SimScene.h"
 #include "SceneBuilder.h"
+#include "utils/JsonUtil.h"
 void cDrawScene::Init(const std::string &conf_path)
 {
+    // init camera pos
 
-    mSimScene = cSceneBuilder::BuildSimScene(conf_path);
-    mSimScene->Init(conf_path);
+    {
+        Json::Value root;
+        cJsonUtil::LoadJson(conf_path, root);
+        Json::Value camera_json = cJsonUtil::ParseAsValue("camera", root);
+        Json::Value camera_pos_json = cJsonUtil::ParseAsValue("camera_pos", camera_json);
+        Json::Value camera_focus_json = cJsonUtil::ParseAsValue("camera_focus", camera_json);
+        SIM_ASSERT(camera_pos_json.size() == 3);
+        SIM_ASSERT(camera_focus_json.size() == 3);
+        mCameraInitFocus = tVector3f(
+            camera_focus_json[0].asFloat(),
+            camera_focus_json[1].asFloat(),
+            camera_focus_json[2].asFloat());
+        mCameraInitPos = tVector3f(
+            camera_pos_json[0].asFloat(),
+            camera_pos_json[1].asFloat(),
+            camera_pos_json[2].asFloat());
+        SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(), mCameraInitFocus.transpose());
+    }
+
     mCamera = std::make_shared<ArcBallCamera>(
-        tVector3f(2, 2, 2), tVector3f(0, 0, 0), tVector3f(0, 1, 0));
+        mCameraInitPos, mCameraInitFocus, tVector3f(0, 1, 0));
+    mSimScene = cSceneBuilder::BuildSimScene(conf_path);
+
+    mSimScene->Init(conf_path);
 
     InitVulkan();
 
