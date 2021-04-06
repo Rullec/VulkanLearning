@@ -1,6 +1,6 @@
 {
-    "integration_scheme": "semi_implicit",
-    "integration_scheme_pbd": "tri_pbd",
+    "integration_scheme_ms": "semi_implicit",
+    "integration_scheme": "tri_pbd",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -8,12 +8,14 @@
         1,
         0
     ],
-    "subdivision": 10,
+    "subdivision": 20,
     "damping": 3e-2,
     "max_newton_iters": 1,
     "stiffness": 300,
     "default_timestep": 1e-3,
     "max_steps_opt": 1,
+    "max_pbd_iters": 100,
+    "stiffness_pbd": 1.0,
     "constraints": {
         "fixed_point": [
             [

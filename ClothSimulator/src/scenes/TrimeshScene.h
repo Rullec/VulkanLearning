@@ -27,6 +27,7 @@ class cTrimeshScene : public cSimScene
 {
 public:
     explicit cTrimeshScene();
+    virtual void Init(const std::string &conf_path) override;
     ~cTrimeshScene();
 
 protected:
@@ -34,6 +35,7 @@ protected:
     tEigenArr<tEdge *> mEdgeArray;
     tVectorXd mVcur; // velocity vector
     tVectorXd mInvMassMatrixDiag;
+    int mItersPBD, mStiffnessPBD;
     virtual void InitGeometry() override final;
     virtual void InitConstraint(const Json::Value &root) override final;
     virtual void UpdateSubstep() override final;
@@ -42,7 +44,7 @@ protected:
 
     void UpdateSubstepPBD();
     void UpdateVelAndPosUnconstrained(const tVectorXd &fext);
-    void ConstraintSetupPBD();
+    // void ConstraintSetupPBD();
     void ConstraintProcessPBD();
     void PostProcessPBD();
 };

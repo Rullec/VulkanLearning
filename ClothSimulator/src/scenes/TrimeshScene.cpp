@@ -87,7 +87,7 @@ void cTrimeshScene::InitGeometry()
                 mVertexArray.push_back(v);
                 v->muv =
                     tVector2f(i * 1.0 / mSubdivision, j * 1.0 / mSubdivision);
-                printf("create vertex %d at (%.3f, %.3f), uv (%.3f, %.3f)\n",
+                printf("create vertex %d at (%.7f, %.7f), uv (%.7f, %.7f)\n",
                        mVertexArray.size() - 1, v->mPos[0], v->mPos[1],
                        v->muv[0], v->muv[1]);
             }
@@ -107,6 +107,7 @@ void cTrimeshScene::InitGeometry()
                 tEdge *edge = new tEdge();
                 edge->mId0 = num_of_vertices_per_line * row_id + col_id;
                 edge->mId1 = edge->mId0 + 1;
+                edge->mRawLength = unit_edge_length;
                 if (row_id == 0)
                 {
                     edge->mIsBoundary = true;
@@ -163,6 +164,8 @@ void cTrimeshScene::InitGeometry()
                 }
                 else
                 {
+                    continue;
+                    std::cout << "ignore skew edge\n";
                     // skew line
                     edge->mId0 = num_of_vertices_per_line * row_id + col_id;
                     edge->mId1 = num_of_vertices_per_line * (row_id + 1) + col_id + 1;
@@ -210,7 +213,6 @@ extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, tVectorXf &buffer
 
 void cTrimeshScene::CalcTriangleDrawBuffer()
 {
-    std::cout << "CalcTriangleDrawBuffer\n";
     mTriangleDrawBuffer.fill(std::nan(""));
     int st = 0;
     for (auto &x : mTriangleArray)
@@ -242,7 +244,8 @@ void cTrimeshScene::CalcEdgesDrawBuffer()
 */
 void cTrimeshScene::UpdateSubstep()
 {
-
+    // std::cout << "[before update] x = " << mXcur.transpose() << std::endl;
+    // exit(0);
     switch (mScheme)
     {
     case eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC:
@@ -272,7 +275,7 @@ void cTrimeshScene::UpdateSubstepPBD()
         3. collision detect
             build constraint
     */
-    ConstraintSetupPBD();
+    // ConstraintSetupPBD();
 
     // 4. solve constraint
     ConstraintProcessPBD();
@@ -292,19 +295,56 @@ void cTrimeshScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
     mXcur += mVcur * mCurdt;
     // std::cout << "mXcur = " << mXcur.transpose() << std::endl;
 }
+// /**
+//  * \brief           create the constraint for PBD
+// */
+// void cTrimeshScene::ConstraintSetupPBD()
+// {
+
+// }
+
 /**
- * \brief           create the constraint for PBD
-*/
-void cTrimeshScene::ConstraintSetupPBD()
-{
-    // SIM_WARN("ConstraintSetupPBD hasn't been impled");
-}
-/**
- * \brief           
+ * \brief           given raw vertex vector p, solve the constraint and get the new p
 */
 void cTrimeshScene::ConstraintProcessPBD()
 {
-    // SIM_WARN("ConstraintProcessPBD hasn't been impled");
+    const int iters = mItersPBD;
+    double raw_k = mStiffnessPBD;
+    double final_k = 1 - std::pow((1 - raw_k), 1.0 / iters);
+    const bool enable_strech_constraint = true; // for each edge
+    // std::cout << "X cur = " << mXcur.transpose() << std::endl;
+    for (int i = 0; i < iters; i++)
+    {
+// #pragma omp parallel for
+        for (const auto &e : mEdgeArray)
+        {
+            if (enable_strech_constraint)
+            {
+                int id0 = e->mId0, id1 = e->mId1;
+                const tVector3d &p1 = mXcur.segment(3 * id0, 3),
+                                &p2 = mXcur.segment(3 * id1, 3);
+                double raw = e->mRawLength;
+                // std::cout << "raw = " << raw << std::endl;
+                double dist = (p1 - p2).norm();
+                double w1 = mInvMassMatrixDiag[3 * e->mId0],
+                       w2 = mInvMassMatrixDiag[3 * e->mId1];
+                double w_sum = w1 + w2;
+                double coef1 = -w1 / w_sum * final_k,
+                       coef2 = w2 / w_sum * final_k;
+                if (w_sum == 0)
+                {
+                    continue;
+                }
+                tVector3d delta_p1 = coef1 * (dist - raw) * (p1 - p2) / dist,
+                          delta_p2 = coef2 * (dist - raw) * (p1 - p2) / dist;
+                mXcur.segment(3 * id0, 3) += delta_p1.segment(0, 3);
+                mXcur.segment(3 * id1, 3) += delta_p2.segment(0, 3);
+            }
+        }
+    }
+    // std::cout << "X after = " << mXcur.transpose() << std::endl;
+    // std::cout << "PBD solve constraint done\n";
+    // exit(0);
 }
 
 /**
@@ -325,4 +365,15 @@ void cTrimeshScene::InitConstraint(const Json::Value &root)
         // std::cout << "fixed id = " << i << std::endl;
         mInvMassMatrixDiag.segment(i * 3, 3).setZero();
     }
+}
+
+#include "utils/JsonUtil.h"
+
+void cTrimeshScene::Init(const std::string &conf_path)
+{
+    Json::Value root;
+    cJsonUtil::LoadJson(conf_path, root);
+    mItersPBD = cJsonUtil::ParseAsInt("max_pbd_iters", root);
+    mStiffnessPBD = cJsonUtil::ParseAsDouble("stiffness_pbd", root);
+    cSimScene::Init(conf_path);
 }
