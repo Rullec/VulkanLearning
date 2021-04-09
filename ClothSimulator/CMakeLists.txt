@@ -19,6 +19,7 @@ add_definitions(-std=c++17)
 # set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
 add_subdirectory(./src/utils)
+add_subdirectory(./src/geometries)
 add_subdirectory(./src/scenes)
 add_subdirectory(./src/shaders)
 
@@ -26,7 +27,7 @@ set(my_libs ${scenes_lib} ${utils_lib})
 set(libs ${Vulkan_LIBRARIES} ${GLFW3_LIBRARY} ${my_libs})
 
 add_executable(main ./src/main.cpp)
-target_link_libraries(main ${libs} scenes_lib utils_lib OpenMP::OpenMP_CXX)
+target_link_libraries(main ${libs} scenes_lib utils_lib geo_lib OpenMP::OpenMP_CXX)
 
 add_custom_command(
     TARGET main POST_BUILD

@@ -45,6 +45,7 @@ typedef Eigen::Quaterniond tQuaternion;
 typedef Eigen::Affine3d aff3;
 typedef Eigen::Affine3f aff3f;
 typedef Eigen::SparseMatrix<double> tSparseMat;
+typedef Eigen::Triplet<double> tTriplet;
 template <typename T>
 using tEigenArr = std::vector<T, Eigen::aligned_allocator<T>>;
 typedef tEigenArr<tVector> tVectorArr;

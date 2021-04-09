@@ -1,24 +1,17 @@
 #include "MassSpringScene.h"
 #include "utils/JsonUtil.h"
+#include "geometries/Primitives.h"
 #include <iostream>
-tSpring::tSpring()
-{
-    mRawLength = 0;
-    mK = 0;
-    mId0 = -1;
-    mId1 = -1;
-}
-
 cMSScene::cMSScene()
 {
-    mSpringArray.clear();
+    mEdgeArray.clear();
 }
 
 cMSScene::~cMSScene()
 {
-    for (auto x : mSpringArray)
+    for (auto x : mEdgeArray)
         delete x;
-    mSpringArray.clear();
+    mEdgeArray.clear();
 }
 
 void cMSScene::Init(const std::string &conf_path)
@@ -26,63 +19,94 @@ void cMSScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
 
-    mMaxNewtonIters = cJsonUtil::ParseAsInt("max_newton_iters", root);
-
     cSimScene::Init(conf_path);
+    // 2. create geometry, dot allocation
+
+    if (mScheme == eIntegrationScheme::MS_IMPLICIT)
+    {
+        mMaxNewtonIters = cJsonUtil::ParseAsInt("max_newton_iters", root);
+    }
     if (mScheme == eIntegrationScheme::MS_OPT_IMPLICIT)
     {
         mMaxSteps_Opt = cJsonUtil::ParseAsInt("max_steps_opt", root);
     }
+
+    InitGeometry(root);
+    InitConstraint(root);
+
+    // 3. set up the init pos
+    CalcNodePositionVector(mXpre);
+    mXcur.noalias() = mXpre;
+
     if (mScheme == eIntegrationScheme::MS_OPT_IMPLICIT)
     {
-        InitVarsOptImplicit();
+        // InitVarsOptImplicit();
+        InitVarsOptImplicitSparse();
+        I_plus_dt2_Minv_L_sparse_solver.analyzePattern(I_plus_dt2_Minv_L_sparse);
+        I_plus_dt2_Minv_L_sparse_solver.factorize(I_plus_dt2_Minv_L_sparse);
+        // std::cout << "factorize done\n";
+        // exit(0);
+        // tMatrixXd res = (I_plus_dt2_Minv_L_inv * I_plus_dt2_Minv_L_sparse - tMatrixXd::Identity(GetNumOfFreedom(), GetNumOfFreedom()));
+
+        // std::cout << "J = \n"
+        //           << J << std::endl;
+        // std::cout << "J sparse = \n"
+        //           << J_sparse << std::endl;
+        // std::cout << "diff = " << (J - J_sparse).norm() << std::endl;
+
+        // std::cout << "res norm = \n"
+        //           << res.norm() << std::endl;
+        // exit(0);
     }
 }
 
-/**
- * \brief           calculate the matrix used in fast simulation
- *      x_a^i - x_bi = Si * x
- *      J = [k1S1T; k2S2T, ... knSnT]
- *      Jinv = J.inverse()
- *      L = \sum_i ki * Si^T * Si
- *      (M + dt2 * L).inv()
-*/
-void cMSScene::InitVarsOptImplicit()
-{
-    int num_of_sprs = GetNumOfSprings();
-    int node_dof = GetNumOfFreedom();
-    int spr_dof = 3 * num_of_sprs;
-    J.noalias() = tMatrixXd::Zero(node_dof, spr_dof);
-    Jinv.noalias() = tMatrixXd::Zero(node_dof, spr_dof);
-    tMatrixXd L = tMatrixXd::Zero(node_dof, node_dof);
+// Dense deprecated
+// /**
+//  * \brief           calculate the matrix used in fast simulation
+//  *      x_a^i - x_bi = Si * x
+//  *      J = [k1S1T; k2S2T, ... knSnT]
+//  *      Jinv = J.inverse()
+//  *      L = \sum_i ki * Si^T * Si
+//  *      (M + dt2 * L).inv()
+// */
+// void cMSScene::InitVarsOptImplicit()
+// {
+//     int num_of_sprs = GetNumOfSprings();
+//     int node_dof = GetNumOfFreedom();
+//     int spr_dof = 3 * num_of_sprs;
+//     J.noalias() = tMatrixXd::Zero(node_dof, spr_dof);
+//     tMatrixXd L = tMatrixXd::Zero(node_dof, node_dof);
 
-    tMatrixXd Si = tMatrixXd::Zero(3, node_dof);
-    for (int i = 0; i < num_of_sprs; i++)
-    {
-        // 1. calc Si
-        auto spr = mSpringArray[i];
-        int id0 = spr->mId0, id1 = spr->mId1;
-        double k = spr->mK;
-        Si.setZero();
-        Si.block(0, 3 * id0, 3, 3).setIdentity();
-        Si.block(0, 3 * id1, 3, 3).noalias() = tMatrix3d::Identity(3, 3) * -1;
+//     tMatrixXd Si = tMatrixXd::Zero(3, node_dof);
+//     for (int i = 0; i < num_of_sprs; i++)
+//     {
+//         // 1. calc Si
+//         auto spr = mSpringArray[i];
+//         int id0 = spr->mId0, id1 = spr->mId1;
+//         double k = spr->mK_spring;
+//         Si.setZero();
+//         Si.block(0, 3 * id0, 3, 3).setIdentity();
+//         Si.block(0, 3 * id1, 3, 3).noalias() = tMatrix3d::Identity(3, 3) * -1;
 
-        J.block(0, 3 * i, node_dof, 3).noalias() = k * Si.transpose();
-        L += k * Si.transpose() * Si;
-    }
-
-    double dt2 = mIdealDefaultTimestep * mIdealDefaultTimestep;
-    SIM_ASSERT(dt2 > 0);
-    I_plus_dt2_Minv_L_inv = (tMatrixXd::Identity(node_dof, node_dof) + dt2 * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * L).inverse();
-    // std::cout << "J = \n"
-    //           << J << std::endl;
-    // std::cout << "Jinv = \n"
-    //           << Jinv << std::endl;
-    // std::cout << "(I + dt2 Minv L).inv = \n"
-    //           << I_plus_dt2_Minv_L_inv << std::endl;
-    SIM_INFO("init vars succ");
-    // exit(0);
-}
+//         J.block(0, 3 * i, node_dof, 3).noalias() = k * Si.transpose();
+//         L += k * Si.transpose() * Si;
+//     }
+//     // std::cout << "L=\n"
+//     //           << L << std::endl;
+//     // std::cout << "Minv * L=\n"
+//     //           << mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * L << std::endl;
+//     double dt2 = mIdealDefaultTimestep * mIdealDefaultTimestep;
+//     SIM_ASSERT(dt2 > 0);
+//     I_plus_dt2_Minv_L_inv = (tMatrixXd::Identity(node_dof, node_dof) + dt2 * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * L).inverse();
+//     // std::cout << "J = \n"
+//     //           << J << std::endl;
+//     // std::cout << "Jinv = \n"
+//     //           << Jinv << std::endl;
+//     // std::cout << "(I + dt2 Minv L).inv = \n"
+//     //           << I_plus_dt2_Minv_L_inv << std::endl;
+//     SIM_INFO("init vars succ");
+//     // exit(0);
+// }
 
 void cMSScene::Update(double dt)
 {
@@ -92,92 +116,6 @@ void cMSScene::Update(double dt)
 void cMSScene::Reset()
 {
     cSimScene::Reset();
-}
-
-/**
- * \brief   discretazation from square cloth to mass spring system
- * 
-*/
-void cMSScene::InitGeometry()
-{
-    int spring_id = 0;
-    int vertex_id = 0;
-    int gap = mSubdivision + 1;
-    double unit_edge_length = mClothWidth / mSubdivision;
-    // for all row lines' edges
-    for (int i = 0; i < mSubdivision + 1; i++)
-    {
-        for (int j = 0; j < mSubdivision; j++)
-        {
-            // if i is row index
-            {
-                tSpring *spr = new tSpring();
-                spr->mRawLength = unit_edge_length;
-                spr->mK = mStiffness;
-                spr->mId0 = gap * i + j;
-                spr->mId1 = gap * i + j + 1;
-                mSpringArray.push_back(spr);
-                printf("create spring %d between %d and %d\n",
-                       mSpringArray.size() - 1, spr->mId0, spr->mId1);
-            }
-            // if i is column index
-            {
-                tSpring *spr = new tSpring();
-                spr->mRawLength = unit_edge_length;
-                spr->mK = mStiffness;
-                spr->mId0 = gap * j + i;
-                spr->mId1 = gap * (j + 1) + i;
-                mSpringArray.push_back(spr);
-                printf("create spring %d between %d and %d\n",
-                       mSpringArray.size() - 1, spr->mId0, spr->mId1);
-            }
-        }
-    }
-
-    // set up the vertex pos data
-    // in XOY plane
-    {
-        for (int i = 0; i < gap; i++)
-            for (int j = 0; j < gap; j++)
-            {
-                tVertex *v = new tVertex();
-                v->mMass = mClothMass / (gap * gap);
-                v->mPos =
-                    tVector(unit_edge_length * j, mClothWidth - unit_edge_length * i, 0, 1) + mClothInitPos;
-                v->mPos[3] = 1;
-                v->mColor = tVector(0, 196.0 / 255, 1, 0);
-                mVertexArray.push_back(v);
-                v->muv =
-                    tVector2f(i * 1.0 / mSubdivision, j * 1.0 / mSubdivision);
-                printf("create vertex %d at (%.3f, %.3f), uv (%.3f, %.3f)\n",
-                       mVertexArray.size() - 1, v->mPos[0], v->mPos[1],
-                       v->muv[0], v->muv[1]);
-            }
-    }
-
-    // init the buffer
-    {
-        int num_of_square = mSubdivision * mSubdivision;
-        int num_of_triangles = num_of_square * 2;
-        int num_of_vertices = num_of_triangles * 3;
-        int size_per_vertices = 8;
-        mTriangleDrawBuffer.resize(num_of_vertices * size_per_vertices);
-    }
-    {
-        int num_of_edges = 2 * (gap - 1) * gap;
-        int size_per_edge = 16;
-        mEdgesDrawBuffer.resize(num_of_edges * size_per_edge);
-    }
-
-    CalcTriangleDrawBuffer();
-    CalcEdgesDrawBuffer();
-
-    // init the inv mass vector
-    mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());
-    for (int i = 0; i < mVertexArray.size(); i++)
-    {
-        mInvMassMatrixDiag.segment(i * 3, 3).fill(1.0 / mVertexArray[i]->mMass);
-    }
 }
 
 void cMSScene::UpdateSubstep()
@@ -223,32 +161,6 @@ void cMSScene::UpdateSubstep()
     mXpre.noalias() = mXcur;
     mXcur.noalias() = mXnext;
     UpdateCurNodalPosition(mXcur);
-}
-
-/**
- * \brief       internal force
-*/
-void cMSScene::CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const
-{
-    int id0, id1;
-    double dist;
-    tVector3d pos0, pos1;
-    for (auto &spr : this->mSpringArray)
-    {
-        // 1. calcualte internal force for each spring
-        id0 = spr->mId0;
-        id1 = spr->mId1;
-        pos0 = xcur.segment(id0 * 3, 3);
-        pos1 = xcur.segment(id1 * 3, 3);
-        dist = (pos0 - pos1).norm();
-        tVector3d force0 = spr->mK * (spr->mRawLength - dist) *
-                           (pos0 - pos1).segment(0, 3) / dist;
-        tVector3d force1 = -force0;
-
-        // 2. add force
-        int_force.segment(3 * id0, 3) += force0.segment(0, 3);
-        int_force.segment(3 * id1, 3) += force1.segment(0, 3);
-    }
 }
 
 /**
@@ -397,7 +309,7 @@ void cMSScene::CalcdGxdxImplicit(const tVectorXd &x, tMatrixXd &dGdx) const
     int id0, id1;
     double dist;
     tVector3d pos0, pos1;
-    for (auto &spr : this->mSpringArray)
+    for (auto &spr : this->mEdgeArray)
     {
         id0 = spr->mId0;
         id1 = spr->mId1;
@@ -431,8 +343,8 @@ void cMSScene::CalcdGxdxImplicit(const tVectorXd &x, tMatrixXd &dGdx) const
         double dist = (pos0 - pos1).norm();
         const tMatrix3d &I3 = tMatrix3d::Identity(3, 3);
         tMatrix3d dfidxi =
-            spr->mK * I3 -
-            spr->mK * spr->mRawLength *
+            spr->mK_spring * I3 -
+            spr->mK_spring * spr->mRawLength *
                 (I3 * dist - (pos0 - pos1) * (pos0 - pos1).transpose() / dist) /
                 (dist * dist);
 
@@ -490,7 +402,6 @@ void cMSScene::TestdGxdxImplicit(const tVectorXd &x0, const tMatrixXd &Gx_ana)
     SIM_INFO("test dG/dx succ");
 }
 
-typedef Eigen::Triplet<double> tTriplet;
 void cMSScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
                                        tSparseMat &dGdx) const
 {
@@ -501,7 +412,7 @@ void cMSScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
     tVector3d pos0, pos1;
     double dt2 = mCurdt * mCurdt;
     tEigenArr<tTriplet> tri_lst(0);
-    for (auto &spr : this->mSpringArray)
+    for (auto &spr : this->mEdgeArray)
     {
         id0 = spr->mId0;
         id1 = spr->mId1;
@@ -511,8 +422,8 @@ void cMSScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
         double dist = (pos0 - pos1).norm();
         const tMatrix3d &I3 = tMatrix3d::Identity(3, 3);
         tMatrix3d dfidxi =
-            spr->mK * I3 -
-            spr->mK * spr->mRawLength *
+            spr->mK_spring * I3 -
+            spr->mK_spring * spr->mRawLength *
                 (I3 * dist - (pos0 - pos1) * (pos0 - pos1).transpose() / dist) /
                 (dist * dist);
 
@@ -577,8 +488,11 @@ void cMSScene::CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const
  *      2. begin to do iteration
  *      3. return the result
 */
+#include "utils/TimeUtil.hpp"
 tVectorXd cMSScene::CalcNextPositionOptImplicit() const
 {
+
+    // cTimeUtil::Begin("fast simulation calc next");
     // std::cout << "begin CalcNextPositionOptImplicit\n";
     tVectorXd y = 2 * mXcur - mXpre;
     tVectorXd Xnext = y;
@@ -594,19 +508,6 @@ tVectorXd cMSScene::CalcNextPositionOptImplicit() const
     fext += fdamping;
     // tVectorXd b;
     double dt2 = mCurdt * mCurdt;
-    // {
-    //     tVectorXd mass_diag = mInvMassMatrixDiag;
-    //     // for (int i = 0; i < mass_diag.size(); i++)
-    //     // {
-    //     //     if (std::fabs(mass_diag[i]) < 1e-17)
-    //     //     {
-    //     //         mass_diag[i] += 1e-17;
-    //     //     }
-    //     // }
-    //     mass_diag = mass_diag.cwiseInverse();
-    //     SIM_ASSERT(mass_diag.hasNaN() == false);
-    //     b = dt2 * fext + mass_diag.asDiagonal().toDenseMatrix() * y;
-    // }
 
     SIM_ASSERT(std::fabs(mCurdt - mIdealDefaultTimestep) < 1e-10);
     // std::cout << "max step = " << mMaxSteps_Opt << std::endl;
@@ -618,10 +519,11 @@ tVectorXd cMSScene::CalcNextPositionOptImplicit() const
             di = (x0^i - x1^i).normalized()
         */
         // std::cout << "step " << i << " X = " << Xnext.transpose() << std::endl;
+#pragma omp parallel for
         for (int j = 0; j < GetNumOfSprings(); j++)
         {
-            int id0 = mSpringArray[j]->mId0, id1 = mSpringArray[j]->mId1;
-            d.segment(j * 3, 3).noalias() = (Xnext.segment(3 * id0, 3) - Xnext.segment(3 * id1, 3)).normalized() * mSpringArray[j]->mRawLength;
+            int id0 = mEdgeArray[j]->mId0, id1 = mEdgeArray[j]->mId1;
+            d.segment(j * 3, 3).noalias() = (Xnext.segment(3 * id0, 3) - Xnext.segment(3 * id1, 3)).normalized() * mEdgeArray[j]->mRawLength;
         }
         // std::cout << "d = " << d.transpose() << std::endl;
         // std::cout << "J * d = " << (J * d).transpose() << std::endl;
@@ -630,19 +532,24 @@ tVectorXd cMSScene::CalcNextPositionOptImplicit() const
             2. fixed the d, calulcate the x
             x = (M + dt2 * L).inv() * (dt2 * J * d - b)
         */
-        Xnext = I_plus_dt2_Minv_L_inv * (mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * dt2 * (J * d + fext) + y);
+        // cTimeUtil::BeginLazy("fast simulation sparse solve");
+        Xnext.noalias() = I_plus_dt2_Minv_L_sparse_solver.solve(mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y);
+        // cTimeUtil::EndLazy("fast simulation sparse solve");
+        //  = I_plus_dt2_Minv_L_inv * ();
         if (Xnext.hasNaN())
         {
             std::cout << "Xnext has Nan, exit = " << Xnext.transpose() << std::endl;
             exit(0);
         }
     }
+    // cTimeUtil::ClearLazy("fast simulation sparse solve");
     // std::cout << "done, xnext = " << Xnext.transpose() << std::endl;
     // exit(0);
+    // cTimeUtil::End("fast simulation calc next");
     return Xnext;
 }
 
 int cMSScene::GetNumOfSprings() const
 {
-    return mSpringArray.size();
+    return mEdgeArray.size();
 }

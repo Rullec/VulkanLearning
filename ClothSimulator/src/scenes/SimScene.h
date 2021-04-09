@@ -2,17 +2,6 @@
 #include "Scene.h"
 #include "utils/MathUtil.h"
 
-struct tVertex
-{
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    tVertex();
-    double mMass;
-    tVector mPos;
-    tVector2f
-        muv; // "texture" coordinate 2d, it means the plane coordinate for a vertex over a cloth, but now the texture in rendering
-    tVector mColor;
-};
-
 namespace Json
 {
     class Value;
@@ -30,6 +19,8 @@ enum eIntegrationScheme
     NUM_OF_INTEGRATION_SCHEMES
 };
 
+struct tVertex;
+struct tEdge;
 class cSimScene : public cScene
 {
 public:
@@ -44,27 +35,27 @@ public:
 
 protected:
     eIntegrationScheme mScheme;
-    double mClothWidth;           // a square cloth
-    double mClothMass;            // cloth mass
-    tVector mClothInitPos;        //
-    int mSubdivision;             // division number along with the line
-    double mStiffness;            // K
+    // double mClothWidth;           // a square cloth
+    // double mClothMass;            // cloth mass
+    // tVector mClothInitPos;        //
+    // int mSubdivision;             // division number along with the line
     double mDamping;              // damping coeff
     double mIdealDefaultTimestep; // default substep dt
     tVectorXf mTriangleDrawBuffer,
         mEdgesDrawBuffer; // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
 
-    tEigenArr<tVertex *> mVertexArray; // vertices info
-    tVectorXd mIntForce;               // internal force
-    tVectorXd mExtForce;               // external force
-    tVectorXd mDampingForce;           // external force
+    std::vector<tVertex *> mVertexArray; // vertices info
+    std::vector<tEdge *> mEdgeArray;     // springs info
+    tVectorXd mIntForce;                 // internal force
+    tVectorXd mExtForce;                 // external force
+    tVectorXd mDampingForce;             // external force
 
     tVectorXd mXpre, mXcur;          // previous node position & current node position
     std::vector<int> mFixedPointIds; // fixed constraint point
 
     // base methods
-    virtual void InitGeometry() = 0; // discretazation from square cloth to
-    void ClearForce();               // clear all forces
+    virtual void InitGeometry(const Json::Value &conf) = 0; // discretazation from square cloth to
+    void ClearForce();                                      // clear all forces
     virtual void CalcExtForce(tVectorXd &ext_force) const;
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //

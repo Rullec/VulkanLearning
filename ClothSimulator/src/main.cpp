@@ -74,11 +74,15 @@ void InitGlfw()
 #include "utils/LogUtil.h"
 #include "utils/TimeUtil.hpp"
 void ParseConfig(std::string path);
-int main()
+int main(int argc, char **argv)
 {
-    // Eigen::initParallel();
     InitGlfw();
-    std::string conf = "config/config.json";
+    std::string conf = "config/fast_config.json";
+    if (argc == 2)
+    {
+        conf = std::string(argv[1]);
+    }
+
     ParseConfig(conf);
     scene = cSceneBuilder::BuildScene("cloth_sim_draw");
     scene->Init(conf);
@@ -114,8 +118,10 @@ int main()
 }
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
+#include "utils/FileUtil.h"
 void ParseConfig(std::string path)
 {
+    SIM_ASSERT(cFileUtil::ExistsFile(path) == true);
     Json::Value root;
     cJsonUtil::LoadJson(path, root);
     gPause = cJsonUtil::ParseAsBool("pause_at_first", root);

@@ -366,3 +366,8 @@ libs/
 build*/
 ClothSimulator/main
 *spv
+
+# global tags generator
+GPATH
+GRTAGS
+GTAGS

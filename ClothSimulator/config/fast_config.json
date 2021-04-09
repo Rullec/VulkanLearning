@@ -1,6 +1,5 @@
 {
-    "integration_scheme_bak1": "semi_implicit",
-    "integration_scheme": "tri_pbd",
+    "integration_scheme": "opt_implicit",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -8,15 +7,14 @@
         1,
         0
     ],
+    "geometry_type_bak": "uniform_square",
+    "geometry_type_bak1": "skew_triangle",
+    "geometry_type": "regular_triangle",
     "subdivision": 100,
     "damping": 1e-4,
-    "max_newton_iters": 2,
-    "stiffness": 300,
-    "default_timestep": 5e-3,
+    "stiffness": 30,
+    "default_timestep": 1e-2,
     "max_steps_opt": 1,
-    "max_pbd_iters": 20,
-    "stiffness_pbd": 1,
-    "enable_parallel_pbd": true,
     "constraints": {
         "fixed_point": [
             [
@@ -26,10 +24,6 @@
             [
                 0,
                 1
-            ],
-            [
-                0,
-                0.5
             ]
         ]
     },

@@ -1,11 +1,12 @@
 #include "SimScene.h"
 #include "utils/JsonUtil.h"
+#include "geometries/Primitives.h"
 #include <iostream>
 
 std::string gIntegrationSchemeStr
     [eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
         "semi_implicit", "implicit", "opt_implicit",
-        "tri_pbd",  "tri_projective_dynamic", "tri_baraff"};
+        "tri_pbd", "tri_projective_dynamic", "tri_baraff"};
 
 eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
 {
@@ -22,19 +23,11 @@ eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
     SIM_ASSERT(i != eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES);
     return static_cast<eIntegrationScheme>(i);
 }
-
-tVertex::tVertex()
-{
-    mMass = 0;
-    mPos.setZero();
-    mColor = tVector::Ones();
-}
-
 cSimScene::cSimScene()
 {
     mVertexArray.clear();
     mFixedPointIds.clear();
-    mClothInitPos.setZero();
+    // mClothInitPos.setZero();
 }
 
 void cSimScene::Init(const std::string &conf_path)
@@ -43,32 +36,13 @@ void cSimScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
 
-    mClothWidth = cJsonUtil::ParseAsDouble("cloth_size", root);
-    mClothMass = cJsonUtil::ParseAsDouble("cloth_mass", root);
-    Json::Value init_pos_json = cJsonUtil::ParseAsValue("cloth_init_pos", root);
-    SIM_ASSERT(init_pos_json.size() == 3);
-    mClothInitPos = tVector(
-        init_pos_json[0].asDouble(),
-        init_pos_json[1].asDouble(),
-        init_pos_json[2].asDouble(), 1);
-    mSubdivision = cJsonUtil::ParseAsInt("subdivision", root);
-    mStiffness = cJsonUtil::ParseAsDouble("stiffness", root);
     mDamping = cJsonUtil::ParseAsDouble("damping", root);
 
     mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
     mScheme = BuildIntegrationScheme(
         cJsonUtil::ParseAsString("integration_scheme", root));
-    SIM_INFO("cloth total width {} subdivision {} K {}", mClothWidth,
-             mSubdivision, mStiffness);
-
-
-    // 2. create geometry, dot allocation
-    InitGeometry();
-    InitConstraint(root);
-
-    // 3. set up the init pos
-    CalcNodePositionVector(mXpre);
-    mXcur.noalias() = mXpre;
+    // SIM_INFO("cloth total width {} subdivision {}", mClothWidth,
+    //          mSubdivision);
 
     std::cout << "init sim scene done\n";
 }
@@ -76,6 +50,7 @@ void cSimScene::Init(const std::string &conf_path)
 /**
  * \brief           Update the simulation procedure
 */
+#include "utils/TimeUtil.hpp"
 void cSimScene::Update(double delta_time)
 {
     double default_dt = mIdealDefaultTimestep;
@@ -88,7 +63,9 @@ void cSimScene::Update(double delta_time)
         //     default_dt = delta_time;
         cScene::Update(default_dt);
 
+        // cTimeUtil::Begin("substep");
         UpdateSubstep();
+        // cTimeUtil::End("substep");
 
         delta_time -= default_dt;
     }
@@ -157,7 +134,8 @@ void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
 extern const tVector gGravity;
 void cSimScene::CalcExtForce(tVectorXd &ext_force) const
 {
-    // apply gravity
+// apply gravity
+#pragma omp parallel for
     for (int i = 0; i < mVertexArray.size(); i++)
     {
         ext_force.segment(3 * i, 3) +=
@@ -188,10 +166,11 @@ void cSimScene::CalcTriangleDrawBuffer()
 {
     mTriangleDrawBuffer.fill(std::nan(""));
     // counter clockwise
-    int gap = mSubdivision + 1;
+    int subdivision = std::sqrt(mVertexArray.size()) - 1;
+    int gap = subdivision + 1;
     int st = 0;
-    for (int i = 0; i < mSubdivision; i++)     // row
-        for (int j = 0; j < mSubdivision; j++) // column
+    for (int i = 0; i < subdivision; i++)     // row
+        for (int j = 0; j < subdivision; j++) // column
         {
             // left up coner
             int left_up = gap * i + j;
@@ -214,30 +193,10 @@ void cSimScene::CalcEdgesDrawBuffer()
 {
     mEdgesDrawBuffer.fill(std::nan(""));
     int st = 0;
-    int gap = mSubdivision + 1;
-
-    // for all row lines' edges
-    for (int i = 0; i < mSubdivision + 1; i++)
+    for (auto &e : mEdgeArray)
     {
-        for (int j = 0; j < mSubdivision; j++)
-        {
-            // printf("[debug] edge from %d to %d: st %d / %d\n", i, j, st, mEdgesDrawBuffer.size());
-            // if i is row index
-            {
-                int Id0 = gap * i + j;
-                int Id1 = gap * i + j + 1;
-                CalcEdgeDrawBufferSingle(mVertexArray[Id0], mVertexArray[Id1],
-                                         mEdgesDrawBuffer, st);
-            }
-            // if i is column index
-            {
-
-                int Id0 = gap * j + i;
-                int Id1 = gap * (j + 1) + i;
-                CalcEdgeDrawBufferSingle(mVertexArray[Id0], mVertexArray[Id1],
-                                         mEdgesDrawBuffer, st);
-            }
-        }
+        CalcEdgeDrawBufferSingle(mVertexArray[e->mId0], mVertexArray[e->mId1],
+                                 mEdgesDrawBuffer, st);
     }
 }
 

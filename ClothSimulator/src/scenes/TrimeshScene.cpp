@@ -2,26 +2,9 @@
 #include <atomic>
 #include <omp.h>
 #include "utils/LogUtil.h"
+#include "geometries/Primitives.h"
 #include <set>
 #include <iostream>
-
-tTriangle::tTriangle()
-{
-    mId0 = mId1 = mId2 = -1;
-}
-tTriangle::tTriangle(int a, int b, int c) : mId0(a), mId1(b), mId2(c)
-
-{
-}
-
-tEdge::tEdge()
-{
-    mId0 = mId1 = -1;
-    mRawLength = -1;
-    mIsBoundary = false;
-    mTriangleId0 = mTriangleId1 = -1;
-}
-
 cTrimeshScene::cTrimeshScene()
 {
     mTriangleArray.clear();
@@ -47,143 +30,13 @@ cTrimeshScene::~cTrimeshScene()
  * 
  *  For more details, please check the note "将平面划分为三角形.md"
 */
-void cTrimeshScene::InitGeometry()
+#include "geometries/Triangulator.h"
+void cTrimeshScene::InitGeometry(const Json::Value &conf)
 {
-    int num_of_lines = (mSubdivision + 1); // = 3
-    int num_of_vertices = num_of_lines * num_of_lines;
-    int num_of_edges = num_of_lines * mSubdivision * 2 + mSubdivision * mSubdivision;
-    int num_of_triangles = num_of_lines * num_of_lines * 2;
 
-    mVertexArray.clear();
-    mEdgeArray.clear();
-    mTriangleArray.clear();
-
-    // 1. init the triangles
-    for (int row_id = 0; row_id < mSubdivision; row_id++)
-    {
-        for (int col_id = 0; col_id < mSubdivision; col_id++)
-        {
-            int up_left = row_id * num_of_lines + col_id;
-            auto tri1 = new tTriangle(up_left, up_left + num_of_lines, up_left + 1 + num_of_lines);
-            auto tri2 = new tTriangle(up_left, up_left + 1 + num_of_lines, up_left + 1);
-
-            mTriangleArray.push_back(tri1);
-            // printf("[debug] triangle %d vertices %d %d %d\n", mTriangleArray.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
-            mTriangleArray.push_back(tri2);
-            // printf("[debug] triangle %d vertices %d %d %d\n", mTriangleArray.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
-        }
-    }
-    printf("[debug] create %d triangles done\n", mTriangleArray.size());
-    // 2. init the vertices
-    double unit_edge_length = mClothWidth / mSubdivision;
-    double unit_mass = mClothMass / (num_of_lines * num_of_lines);
-    {
-        for (int i = 0; i < num_of_lines; i++)
-            for (int j = 0; j < num_of_lines; j++)
-            {
-                tVertex *v = new tVertex();
-                v->mMass = unit_mass;
-                v->mPos =
-                    tVector(unit_edge_length * j, mClothWidth - unit_edge_length * i, 0, 1) + mClothInitPos;
-                v->mPos[3] = 1;
-                v->mColor = tVector(0, 196.0 / 255, 1, 0);
-                mVertexArray.push_back(v);
-                v->muv =
-                    tVector2f(i * 1.0 / mSubdivision, j * 1.0 / mSubdivision);
-                // printf("create vertex %d at (%.7f, %.7f), uv (%.7f, %.7f)\n",
-                //        mVertexArray.size() - 1, v->mPos[0], v->mPos[1],
-                //        v->muv[0], v->muv[1]);
-            }
-    }
-    printf("[debug] create %d vertices done\n", mVertexArray.size());
-    // 3. init the edges
-    {
-        int num_of_edges_per_line = mSubdivision * 3 + 1;
-        int num_of_vertices_per_line = num_of_lines;
-        int num_of_triangles_per_line = 2 * mSubdivision;
-        for (int row_id = 0; row_id < mSubdivision + 1; row_id++)
-        {
-            // 3.1 add top line
-            for (int col_id = 0; col_id < mSubdivision; col_id++)
-            {
-                // edge id: num_of_edges_per_line * row_id + col_id
-                tEdge *edge = new tEdge();
-                edge->mId0 = num_of_vertices_per_line * row_id + col_id;
-                edge->mId1 = edge->mId0 + 1;
-                edge->mRawLength = unit_edge_length;
-                if (row_id == 0)
-                {
-                    edge->mIsBoundary = true;
-                    edge->mTriangleId0 = 2 * col_id + 1;
-                }
-                else if (row_id == mSubdivision)
-                {
-                    edge->mIsBoundary = true;
-                    edge->mTriangleId0 = num_of_triangles_per_line * (mSubdivision - 1) + col_id * 2;
-                }
-                else
-                {
-                    edge->mIsBoundary = false;
-                    edge->mTriangleId0 = num_of_triangles_per_line * (row_id - 1) + 2 * col_id;
-                    edge->mTriangleId1 = num_of_triangles_per_line * row_id + 2 * col_id + 1;
-                }
-                mEdgeArray.push_back(edge);
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //    mEdgeArray.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
-            }
-            if (row_id == mSubdivision)
-                break;
-            // 3.2 add middle lines
-
-            for (int col_counting_id = 0; col_counting_id < 2 * mSubdivision + 1; col_counting_id++)
-            {
-                int col_id = col_counting_id / 2;
-                tEdge *edge = new tEdge();
-                if (col_counting_id % 2 == 0)
-                {
-                    // vertical line
-                    edge->mId0 = row_id * num_of_vertices_per_line + col_id;
-                    edge->mId1 = (row_id + 1) * num_of_vertices_per_line + col_id;
-                    edge->mRawLength = unit_edge_length;
-                    if (col_id == 0)
-                    {
-                        // left edge
-                        edge->mIsBoundary = true;
-                        edge->mTriangleId0 = num_of_triangles_per_line * row_id;
-                    }
-                    else if (col_counting_id == 2 * mSubdivision)
-                    {
-                        // right edge
-                        edge->mIsBoundary = true;
-                        edge->mTriangleId0 = num_of_triangles_per_line * (row_id + 1) - 1;
-                    }
-                    else
-                    {
-                        // middle edges
-                        edge->mIsBoundary = false;
-                        edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_id;
-                        edge->mTriangleId1 = num_of_triangles_per_line * row_id + col_id + 1;
-                    }
-                }
-                else
-                {
-                    continue;
-                    std::cout << "ignore skew edge\n";
-                    // skew line
-                    edge->mId0 = num_of_vertices_per_line * row_id + col_id;
-                    edge->mId1 = num_of_vertices_per_line * (row_id + 1) + col_id + 1;
-                    edge->mIsBoundary = false;
-                    edge->mRawLength = unit_edge_length * std::sqrt(2);
-                    edge->mTriangleId0 = num_of_triangles * row_id + col_id * 2;
-                    edge->mTriangleId1 = edge->mTriangleId0 + 1;
-                }
-                mEdgeArray.push_back(edge);
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //    mEdgeArray.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
-            }
-        }
-    }
-    printf("[debug] create %d edges done\n", mEdgeArray.size());
+    cTriangulator::BuildGeometry(
+        conf,
+        mVertexArray, mEdgeArray, mTriangleArray);
     // init the draw buffer
     {
         int size_per_vertices = 8;
@@ -250,6 +103,7 @@ void cTrimeshScene::UpdateSubstep()
 {
     // std::cout << "[before update] x = " << mXcur.transpose() << std::endl;
     // exit(0);
+    // std::cout << "update sub step " << mCurdt << std::endl;
     switch (mScheme)
     {
     case eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC:
@@ -327,42 +181,40 @@ void cTrimeshScene::ConstraintProcessPBD()
     {
         if (mEnableParallelPBD == true)
         {
-#pragma omp parallel for num_thread(12)
+#pragma omp parallel for
+            for (int e_id = 0; e_id < mEdgeArray.size(); e_id++)
             {
-                for (int e_id = 0; e_id < mEdgeArray.size(); e_id++)
+                auto e = mEdgeArray[e_id];
+                if (enable_strech_constraint)
                 {
-                    auto e = mEdgeArray[e_id];
-                    if (enable_strech_constraint)
+                    int id0 = e->mId0, id1 = e->mId1;
+                    const tVector3d &p1 = mXcur.segment(3 * id0, 3),
+                                    &p2 = mXcur.segment(3 * id1, 3);
+                    double raw = e->mRawLength;
+                    // std::cout << "raw = " << raw << std::endl;
+                    double dist = (p1 - p2).norm();
+                    double w1 = mInvMassMatrixDiag[3 * e->mId0],
+                           w2 = mInvMassMatrixDiag[3 * e->mId1];
+                    double w_sum = w1 + w2;
+                    double coef1 = -w1 / w_sum * final_k,
+                           coef2 = w2 / w_sum * final_k;
+                    if (w_sum == 0)
                     {
-                        int id0 = e->mId0, id1 = e->mId1;
-                        const tVector3d &p1 = mXcur.segment(3 * id0, 3),
-                                        &p2 = mXcur.segment(3 * id1, 3);
-                        double raw = e->mRawLength;
-                        // std::cout << "raw = " << raw << std::endl;
-                        double dist = (p1 - p2).norm();
-                        double w1 = mInvMassMatrixDiag[3 * e->mId0],
-                               w2 = mInvMassMatrixDiag[3 * e->mId1];
-                        double w_sum = w1 + w2;
-                        double coef1 = -w1 / w_sum * final_k,
-                               coef2 = w2 / w_sum * final_k;
-                        if (w_sum == 0)
-                        {
-                            continue;
-                        }
-                        tVector3d delta_p1 = coef1 * (dist - raw) * (p1 - p2) / dist,
-                                  delta_p2 = coef2 * (dist - raw) * (p1 - p2) / dist;
-                        // #pragma omp ordered
-                        // std::cout << "vertex " << id0 << " += " << delta_p1.segment(0, 3).transpose() << std::endl;
-                        // #pragma omp critical
-                        {
-                            mXcur[3 * id0 + 0] += delta_p1[0];
-                            mXcur[3 * id0 + 1] += delta_p1[1];
-                            mXcur[3 * id0 + 2] += delta_p1[2];
+                        continue;
+                    }
+                    tVector3d delta_p1 = coef1 * (dist - raw) * (p1 - p2) / dist,
+                              delta_p2 = coef2 * (dist - raw) * (p1 - p2) / dist;
+                    // #pragma omp ordered
+                    // std::cout << "vertex " << id0 << " += " << delta_p1.segment(0, 3).transpose() << std::endl;
+                    // #pragma omp critical
+                    {
+                        mXcur[3 * id0 + 0] += delta_p1[0];
+                        mXcur[3 * id0 + 1] += delta_p1[1];
+                        mXcur[3 * id0 + 2] += delta_p1[2];
 
-                            mXcur[3 * id1 + 0] += delta_p2[0];
-                            mXcur[3 * id1 + 1] += delta_p2[1];
-                            mXcur[3 * id1 + 2] += delta_p2[2];
-                        }
+                        mXcur[3 * id1 + 0] += delta_p2[0];
+                        mXcur[3 * id1 + 1] += delta_p2[1];
+                        mXcur[3 * id1 + 2] += delta_p2[2];
                     }
                 }
             }
@@ -437,10 +289,22 @@ void cTrimeshScene::Init(const std::string &conf_path)
 {
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
-    mItersPBD = cJsonUtil::ParseAsInt("max_pbd_iters", root);
-    mStiffnessPBD = cJsonUtil::ParseAsDouble("stiffness_pbd", root);
-    mEnableParallelPBD = cJsonUtil::ParseAsBool("enable_parallel_pbd", root);
+    mGeometryType = cJsonUtil::ParseAsString("geometry_type", root);
     cSimScene::Init(conf_path);
+
+    if (mScheme == eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC)
+    {
+        Json::Value pbd_config = cJsonUtil::ParseAsValue("pbd_config", root);
+        mItersPBD = cJsonUtil::ParseAsInt("max_pbd_iters", pbd_config);
+        mStiffnessPBD = cJsonUtil::ParseAsDouble("stiffness_pbd", pbd_config);
+        mEnableParallelPBD = cJsonUtil::ParseAsBool("enable_parallel_pbd", pbd_config);
+    }
+    InitGeometry(root);
+    InitConstraint(root);
+
+    // 3. set up the init pos
+    CalcNodePositionVector(mXpre);
+    mXcur.noalias() = mXpre;
 }
 
 /**
