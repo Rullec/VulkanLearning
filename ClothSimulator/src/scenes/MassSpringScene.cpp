@@ -1,11 +1,8 @@
 #include "MassSpringScene.h"
-#include "utils/JsonUtil.h"
 #include "geometries/Primitives.h"
+#include "utils/JsonUtil.h"
 #include <iostream>
-cMSScene::cMSScene()
-{
-    mEdgeArray.clear();
-}
+cMSScene::cMSScene() { mEdgeArray.clear(); }
 
 cMSScene::~cMSScene()
 {
@@ -42,7 +39,8 @@ void cMSScene::Init(const std::string &conf_path)
     {
         // InitVarsOptImplicit();
         InitVarsOptImplicitSparse();
-        I_plus_dt2_Minv_L_sparse_solver.analyzePattern(I_plus_dt2_Minv_L_sparse);
+        I_plus_dt2_Minv_L_sparse_solver.analyzePattern(
+            I_plus_dt2_Minv_L_sparse);
         I_plus_dt2_Minv_L_sparse_solver.factorize(I_plus_dt2_Minv_L_sparse);
         // std::cout << "factorize done\n";
         // exit(0);
@@ -108,15 +106,9 @@ void cMSScene::Init(const std::string &conf_path)
 //     // exit(0);
 // }
 
-void cMSScene::Update(double dt)
-{
-    cSimScene::Update(dt);
-}
+void cMSScene::Update(double dt) { cSimScene::Update(dt); }
 
-void cMSScene::Reset()
-{
-    cSimScene::Reset();
-}
+void cMSScene::Reset() { cSimScene::Reset(); }
 
 void cMSScene::UpdateSubstep()
 {
@@ -174,9 +166,9 @@ tVectorXd cMSScene::CalcNextPositionSemiImplicit() const
     */
 
     double dt2 = mCurdt * mCurdt;
-    tVectorXd next_pos =
-        dt2 * mInvMassMatrixDiag.cwiseProduct(mIntForce + mExtForce + mDampingForce) +
-        2 * mXcur - mXpre;
+    tVectorXd next_pos = dt2 * mInvMassMatrixDiag.cwiseProduct(
+                                   mIntForce + mExtForce + mDampingForce) +
+                         2 * mXcur - mXpre;
 
     return next_pos;
 }
@@ -287,17 +279,16 @@ void cMSScene::InitConstraint(const Json::Value &root)
  *      G(x) = 2 * Xcur - Xpre - X + Minv * dt2 * (Fext + Fint) = 0
 */
 void cMSScene::CalcGxImplicit(const tVectorXd &x, tVectorXd &Gx,
-                              tVectorXd &fint_buffer,
-                              tVectorXd &fext_buffer,
+                              tVectorXd &fint_buffer, tVectorXd &fext_buffer,
                               tVectorXd &damp_buffer) const
 {
     CalcIntForce(x, fint_buffer);
     CalcExtForce(fext_buffer);
     CalcDampingForce((mXcur - mXpre) / mCurdt, damp_buffer);
-    Gx.noalias() =
-        2 * mXcur - mXpre - x +
-        mCurdt * mCurdt *
-            mInvMassMatrixDiag.cwiseProduct(fext_buffer + fint_buffer + damp_buffer);
+    Gx.noalias() = 2 * mXcur - mXpre - x +
+                   mCurdt * mCurdt *
+                       mInvMassMatrixDiag.cwiseProduct(
+                           fext_buffer + fint_buffer + damp_buffer);
 }
 
 /**
@@ -352,8 +343,7 @@ void cMSScene::CalcdGxdxImplicit(const tVectorXd &x, tMatrixXd &dGdx) const
         {
             printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
                    id0, id0, id1, dist);
-            std::cout << "dfidxi = \n"
-                      << dfidxi << std::endl;
+            std::cout << "dfidxi = \n" << dfidxi << std::endl;
             std::cout << "pos0 = " << pos0.transpose() << std::endl;
             std::cout << "pos1 = " << pos1.transpose() << std::endl;
             std::cout << "x = " << x.transpose() << std::endl;
@@ -431,8 +421,7 @@ void cMSScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
         {
             printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
                    id0, id0, id1, dist);
-            std::cout << "dfidxi = \n"
-                      << dfidxi << std::endl;
+            std::cout << "dfidxi = \n" << dfidxi << std::endl;
             std::cout << "pos0 = " << pos0.transpose() << std::endl;
             std::cout << "pos1 = " << pos1.transpose() << std::endl;
             std::cout << "x = " << x.transpose() << std::endl;
@@ -523,7 +512,10 @@ tVectorXd cMSScene::CalcNextPositionOptImplicit() const
         for (int j = 0; j < GetNumOfSprings(); j++)
         {
             int id0 = mEdgeArray[j]->mId0, id1 = mEdgeArray[j]->mId1;
-            d.segment(j * 3, 3).noalias() = (Xnext.segment(3 * id0, 3) - Xnext.segment(3 * id1, 3)).normalized() * mEdgeArray[j]->mRawLength;
+            d.segment(j * 3, 3).noalias() =
+                (Xnext.segment(3 * id0, 3) - Xnext.segment(3 * id1, 3))
+                    .normalized() *
+                mEdgeArray[j]->mRawLength;
         }
         // std::cout << "d = " << d.transpose() << std::endl;
         // std::cout << "J * d = " << (J * d).transpose() << std::endl;
@@ -533,12 +525,14 @@ tVectorXd cMSScene::CalcNextPositionOptImplicit() const
             x = (M + dt2 * L).inv() * (dt2 * J * d - b)
         */
         // cTimeUtil::BeginLazy("fast simulation sparse solve");
-        Xnext.noalias() = I_plus_dt2_Minv_L_sparse_solver.solve(mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y);
+        Xnext.noalias() = I_plus_dt2_Minv_L_sparse_solver.solve(
+            mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y);
         // cTimeUtil::EndLazy("fast simulation sparse solve");
         //  = I_plus_dt2_Minv_L_inv * ();
         if (Xnext.hasNaN())
         {
-            std::cout << "Xnext has Nan, exit = " << Xnext.transpose() << std::endl;
+            std::cout << "Xnext has Nan, exit = " << Xnext.transpose()
+                      << std::endl;
             exit(0);
         }
     }
@@ -549,7 +543,10 @@ tVectorXd cMSScene::CalcNextPositionOptImplicit() const
     return Xnext;
 }
 
-int cMSScene::GetNumOfSprings() const
+int cMSScene::GetNumOfSprings() const { return mEdgeArray.size(); }
+
+void cMSScene::RayCast(tRay *ray)
 {
-    return mEdgeArray.size();
+    SIM_ERROR("MSScene ray cast hasn't been supported\n");
+    exit(0);
 }

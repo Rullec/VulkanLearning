@@ -1,18 +1,17 @@
 #include "SimScene.h"
-#include "utils/JsonUtil.h"
 #include "geometries/Primitives.h"
+#include "utils/JsonUtil.h"
 #include <iostream>
 
-std::string gIntegrationSchemeStr
-    [eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
-        "semi_implicit", "implicit", "opt_implicit",
-        "tri_pbd", "tri_projective_dynamic", "tri_baraff"};
+std::string
+    gIntegrationSchemeStr[eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
+        "semi_implicit",          "implicit",  "opt_implicit", "tri_pbd",
+        "tri_projective_dynamic", "tri_baraff"};
 
 eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
 {
     int i = 0;
-    for (i = 0; i < eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES;
-         i++)
+    for (i = 0; i < eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES; i++)
     {
         if (str == gIntegrationSchemeStr[i])
         {
@@ -56,7 +55,7 @@ void cSimScene::Update(double delta_time)
     double default_dt = mIdealDefaultTimestep;
     // if (delta_time < default_dt)
     //     default_dt = delta_time;
-    printf("[debug] sim scene update cur time = %.4f\n", mCurTime);
+    // printf("[debug] sim scene update cur time = %.4f\n", mCurTime);
     while (delta_time > 1e-7)
     {
         // if (delta_time < default_dt)
@@ -155,6 +154,16 @@ void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, tVectorXf &buffer,
     st_pos += 8;
 }
 
+void CalcEdgeDrawBufferSingle(const tVector &v0, const tVector &v1,
+                              tVectorXf &buffer, int &st_pos)
+{
+    buffer.segment(st_pos, 3) = v0.segment(0, 3).cast<float>();
+    buffer.segment(st_pos + 3, 3) = tVector3f(0, 0, 0);
+    st_pos += 8;
+    buffer.segment(st_pos, 3) = v1.segment(0, 3).cast<float>();
+    buffer.segment(st_pos + 3, 3) = tVector3f(1, 0, 0);
+    st_pos += 8;
+}
 const tVectorXf &cSimScene::GetTriangleDrawBuffer()
 {
     return mTriangleDrawBuffer;

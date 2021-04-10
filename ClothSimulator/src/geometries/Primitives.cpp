@@ -1,4 +1,6 @@
 #include "Primitives.h"
+#include "utils/LogUtil.h"
+#include "utils/MathUtil.h"
 tVertex::tVertex()
 {
     mMass = 0;
@@ -16,11 +18,13 @@ tEdge::tEdge()
     mK_spring = 0;
 }
 
-tTriangle::tTriangle()
-{
-    mId0 = mId1 = mId2 = -1;
-}
-tTriangle::tTriangle(int a, int b, int c) : mId0(a), mId1(b), mId2(c)
+tTriangle::tTriangle() { mId0 = mId1 = mId2 = -1; }
+tTriangle::tTriangle(int a, int b, int c) : mId0(a), mId1(b), mId2(c) {}
 
+tRay::tRay(const tVector &ori, const tVector &end)
 {
+    SIM_ASSERT(cMathUtil::IsPoint(ori) == true);
+    SIM_ASSERT(cMathUtil::IsPoint(end) == true);
+    mOrigin = ori;
+    mDir = (end - ori).normalized();
 }

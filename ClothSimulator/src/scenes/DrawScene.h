@@ -1,8 +1,8 @@
 #pragma once
-#include <vector>
-#include <vulkan/vulkan.h>
 #include "Scene.h"
 #include "utils/MathUtil.h"
+#include <vector>
+#include <vulkan/vulkan.h>
 struct tVkVertex
 {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -92,9 +92,10 @@ private:
     std::vector<VkImageView> mSwapChainImageViews;
     VkFormat mSwapChainImageFormat;
     VkExtent2D mSwapChainExtent;
-    VkDescriptorSetLayout mDescriptorSetLayout; // descriptors (uniform objects) layout used in the shader
-    VkPipelineLayout mPipelineLayout;           // uniform values in the shader
-    VkRenderPass mRenderPass;                   // special settings for a render pass
+    VkDescriptorSetLayout
+        mDescriptorSetLayout; // descriptors (uniform objects) layout used in the shader
+    VkPipelineLayout mPipelineLayout; // uniform values in the shader
+    VkRenderPass mRenderPass;         // special settings for a render pass
     VkPipeline mTriangleGraphicsPipeline, mLinesGraphicsPipeline;
     std::vector<VkFramebuffer> mSwapChainFramebuffers; //
     VkCommandPool mCommandPool;
@@ -139,6 +140,7 @@ private:
     // simulation scene
     std::shared_ptr<cSimScene> mSimScene;
 
-    bool mButtonPress;
+    bool mLeftButtonPress;
     tVector3f mCameraInitPos, mCameraInitFocus;
+    int mRasterMousePosX, mRasterMousePosY; // mouse position in raster place
 };

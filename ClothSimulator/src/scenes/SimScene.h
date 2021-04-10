@@ -4,7 +4,7 @@
 
 namespace Json
 {
-    class Value;
+class Value;
 };
 
 enum eIntegrationScheme
@@ -12,15 +12,16 @@ enum eIntegrationScheme
     // MS means mass-spring system
     MS_SEMI_IMPLICIT = 0,
     MS_IMPLICIT,
-    MS_OPT_IMPLICIT,            // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
+    MS_OPT_IMPLICIT, // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
     TRI_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
     TRI_PROJECTIVE_DYNAMIC,     // trimesh
-    TRI_BARAFF,                 // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
+    TRI_BARAFF, // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
     NUM_OF_INTEGRATION_SCHEMES
 };
 
 struct tVertex;
 struct tEdge;
+struct tRay;
 class cSimScene : public cScene
 {
 public:
@@ -32,6 +33,7 @@ public:
     const tVectorXf &GetTriangleDrawBuffer();
     const tVectorXf &GetEdgesDrawBuffer();
     static eIntegrationScheme BuildIntegrationScheme(const std::string &str);
+    virtual void RayCast(tRay *ray) = 0;
 
 protected:
     eIntegrationScheme mScheme;
@@ -50,12 +52,13 @@ protected:
     tVectorXd mExtForce;                 // external force
     tVectorXd mDampingForce;             // external force
 
-    tVectorXd mXpre, mXcur;          // previous node position & current node position
+    tVectorXd mXpre, mXcur; // previous node position & current node position
     std::vector<int> mFixedPointIds; // fixed constraint point
 
     // base methods
-    virtual void InitGeometry(const Json::Value &conf) = 0; // discretazation from square cloth to
-    void ClearForce();                                      // clear all forces
+    virtual void InitGeometry(
+        const Json::Value &conf) = 0; // discretazation from square cloth to
+    void ClearForce();                // clear all forces
     virtual void CalcExtForce(tVectorXd &ext_force) const;
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //

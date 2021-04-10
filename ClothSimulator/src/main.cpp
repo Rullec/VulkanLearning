@@ -37,12 +37,12 @@ static void CursorPositionCallback(GLFWwindow *window, double xpos, double ypos)
     scene->CursorMove(xpos, ypos);
 }
 
-void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
+void MouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
     scene->MouseButton(button, action, mods);
 }
-void key_callback(GLFWwindow *window, int key, int scancode, int action,
-                  int mods)
+void KeyCallback(GLFWwindow *window, int key, int scancode, int action,
+                 int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
@@ -55,7 +55,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
     }
 }
 
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+void ScrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
     scene->Scroll(xoffset, yoffset);
 }
@@ -66,9 +66,9 @@ void InitGlfw()
     window = glfwCreateWindow(800, 600, "Cloth Simulator", nullptr, nullptr);
     glfwSetFramebufferSizeCallback(window, ResizeCallback);
     glfwSetCursorPosCallback(window, CursorPositionCallback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, MouseButtonCallback);
+    glfwSetKeyCallback(window, KeyCallback);
+    glfwSetScrollCallback(window, ScrollCallback);
 }
 
 #include "utils/LogUtil.h"
@@ -77,7 +77,7 @@ void ParseConfig(std::string path);
 int main(int argc, char **argv)
 {
     InitGlfw();
-    std::string conf = "config/fast_config.json";
+    std::string conf = "config/pbd_config.json";
     if (argc == 2)
     {
         conf = std::string(argv[1]);
@@ -116,9 +116,9 @@ int main(int argc, char **argv)
     glfwTerminate();
     return 0;
 }
+#include "utils/FileUtil.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
-#include "utils/FileUtil.h"
 void ParseConfig(std::string path)
 {
     SIM_ASSERT(cFileUtil::ExistsFile(path) == true);

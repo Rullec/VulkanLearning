@@ -162,7 +162,8 @@ public:
         eAxisZ,
         eAxisMax
     };
-
+    static bool IsPoint(const tVector &vec);
+    static tVector VecToPoint(const tVector &vec);
     static int Clamp(int val, int min, int max);
     static void Clamp(const Eigen::VectorXd &min, const Eigen::VectorXd &max,
                       Eigen::VectorXd &out_vec);
@@ -393,6 +394,9 @@ public:
         mat.block(0, 0, 3, 3) = raw_mat.block(0, 0, 3, 3);
         return mat;
     }
+    static tVector RayCast(const tVector &ori, const tVector &dir,
+                           const tVector &p1, const tVector &p2,
+                           const tVector &p3, double eps = 1e-10);
 
 private:
     static cRand gRand;

@@ -10,15 +10,19 @@
 
 struct tTriangle;
 struct tEdge;
+struct tRay;
 class cTrimeshScene : public cSimScene
 {
 public:
     explicit cTrimeshScene();
     virtual void Init(const std::string &conf_path) override;
     ~cTrimeshScene();
+    virtual void RayCast(tRay *ray) override final;
 
 protected:
     std::vector<tTriangle *> mTriangleArray;
+    const int mMaxDrawRayDebug = 100;
+    std::vector<tRay *> mRayArray;
     // std::vector<tEdge *> mEdgeArray;
     tVectorXd mVcur; // velocity vector
     tVectorXd mInvMassMatrixDiag;

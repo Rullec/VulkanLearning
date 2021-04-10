@@ -1,12 +1,13 @@
 #include "TrimeshScene.h"
-#include <atomic>
-#include <omp.h>
-#include "utils/LogUtil.h"
 #include "geometries/Primitives.h"
-#include <set>
+#include "utils/LogUtil.h"
+#include <atomic>
 #include <iostream>
+#include <omp.h>
+#include <set>
 cTrimeshScene::cTrimeshScene()
 {
+    mRayArray.clear();
     mTriangleArray.clear();
     mEdgeArray.clear();
     mVcur.resize(0);
@@ -34,9 +35,8 @@ cTrimeshScene::~cTrimeshScene()
 void cTrimeshScene::InitGeometry(const Json::Value &conf)
 {
 
-    cTriangulator::BuildGeometry(
-        conf,
-        mVertexArray, mEdgeArray, mTriangleArray);
+    cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray,
+                                 mTriangleArray);
     // init the draw buffer
     {
         int size_per_vertices = 8;
@@ -44,7 +44,9 @@ void cTrimeshScene::InitGeometry(const Json::Value &conf)
         mTriangleDrawBuffer.resize(size_per_triangle * mTriangleArray.size());
 
         int size_per_edge = 2 * size_per_vertices;
-        mEdgesDrawBuffer.resize(size_per_edge * mEdgeArray.size());
+        // mEdgesDrawBuffer.resize(size_per_edge * mEdgeArray.size());
+        mEdgesDrawBuffer.resize(size_per_edge *
+                                (mEdgeArray.size() + mMaxDrawRayDebug));
     }
 
     CalcTriangleDrawBuffer();
@@ -65,8 +67,10 @@ void cTrimeshScene::InitGeometry(const Json::Value &conf)
 
 extern void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
                                          tVectorXf &buffer, int &st_pos);
-extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, tVectorXf &buffer,
-                                     int &st_pos);
+extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1,
+                                     tVectorXf &buffer, int &st_pos);
+extern void CalcEdgeDrawBufferSingle(const tVector &v0, const tVector &v1,
+                                     tVectorXf &buffer, int &st_pos);
 
 void cTrimeshScene::CalcTriangleDrawBuffer()
 {
@@ -75,11 +79,8 @@ void cTrimeshScene::CalcTriangleDrawBuffer()
     for (auto &x : mTriangleArray)
     {
         CalcTriangleDrawBufferSingle(
-            mVertexArray[x->mId0],
-            mVertexArray[x->mId1],
-            mVertexArray[x->mId2],
-            mTriangleDrawBuffer,
-            st);
+            mVertexArray[x->mId0], mVertexArray[x->mId1], mVertexArray[x->mId2],
+            mTriangleDrawBuffer, st);
     }
 }
 
@@ -89,10 +90,15 @@ void cTrimeshScene::CalcEdgesDrawBuffer()
     int st = 0;
     for (auto &x : mEdgeArray)
     {
-        CalcEdgeDrawBufferSingle(
-            mVertexArray[x->mId0],
-            mVertexArray[x->mId1],
-            mEdgesDrawBuffer, st);
+        CalcEdgeDrawBufferSingle(mVertexArray[x->mId0], mVertexArray[x->mId1],
+                                 mEdgesDrawBuffer, st);
+    }
+    // std::cout << "calc edges draw buffer size = " << mRayArray.size()
+    //           << std::endl;
+    for (auto &x : mRayArray)
+    {
+        CalcEdgeDrawBufferSingle(x->mOrigin, x->mOrigin + x->mDir * 10,
+                                 mEdgesDrawBuffer, st);
     }
 }
 
@@ -202,8 +208,10 @@ void cTrimeshScene::ConstraintProcessPBD()
                     {
                         continue;
                     }
-                    tVector3d delta_p1 = coef1 * (dist - raw) * (p1 - p2) / dist,
-                              delta_p2 = coef2 * (dist - raw) * (p1 - p2) / dist;
+                    tVector3d delta_p1 =
+                                  coef1 * (dist - raw) * (p1 - p2) / dist,
+                              delta_p2 =
+                                  coef2 * (dist - raw) * (p1 - p2) / dist;
                     // #pragma omp ordered
                     // std::cout << "vertex " << id0 << " += " << delta_p1.segment(0, 3).transpose() << std::endl;
                     // #pragma omp critical
@@ -241,8 +249,10 @@ void cTrimeshScene::ConstraintProcessPBD()
                     {
                         continue;
                     }
-                    tVector3d delta_p1 = coef1 * (dist - raw) * (p1 - p2) / dist,
-                              delta_p2 = coef2 * (dist - raw) * (p1 - p2) / dist;
+                    tVector3d delta_p1 =
+                                  coef1 * (dist - raw) * (p1 - p2) / dist,
+                              delta_p2 =
+                                  coef2 * (dist - raw) * (p1 - p2) / dist;
                     // #pragma omp ordered
                     // std::cout << "vertex " << id0 << " += " << delta_p1.segment(0, 3).transpose() << std::endl;
                     // #pragma omp critical
@@ -297,7 +307,8 @@ void cTrimeshScene::Init(const std::string &conf_path)
         Json::Value pbd_config = cJsonUtil::ParseAsValue("pbd_config", root);
         mItersPBD = cJsonUtil::ParseAsInt("max_pbd_iters", pbd_config);
         mStiffnessPBD = cJsonUtil::ParseAsDouble("stiffness_pbd", pbd_config);
-        mEnableParallelPBD = cJsonUtil::ParseAsBool("enable_parallel_pbd", pbd_config);
+        mEnableParallelPBD =
+            cJsonUtil::ParseAsBool("enable_parallel_pbd", pbd_config);
     }
     InitGeometry(root);
     InitConstraint(root);
@@ -310,12 +321,11 @@ void cTrimeshScene::Init(const std::string &conf_path)
 /**
  * \brief               Update substep for projective dynamic
 */
-void cTrimeshScene::UpdateSubstepProjDyn()
-{
-}
+void cTrimeshScene::UpdateSubstepProjDyn() {}
 
 bool SetColor(int edge_id, int num_of_colors, const int max_edge_id,
-              int *edge_color_info, std::vector<std::set<int>> &color_vertices, const tEigenArr<tEdge *> &edge_info_array)
+              int *edge_color_info, std::vector<std::set<int>> &color_vertices,
+              const tEigenArr<tEdge *> &edge_info_array)
 {
     if (edge_id >= max_edge_id)
     {
@@ -334,7 +344,8 @@ bool SetColor(int edge_id, int num_of_colors, const int max_edge_id,
         for (int i = 0; i < num_of_colors; i++)
         {
             auto &res = color_vertices[i];
-            bool valid = (res.find(v0) == res.end()) && (res.find(v1) == res.end());
+            bool valid =
+                (res.find(v0) == res.end()) && (res.find(v1) == res.end());
             if (valid)
             {
                 // set the color, push its vertices into the set
@@ -343,7 +354,9 @@ bool SetColor(int edge_id, int num_of_colors, const int max_edge_id,
                 res.insert(v1);
 
                 // continue to the next edge, check whehter it's succ
-                bool succ = SetColor(edge_id + 1, num_of_colors, max_edge_id, edge_color_info, color_vertices, edge_info_array);
+                bool succ =
+                    SetColor(edge_id + 1, num_of_colors, max_edge_id,
+                             edge_color_info, color_vertices, edge_info_array);
                 if (succ)
                     // if succ, break
                     return true;
@@ -371,4 +384,28 @@ void cTrimeshScene::CalcExtForce(tVectorXd &ext_force) const
     cSimScene::CalcExtForce(ext_force);
     ext_force += -mDamping * this->mVcur;
     // std::cout << "damping = " << (-mDamping * this->mVcur).transpose() << std::endl;
+}
+
+void cTrimeshScene::RayCast(tRay *ray)
+{
+    // std::cout << "begin to do ray cast for ray from "
+    //           << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
+    //           << std::endl;
+    // for ()
+    for (int i = 0; i < mTriangleArray.size(); i++)
+    {
+        auto &tri = mTriangleArray[i];
+        tVector res = cMathUtil::RayCast(
+            ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
+            mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
+        if (res.hasNaN() == false)
+        {
+            std::cout << "intersect with triangle " << i << std::endl;
+            mVertexArray[tri->mId0]->mColor = tVector(1, 0, 0, 0);
+            mVertexArray[tri->mId1]->mColor = tVector(1, 0, 0, 0);
+            mVertexArray[tri->mId2]->mColor = tVector(1, 0, 0, 0);
+        }
+    }
+
+    mRayArray.push_back(ray);
 }

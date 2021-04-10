@@ -1,8 +1,10 @@
 #include "DrawScene.h"
+#include "geometries/Primitives.h"
+#include "glm/glm.hpp"
+#include "scenes/SimScene.h"
 #include "utils/LogUtil.h"
 #include "utils/MathUtil.h"
 #include "vulkan/vulkan.h"
-#include "scenes/SimScene.h"
 #include <iostream>
 #include <optional>
 #include <set>
@@ -45,6 +47,9 @@ bool enableValidationLayers = true;
 #endif
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
+
+const float fov = 45.0f;
+const float near = 0.1f;
 
 #include "utils/MathUtil.h"
 #include <array>
@@ -113,7 +118,7 @@ cDrawScene::cDrawScene()
     mInstance = nullptr;
     mCurFrame = 0;
     mFrameBufferResized = false;
-    mButtonPress = false;
+    mLeftButtonPress = false;
 }
 
 cDrawScene::~cDrawScene() {}
@@ -262,7 +267,7 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
     raster_info.depthClampEnable =
         VK_FALSE; // clamp the data outside of the near-far plane insteand of deleting them
     raster_info.rasterizerDiscardEnable =
-        VK_FALSE;                                   // disable the rasterization, it certainly should be disable
+        VK_FALSE; // disable the rasterization, it certainly should be disable
     raster_info.polygonMode = VK_POLYGON_MODE_FILL; // normal
     raster_info.lineWidth =
         1.0f; // if not 1.0, we need to enable the GPU "line_width" feature
@@ -395,23 +400,24 @@ void cDrawScene::Init(const std::string &conf_path)
         Json::Value root;
         cJsonUtil::LoadJson(conf_path, root);
         Json::Value camera_json = cJsonUtil::ParseAsValue("camera", root);
-        Json::Value camera_pos_json = cJsonUtil::ParseAsValue("camera_pos", camera_json);
-        Json::Value camera_focus_json = cJsonUtil::ParseAsValue("camera_focus", camera_json);
+        Json::Value camera_pos_json =
+            cJsonUtil::ParseAsValue("camera_pos", camera_json);
+        Json::Value camera_focus_json =
+            cJsonUtil::ParseAsValue("camera_focus", camera_json);
         SIM_ASSERT(camera_pos_json.size() == 3);
         SIM_ASSERT(camera_focus_json.size() == 3);
-        mCameraInitFocus = tVector3f(
-            camera_focus_json[0].asFloat(),
-            camera_focus_json[1].asFloat(),
-            camera_focus_json[2].asFloat());
-        mCameraInitPos = tVector3f(
-            camera_pos_json[0].asFloat(),
-            camera_pos_json[1].asFloat(),
-            camera_pos_json[2].asFloat());
-        SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(), mCameraInitFocus.transpose());
+        mCameraInitFocus = tVector3f(camera_focus_json[0].asFloat(),
+                                     camera_focus_json[1].asFloat(),
+                                     camera_focus_json[2].asFloat());
+        mCameraInitPos = tVector3f(camera_pos_json[0].asFloat(),
+                                   camera_pos_json[1].asFloat(),
+                                   camera_pos_json[2].asFloat());
+        SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(),
+                 mCameraInitFocus.transpose());
     }
 
-    mCamera = std::make_shared<ArcBallCamera>(
-        mCameraInitPos, mCameraInitFocus, tVector3f(0, 1, 0));
+    mCamera = std::make_shared<ArcBallCamera>(mCameraInitPos, mCameraInitFocus,
+                                              tVector3f(0, 1, 0));
     mSimScene = cSceneBuilder::BuildSimScene(conf_path);
 
     mSimScene->Init(conf_path);
@@ -437,7 +443,9 @@ void cDrawScene::Resize(int w, int h) { mFrameBufferResized = true; }
 
 void cDrawScene::CursorMove(int xpos, int ypos)
 {
-    if (mButtonPress)
+    mRasterMousePosX = xpos;
+    mRasterMousePosY = ypos;
+    if (mLeftButtonPress)
     {
         mCamera->MouseMove(xpos, ypos);
     }
@@ -446,14 +454,74 @@ void cDrawScene::CursorMove(int xpos, int ypos)
 
 void cDrawScene::MouseButton(int button, int action, int mods)
 {
-    if (action == GLFW_RELEASE)
+    if (button == GLFW_MOUSE_BUTTON_1)
     {
-        mButtonPress = false;
-        mCamera->ResetFlag();
+        if (action == GLFW_RELEASE)
+        {
+            mLeftButtonPress = false;
+            mCamera->ResetFlag();
+        }
+
+        else if (action == GLFW_PRESS)
+        {
+            mLeftButtonPress = true;
+        }
     }
-    else if (action == GLFW_PRESS)
+    else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
     {
-        mButtonPress = true;
+        {
+            tMatrix mat;
+            {
+                int height = mSwapChainExtent.height,
+                    width = mSwapChainExtent.width;
+                // shape the conversion mat
+                tVector test =
+                    tVector(mRasterMousePosX, mRasterMousePosY, 1, 1);
+                tMatrix mat1 = tMatrix::Identity();
+                mat1(0, 0) = 1.0 / width;
+                mat1(0, 3) = 0.5 / width;
+                mat1(1, 1) = 1.0 / height;
+                mat1(1, 3) = 0.5 / height;
+                // std::cout << "after 1, vec = "
+                //           << (test = mat1 * test).transpose() << std::endl;
+
+                tMatrix mat2 = tMatrix::Identity();
+                mat2(0, 0) = 2;
+                mat2(0, 3) = -1;
+                mat2(1, 1) = -2;
+                mat2(1, 3) = 1;
+                // std::cout << "after 2, vec = "
+                //           << (test = mat2 * test).transpose() << std::endl;
+
+                // pos = mat2 * pos;
+                tMatrix mat3 = tMatrix::Identity();
+                // mat3(0, 0) = std::tan(cMathUtil::Radians(mFov) / 2) * mNear;
+                mat3(0, 0) = width * 1.0 / height *
+                             std::tan(glm::radians(fov) / 2) * near;
+                mat3(1, 1) = std::tan(glm::radians(fov) / 2) * near;
+                mat3(2, 2) = 0, mat3(2, 3) = -near;
+                // std::cout << "after 3, vec = "
+                //           << (test = mat3 * test).transpose() << std::endl;
+
+                // std::cout << "mat 3 = " << mat3 << std::endl;
+                // exit(1);
+                // pos = mat3 * pos;
+                tMatrix mat4 = mCamera->ViewMatrix().inverse().cast<double>();
+                // std::cout << "after 4, vec = "
+                //           << (test = mat4 * test).transpose() << std::endl;
+                // std::cout <<"dir = " <<  (test - mCamera->GetCameraPos()).normalized().transpose() << std::endl;
+                mat = mat4 * mat3 * mat2 * mat1;
+                // exit(1);
+            }
+            tVector pos =
+                mat * tVector(mRasterMousePosX, mRasterMousePosY, 1, 1);
+            tVector camera_pos = tVector::Ones();
+            camera_pos.segment(0, 3) = mCamera->pos.cast<double>();
+            tRay *ray = new tRay(camera_pos, pos);
+            std::cout << "ray origin " << ray->mOrigin.transpose()
+                      << ", target = " << pos.transpose() << std::endl;
+            mSimScene->RayCast(ray);
+        }
     }
 }
 
@@ -803,7 +871,6 @@ void cDrawScene::CleanSwapChain()
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 }
-#include "glm/glm.hpp"
 
 struct MVPUniformBufferObject
 {
@@ -825,7 +892,7 @@ void cDrawScene::CreateDescriptorSetLayout()
     mvpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     mvpLayoutBinding.descriptorCount = 1;
     mvpLayoutBinding.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT;                // we use the descriptor in vertex shader
+        VK_SHADER_STAGE_VERTEX_BIT; // we use the descriptor in vertex shader
     mvpLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
     // sampler
@@ -902,7 +969,6 @@ glm::mat4 E2GLM(const tMatrix4f &em)
     }
     return mat;
 }
-
 void cDrawScene::UpdateMVPUniformValue(int image_idx)
 {
     MVPUniformBufferObject ubo{};
@@ -913,8 +979,8 @@ void cDrawScene::UpdateMVPUniformValue(int image_idx)
     tMatrix4f eigen_view = mCamera->ViewMatrix();
     ubo.view = E2GLM(eigen_view);
     ubo.proj = glm::perspective(
-        glm::radians(45.0f),
-        mSwapChainExtent.width / (float)mSwapChainExtent.height, 0.1f, 100.0f);
+        glm::radians(fov),
+        mSwapChainExtent.width / (float)mSwapChainExtent.height, near, 100.0f);
     ubo.proj[1][1] *= -1;
 
     void *data;

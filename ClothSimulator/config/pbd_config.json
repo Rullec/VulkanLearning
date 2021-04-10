@@ -11,7 +11,7 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 100,
+    "subdivision": 20,
     "damping": 1e-4,
     "default_timestep": 1e-3,
     "pbd_config": {

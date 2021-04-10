@@ -7,6 +7,16 @@ const tVector gGravity = tVector(0, -9.8, 0, 0);
 // const tVector gGravity = tVector(0, 0, 0, 0);
 cRand cMathUtil::gRand = cRand();
 
+bool cMathUtil::IsPoint(const tVector &vec)
+{
+    return std::fabs(vec[3] - 1.0) < 1e-10;
+}
+tVector cMathUtil::VecToPoint(const tVector &vec)
+{
+    tVector new_vec = vec;
+    new_vec[3] = 1;
+    return new_vec;
+}
 int cMathUtil::Clamp(int val, int min, int max)
 {
     return std::max(min, std::min(val, max));
@@ -1839,4 +1849,28 @@ tMatrix cMathUtil::EulerAngleRotmatdZ(double z)
     output(1, 0) = cosz;
     output(1, 1) = -sinz;
     return output;
+}
+
+tVector cMathUtil::RayCast(const tVector &ori, const tVector &dir,
+                           const tVector &p1, const tVector &p2,
+                           const tVector &p3, double eps /* = 1e-5*/)
+{
+    Eigen::Matrix3d mat;
+    mat.col(0) = (p1 - p2).segment(0, 3);
+    mat.col(1) = (p1 - p3).segment(0, 3);
+    mat.col(2) = dir.segment(0, 3);
+    Eigen::Vector3d vec;
+    vec = (p1 - ori).segment(0, 3);
+    Eigen::Vector3d res = mat.inverse() * vec;
+    // std::cout << "res = " << res.transpose() << std::endl;
+    double beta = res[0], gamma = res[1], t = res[2], alpha = 1 - beta - gamma;
+    // std::cout <<"ray cast = " << res.transpose() << std::endl;
+    tVector inter =
+        tVector(std::nan(""), std::nan(""), std::nan(""), std::nan(""));
+    if (0 - eps < alpha && alpha < 1 + eps && 0 - eps < beta &&
+        beta < 1 + eps && 0 - eps < gamma && gamma < 1 + eps && t > 0 - eps)
+    {
+        inter = ori + t * dir;
+    }
+    return inter;
 }

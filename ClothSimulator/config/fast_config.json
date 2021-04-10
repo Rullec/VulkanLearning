@@ -10,7 +10,7 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 100,
+    "subdivision": 2,
     "damping": 1e-4,
     "stiffness": 30,
     "default_timestep": 1e-2,
