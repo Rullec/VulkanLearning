@@ -1,11 +1,11 @@
-#include "TrimeshScene.h"
+#include "PBDScene.h"
 #include "geometries/Primitives.h"
 #include "utils/LogUtil.h"
 #include <atomic>
 #include <iostream>
 #include <omp.h>
 #include <set>
-cTrimeshScene::cTrimeshScene()
+cPBDScene::cPBDScene()
 {
     mRayArray.clear();
     mTriangleArray.clear();
@@ -13,7 +13,7 @@ cTrimeshScene::cTrimeshScene()
     mVcur.resize(0);
 }
 
-cTrimeshScene::~cTrimeshScene()
+cPBDScene::~cPBDScene()
 {
     for (auto &x : mEdgeArray)
         delete x;
@@ -29,7 +29,7 @@ cTrimeshScene::~cTrimeshScene()
  *  For more details, please check the note "将平面划分为三角形.md"
 */
 #include "geometries/Triangulator.h"
-void cTrimeshScene::InitGeometry(const Json::Value &conf)
+void cPBDScene::InitGeometry(const Json::Value &conf)
 {
     cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray,
                                  mTriangleArray);
@@ -68,7 +68,7 @@ extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1,
 extern void CalcEdgeDrawBufferSingle(const tVector &v0, const tVector &v1,
                                      tVectorXf &buffer, int &st_pos);
 
-void cTrimeshScene::CalcTriangleDrawBuffer()
+void cPBDScene::CalcTriangleDrawBuffer()
 {
     mTriangleDrawBuffer.fill(std::nan(""));
     int st = 0;
@@ -80,7 +80,7 @@ void cTrimeshScene::CalcTriangleDrawBuffer()
     }
 }
 
-void cTrimeshScene::CalcEdgesDrawBuffer()
+void cPBDScene::CalcEdgesDrawBuffer()
 {
     mEdgesDrawBuffer.fill(std::nan(""));
     int st = 0;
@@ -101,7 +101,7 @@ void cTrimeshScene::CalcEdgesDrawBuffer()
 /**
  * \brief           Update substeps
 */
-void cTrimeshScene::UpdateSubstep()
+void cPBDScene::UpdateSubstep()
 {
     // std::cout << "[before update] x = " << mXcur.transpose() << std::endl;
     // exit(0);
@@ -127,7 +127,7 @@ void cTrimeshScene::UpdateSubstep()
 /**
  * \brief           Update for position based dynamics
 */
-void cTrimeshScene::UpdateSubstepPBD()
+void cPBDScene::UpdateSubstepPBD()
 {
     ClearForce();
 
@@ -151,7 +151,7 @@ void cTrimeshScene::UpdateSubstepPBD()
 /**
  * \brief           Update the unconstrained vel and pos 
 */
-void cTrimeshScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
+void cPBDScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
 {
     // std::cout << "fext = " << fext.transpose() << std::endl;
     mVcur += mInvMassMatrixDiag.cwiseProduct(fext) * mCurdt;
@@ -162,7 +162,7 @@ void cTrimeshScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
 // /**
 //  * \brief           create the constraint for PBD
 // */
-// void cTrimeshScene::ConstraintSetupPBD()
+// void cPBDScene::ConstraintSetupPBD()
 // {
 
 // }
@@ -171,7 +171,7 @@ void cTrimeshScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
  * \brief           given raw vertex vector p, solve the constraint and get the new p
 */
 
-void cTrimeshScene::ConstraintProcessPBD()
+void cPBDScene::ConstraintProcessPBD()
 {
     const int iters = mItersPBD;
     double raw_k = mStiffnessPBD;
@@ -270,7 +270,7 @@ void cTrimeshScene::ConstraintProcessPBD()
 /**
  * \brief           
 */
-void cTrimeshScene::PostProcessPBD()
+void cPBDScene::PostProcessPBD()
 {
     // SIM_WARN("PostProcessPBD hasn't been impled");
     mVcur = (mXcur - mXpre) / mCurdt;
@@ -278,7 +278,7 @@ void cTrimeshScene::PostProcessPBD()
     mXpre = mXcur;
 }
 
-void cTrimeshScene::InitConstraint(const Json::Value &root)
+void cPBDScene::InitConstraint(const Json::Value &root)
 {
     cSimScene::InitConstraint(root);
 
@@ -291,7 +291,7 @@ void cTrimeshScene::InitConstraint(const Json::Value &root)
 
 #include "utils/JsonUtil.h"
 
-void cTrimeshScene::Init(const std::string &conf_path)
+void cPBDScene::Init(const std::string &conf_path)
 {
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
@@ -317,7 +317,7 @@ void cTrimeshScene::Init(const std::string &conf_path)
 /**
  * \brief               Update substep for projective dynamic
 */
-void cTrimeshScene::UpdateSubstepProjDyn() {}
+void cPBDScene::UpdateSubstepProjDyn() {}
 
 bool SetColor(int edge_id, int num_of_colors, const int max_edge_id,
               int *edge_color_info, std::vector<std::set<int>> &color_vertices,
@@ -375,7 +375,7 @@ bool SetColor(int edge_id, int num_of_colors, const int max_edge_id,
     return false;
 }
 
-void cTrimeshScene::CalcExtForce(tVectorXd &ext_force) const
+void cPBDScene::CalcExtForce(tVectorXd &ext_force) const
 {
     cSimScene::CalcExtForce(ext_force);
     ext_force += -mDamping * this->mVcur;

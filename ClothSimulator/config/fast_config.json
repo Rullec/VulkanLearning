@@ -10,11 +10,11 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 2,
+    "subdivision": 100,
     "damping": 1e-4,
-    "stiffness": 30,
-    "default_timestep": 1e-2,
-    "max_steps_opt": 1,
+    "stiffness": 3000,
+    "default_timestep": 1e-4,
+    "max_steps_opt": 4,
     "constraints": {
         "fixed_point": [
             [

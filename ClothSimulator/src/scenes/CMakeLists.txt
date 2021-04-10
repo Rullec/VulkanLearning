@@ -4,9 +4,10 @@ DrawSceneVk.cpp
 SceneBuilder.cpp
 Scene.cpp
 SimScene.cpp
-MassSpringScene.cpp
-MassSpringSceneGeo.cpp
-TrimeshScene.cpp
+SemiImplicitScene.cpp
+ImplicitScene.cpp
+FastSimScene.cpp
+PBDScene.cpp
 cameras/CameraBase.cpp
 cameras/FPSCamera.cpp
 cameras/ArcBallCamera.cpp

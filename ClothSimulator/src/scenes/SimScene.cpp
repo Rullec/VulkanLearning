@@ -45,8 +45,6 @@ void cSimScene::Init(const std::string &conf_path)
     mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
     mScheme = BuildIntegrationScheme(
         cJsonUtil::ParseAsString("integration_scheme", root));
-
-    std::cout << "init sim scene done\n";
 }
 
 /**
@@ -111,6 +109,13 @@ void cSimScene::UpdateCurNodalPosition(const tVectorXd &newpos)
         mVertexArray[i]->mPos.segment(0, 3).noalias() = mXcur.segment(i * 3, 3);
     }
 }
+/**
+ * \brief           add damping forces
+*/
+void cSimScene::CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const
+{
+    damping.noalias() = -vel * mDamping;
+}
 
 void cSimScene::GetVertexRenderingData() {}
 
@@ -130,7 +135,7 @@ void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
     buffer.segment(st_pos + 3, 3) = v2->mColor.segment(0, 3).cast<float>();
     st_pos += 8;
 }
-
+int cSimScene::GetNumOfEdges() const { return mEdgeArray.size(); }
 /**
  * \brief       external force
 */
@@ -273,6 +278,14 @@ void cSimScene::InitConstraint(const Json::Value &root)
                    mVertexArray[mFixedPointIds[i]]->muv[1]);
         }
     }
+    for (auto &i : mFixedPointIds)
+    {
+        mInvMassMatrixDiag.segment(i * 3, 3).setZero();
+        // printf("[debug] fixed point id %d at ", i);
+        // exit(0);
+        // next_pos.segment(i * 3, 3) = mXcur.segment(i * 3, 3);
+        // std::cout << mXcur.segment(i * 3, 3).transpose() << std::endl;
+    }
 }
 
 cSimScene::~cSimScene()
@@ -319,8 +332,34 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
 
 void cSimScene::InitGeometry(const Json::Value &conf)
 {
+    // 1. build the geometry
     cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray,
                                  mTriangleArray);
+    // 2. build arrays
+    // init the buffer
+    {
+        int num_of_triangles = mTriangleArray.size();
+        int num_of_vertices = num_of_triangles * 3;
+        int size_per_vertices = 8;
+        mTriangleDrawBuffer.resize(num_of_vertices * size_per_vertices);
+        // std::cout << "triangle draw buffer size = " << mTriangleDrawBuffer.size() << std::endl;
+        // exit(0);
+    }
+    {
+        int num_of_edges = mEdgeArray.size();
+        int size_per_edge = 16;
+        mEdgesDrawBuffer.resize(num_of_edges * size_per_edge);
+    }
+
+    CalcTriangleDrawBuffer();
+    CalcEdgesDrawBuffer();
+
+    // init the inv mass vector
+    mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        mInvMassMatrixDiag.segment(i * 3, 3).fill(1.0 / mVertexArray[i]->mMass);
+    }
 }
 
 void cSimScene::RayCast(tRay *ray)
@@ -345,4 +384,61 @@ void cSimScene::RayCast(tRay *ray)
     }
 
     mRayArray.push_back(ray);
+}
+
+/**
+ * \brief       internal force
+*/
+void cSimScene::CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const
+{
+    // std::vector<std::atomic<double>> int_force_atomic(int_force.size());
+    // for (int i = 0; i < int_force.size(); i++)
+    //     int_force_atomic[i] = 0;
+    // double res = 1;
+    // std::vector<double> int_force_atomic(int_force.size());
+
+    // #pragma omp parallel for
+    // std::cout << "input fint = " << int_force.transpose() << std::endl;
+    int id0, id1;
+    double dist;
+#pragma omp parallel for private(id0, id1, dist) num_threads(12)
+    for (int i = 0; i < mEdgeArray.size(); i++)
+    {
+        const auto &spr = mEdgeArray[i];
+        // 1. calcualte internal force for each spring
+        id0 = spr->mId0;
+        id1 = spr->mId1;
+        tVector3d pos0 = xcur.segment(id0 * 3, 3);
+        tVector3d pos1 = xcur.segment(id1 * 3, 3);
+        dist = (pos0 - pos1).norm();
+        tVector3d force0 = spr->mK_spring * (spr->mRawLength - dist) *
+                           (pos0 - pos1).segment(0, 3) / dist;
+        // tVector3d force1 = -force0;
+        // const tVectorXd &inf_force_0 = int_force.segment(3 * id0, 3);
+        // const tVectorXd &inf_force_1 = int_force.segment(3 * id1, 3);
+        // #pragma omp critical
+        //         std::cout << "spring " << i << " force = " << force0.transpose() << ", dist " << dist << ", v0 " << id0 << " v1 " << id1 << std::endl;
+        // std::cout << "spring " << i << ", v0 = " << id0 << " v1 = " << id1 << std::endl;
+        // 2. add force
+        {
+#pragma omp atomic
+            int_force[3 * id0 + 0] += force0[0];
+            int_force[3 * id0 + 1] += force0[1];
+            int_force[3 * id0 + 2] += force0[2];
+// #pragma omp atomic
+// #pragma omp atomic
+#pragma omp atomic
+            int_force[3 * id1 + 0] += -force0[0];
+            int_force[3 * id1 + 1] += -force0[1];
+            int_force[3 * id1 + 2] += -force0[2];
+            // #pragma omp atomic
+            // #pragma omp atomic
+            // #pragma omp atomic
+            //             inf_force_0 += force0;
+            // #pragma omp atomic
+            //             inf_force_1 += force1;
+        }
+    }
+    // std::cout << "output fint = " << int_force.transpose() << std::endl;
+    // exit(0);
 }

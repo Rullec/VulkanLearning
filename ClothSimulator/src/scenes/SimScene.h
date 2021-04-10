@@ -41,6 +41,8 @@ public:
                              int mods);
 
 protected:
+    tVectorXd mInvMassMatrixDiag; // diag inv mass matrix
+    std::string mGeometryType;
     eIntegrationScheme mScheme;
     // double mClothWidth;           // a square cloth
     // double mClothMass;            // cloth mass
@@ -62,15 +64,18 @@ protected:
     std::vector<int> mFixedPointIds; // fixed constraint point
 
     // base methods
+    void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     virtual void InitGeometry(
         const Json::Value &conf); // discretazation from square cloth to
     void ClearForce();            // clear all forces
+    void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
     virtual void CalcExtForce(tVectorXd &ext_force) const;
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //
     void GetVertexRenderingData();
     int GetNumOfVertices() const;
     int GetNumOfFreedom() const;
+    int GetNumOfEdges() const;
     void CalcNodePositionVector(tVectorXd &pos) const;
     virtual void InitConstraint(const Json::Value &root);
     void UpdateCurNodalPosition(const tVectorXd &xcur);

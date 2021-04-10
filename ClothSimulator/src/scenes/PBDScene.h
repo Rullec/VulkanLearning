@@ -11,19 +11,17 @@
 struct tTriangle;
 struct tEdge;
 struct tRay;
-class cTrimeshScene : public cSimScene
+class cPBDScene : public cSimScene
 {
 public:
-    explicit cTrimeshScene();
+    explicit cPBDScene();
     virtual void Init(const std::string &conf_path) override;
-    ~cTrimeshScene();
+    ~cPBDScene();
 
 protected:
     const int mMaxDrawRayDebug = 100;
     // std::vector<tEdge *> mEdgeArray;
     tVectorXd mVcur; // velocity vector
-    tVectorXd mInvMassMatrixDiag;
-    std::string mGeometryType;
     virtual void InitGeometry(const Json::Value &conf) override final;
     // void InitGeometryUniformSquare();
     // void InitGeometrySkewTriangle();
