@@ -544,9 +544,3 @@ tVectorXd cMSScene::CalcNextPositionOptImplicit() const
 }
 
 int cMSScene::GetNumOfSprings() const { return mEdgeArray.size(); }
-
-void cMSScene::RayCast(tRay *ray)
-{
-    SIM_ERROR("MSScene ray cast hasn't been supported\n");
-    exit(0);
-}

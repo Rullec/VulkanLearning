@@ -21,6 +21,7 @@ enum eIntegrationScheme
 
 struct tVertex;
 struct tEdge;
+struct tTriangle;
 struct tRay;
 class cDrawScene;
 class cSimScene : public cScene
@@ -34,7 +35,7 @@ public:
     const tVectorXf &GetTriangleDrawBuffer();
     const tVectorXf &GetEdgesDrawBuffer();
     static eIntegrationScheme BuildIntegrationScheme(const std::string &str);
-    virtual void RayCast(tRay *ray) = 0;
+    virtual void RayCast(tRay *ray);
     virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos);
     virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
                              int mods);
@@ -49,20 +50,21 @@ protected:
     double mIdealDefaultTimestep; // default substep dt
     tVectorXf mTriangleDrawBuffer,
         mEdgesDrawBuffer; // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
-
-    std::vector<tVertex *> mVertexArray; // vertices info
-    std::vector<tEdge *> mEdgeArray;     // springs info
-    tVectorXd mIntForce;                 // internal force
-    tVectorXd mExtForce;                 // external force
-    tVectorXd mDampingForce;             // external force
+    std::vector<tRay *> mRayArray;
+    std::vector<tVertex *> mVertexArray;     // vertices info
+    std::vector<tEdge *> mEdgeArray;         // springs info
+    std::vector<tTriangle *> mTriangleArray; // triangles info
+    tVectorXd mIntForce;                     // internal force
+    tVectorXd mExtForce;                     // external force
+    tVectorXd mDampingForce;                 // external force
 
     tVectorXd mXpre, mXcur; // previous node position & current node position
     std::vector<int> mFixedPointIds; // fixed constraint point
 
     // base methods
     virtual void InitGeometry(
-        const Json::Value &conf) = 0; // discretazation from square cloth to
-    void ClearForce();                // clear all forces
+        const Json::Value &conf); // discretazation from square cloth to
+    void ClearForce();            // clear all forces
     virtual void CalcExtForce(tVectorXd &ext_force) const;
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //

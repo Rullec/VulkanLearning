@@ -1,7 +1,7 @@
 #include "MassSpringScene.h"
+#include "geometries/Primitives.h"
 #include "omp.h"
 #include <iostream>
-#include "geometries/Primitives.h"
 /**
  * \brief   discretazation from square cloth to mass spring system
  * 
@@ -10,20 +10,18 @@
 #include "utils/JsonUtil.h"
 void cMSScene::InitGeometry(const Json::Value &conf)
 {
-
+    cSimScene::InitGeometry(conf);
     // int gap = mSubdivision + 1;
 
     // set up the vertex pos data
     // in XOY plane
-    std::vector<tTriangle *> tmp;
-    cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray, tmp);
 
     mStiffness = cJsonUtil::ParseAsDouble("stiffness", conf);
     for (auto &x : mEdgeArray)
         x->mK_spring = mStiffness;
     // init the buffer
     {
-        int num_of_triangles = tmp.size();
+        int num_of_triangles = mTriangleArray.size();
         int num_of_vertices = num_of_triangles * 3;
         int size_per_vertices = 8;
         mTriangleDrawBuffer.resize(num_of_vertices * size_per_vertices);
@@ -131,9 +129,11 @@ void cMSScene::InitVarsOptImplicitSparse()
         // J sparse
         {
             for (int j = 0; j < 3; j++)
-                J_sparse_tri_lst.push_back(tTriplet(3 * id0 + j, i * 3 + j, 1 * spr->mK_spring));
+                J_sparse_tri_lst.push_back(
+                    tTriplet(3 * id0 + j, i * 3 + j, 1 * spr->mK_spring));
             for (int j = 0; j < 3; j++)
-                J_sparse_tri_lst.push_back(tTriplet(3 * id1 + j, i * 3 + j, -1 * spr->mK_spring));
+                J_sparse_tri_lst.push_back(
+                    tTriplet(3 * id1 + j, i * 3 + j, -1 * spr->mK_spring));
         }
         /*
             dt2 * Minv * L
@@ -175,9 +175,7 @@ void cMSScene::InitVarsOptImplicitSparse()
             }
         }
     }
-    J_sparse.setFromTriplets(
-        J_sparse_tri_lst.begin(),
-        J_sparse_tri_lst.end());
+    J_sparse.setFromTriplets(J_sparse_tri_lst.begin(), J_sparse_tri_lst.end());
     // 2. init I_plus_dt2_Minv_Linv
     I_plus_dt2_Minv_L_sparse.setFromTriplets(I_plus_dt2_Minv_L.begin(),
                                              I_plus_dt2_Minv_L.end());

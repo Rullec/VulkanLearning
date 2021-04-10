@@ -16,7 +16,6 @@ public:
     virtual void Init(const std::string &conf_path) override;
     virtual void Update(double dt) override;
     virtual void Reset() override;
-    virtual void RayCast(tRay *ray) override final;
 
 protected:
     int mMaxNewtonIters; // max newton iterations in implicit integration

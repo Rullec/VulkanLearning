@@ -130,7 +130,9 @@ bool cDrawScene::IsRelease(int glfw_action)
 {
     return GLFW_RELEASE == glfw_action;
 }
+
 bool cDrawScene::IsPress(int glfw_action) { return GLFW_PRESS == glfw_action; }
+
 tVector cDrawScene::CalcCursorPointWorldPos() const
 {
     tMatrix mat;

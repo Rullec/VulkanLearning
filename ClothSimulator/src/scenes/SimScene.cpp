@@ -1,5 +1,6 @@
 #include "SimScene.h"
 #include "geometries/Primitives.h"
+#include "geometries/Triangulator.h"
 #include "scenes/DrawScene.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
@@ -23,8 +24,11 @@ eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
     SIM_ASSERT(i != eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES);
     return static_cast<eIntegrationScheme>(i);
 }
+
 cSimScene::cSimScene()
 {
+    mTriangleArray.clear();
+    mEdgeArray.clear();
     mVertexArray.clear();
     mFixedPointIds.clear();
     // mClothInitPos.setZero();
@@ -41,8 +45,6 @@ void cSimScene::Init(const std::string &conf_path)
     mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
     mScheme = BuildIntegrationScheme(
         cJsonUtil::ParseAsString("integration_scheme", root));
-    // SIM_INFO("cloth total width {} subdivision {}", mClothWidth,
-    //          mSubdivision);
 
     std::cout << "init sim scene done\n";
 }
@@ -128,6 +130,7 @@ void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
     buffer.segment(st_pos + 3, 3) = v2->mColor.segment(0, 3).cast<float>();
     st_pos += 8;
 }
+
 /**
  * \brief       external force
 */
@@ -276,8 +279,13 @@ cSimScene::~cSimScene()
 {
     for (auto x : mVertexArray)
         delete x;
-
     mVertexArray.clear();
+    for (auto &x : mTriangleArray)
+        delete x;
+    mTriangleArray.clear();
+    for (auto &x : mEdgeArray)
+        delete x;
+    mEdgeArray.clear();
 }
 
 /**
@@ -305,7 +313,36 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
         }
         else if (cDrawScene::IsRelease(action) == true)
         {
-            
         }
     }
+}
+
+void cSimScene::InitGeometry(const Json::Value &conf)
+{
+    cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray,
+                                 mTriangleArray);
+}
+
+void cSimScene::RayCast(tRay *ray)
+{
+    std::cout << "begin to do ray cast for ray from "
+              << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
+              << std::endl;
+    // for ()
+    for (int i = 0; i < mTriangleArray.size(); i++)
+    {
+        auto &tri = mTriangleArray[i];
+        tVector res = cMathUtil::RayCast(
+            ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
+            mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
+        if (res.hasNaN() == false)
+        {
+            std::cout << "intersect with triangle " << i << std::endl;
+            mVertexArray[tri->mId0]->mColor = tVector(1, 0, 0, 0);
+            mVertexArray[tri->mId1]->mColor = tVector(1, 0, 0, 0);
+            mVertexArray[tri->mId2]->mColor = tVector(1, 0, 0, 0);
+        }
+    }
+
+    mRayArray.push_back(ray);
 }

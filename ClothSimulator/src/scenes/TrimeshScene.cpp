@@ -15,11 +15,8 @@ cTrimeshScene::cTrimeshScene()
 
 cTrimeshScene::~cTrimeshScene()
 {
-    for (auto &x : mTriangleArray)
-        delete x;
     for (auto &x : mEdgeArray)
         delete x;
-    mTriangleArray.clear();
     mEdgeArray.clear();
 }
 
@@ -34,7 +31,6 @@ cTrimeshScene::~cTrimeshScene()
 #include "geometries/Triangulator.h"
 void cTrimeshScene::InitGeometry(const Json::Value &conf)
 {
-
     cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray,
                                  mTriangleArray);
     // init the draw buffer
@@ -384,28 +380,4 @@ void cTrimeshScene::CalcExtForce(tVectorXd &ext_force) const
     cSimScene::CalcExtForce(ext_force);
     ext_force += -mDamping * this->mVcur;
     // std::cout << "damping = " << (-mDamping * this->mVcur).transpose() << std::endl;
-}
-
-void cTrimeshScene::RayCast(tRay *ray)
-{
-    std::cout << "begin to do ray cast for ray from "
-              << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
-              << std::endl;
-    // for ()
-    for (int i = 0; i < mTriangleArray.size(); i++)
-    {
-        auto &tri = mTriangleArray[i];
-        tVector res = cMathUtil::RayCast(
-            ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
-            mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
-        if (res.hasNaN() == false)
-        {
-            std::cout << "intersect with triangle " << i << std::endl;
-            mVertexArray[tri->mId0]->mColor = tVector(1, 0, 0, 0);
-            mVertexArray[tri->mId1]->mColor = tVector(1, 0, 0, 0);
-            mVertexArray[tri->mId2]->mColor = tVector(1, 0, 0, 0);
-        }
-    }
-
-    mRayArray.push_back(ray);
 }
