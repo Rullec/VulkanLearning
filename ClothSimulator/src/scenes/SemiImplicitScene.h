@@ -8,11 +8,11 @@
  * \brief           simulation scene for mass-spring system
 */
 struct tEdge;
-class cMSScene : public cSimScene
+class cSemiImplicitScene : public cSimScene
 {
 public:
-    explicit cMSScene();
-    ~cMSScene();
+    explicit cSemiImplicitScene();
+    ~cSemiImplicitScene();
     virtual void Init(const std::string &conf_path) override;
     virtual void Update(double dt) override;
     virtual void Reset() override;

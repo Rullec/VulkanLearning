@@ -1,6 +1,6 @@
 #include "SceneBuilder.h"
 #include "SimScene.h"
-#include "MassSpringScene.h"
+#include "SemiImplicitScene.h"
 #include "utils/LogUtil.h"
 #include "utils/JsonUtil.h"
 #include "TrimeshScene.h"
@@ -28,7 +28,7 @@ std::shared_ptr<cSimScene> cSceneBuilder::BuildSimScene(const std::string config
     case eIntegrationScheme::MS_IMPLICIT:
     case eIntegrationScheme::MS_OPT_IMPLICIT:
     case eIntegrationScheme::MS_SEMI_IMPLICIT:
-        scene = std::make_shared<cMSScene>();
+        scene = std::make_shared<cSemiImplicitScene>();
         break;
     case eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC:
     case eIntegrationScheme::TRI_BARAFF:
