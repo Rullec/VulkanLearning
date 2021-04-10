@@ -22,6 +22,7 @@ enum eIntegrationScheme
 struct tVertex;
 struct tEdge;
 struct tRay;
+class cDrawScene;
 class cSimScene : public cScene
 {
 public:
@@ -34,6 +35,9 @@ public:
     const tVectorXf &GetEdgesDrawBuffer();
     static eIntegrationScheme BuildIntegrationScheme(const std::string &str);
     virtual void RayCast(tRay *ray) = 0;
+    virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos);
+    virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
+                             int mods);
 
 protected:
     eIntegrationScheme mScheme;

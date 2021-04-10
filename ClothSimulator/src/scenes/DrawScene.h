@@ -31,6 +31,11 @@ public:
     void MouseButton(int button, int action, int mods);
     void Scroll(double xoff, double yoff);
     virtual void Reset() override final;
+    tVector CalcCursorPointWorldPos() const;
+    tVector GetCameraPos() const;
+    static bool IsMouseRightButton(int glfw_button);
+    static bool IsRelease(int glfw_action);
+    static bool IsPress(int glfw_action);
 
 protected:
     void InitVulkan();
@@ -142,5 +147,4 @@ private:
 
     bool mLeftButtonPress;
     tVector3f mCameraInitPos, mCameraInitFocus;
-    int mRasterMousePosX, mRasterMousePosY; // mouse position in raster place
 };

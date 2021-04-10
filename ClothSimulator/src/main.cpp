@@ -27,6 +27,7 @@ GLFWwindow *window = nullptr;
 std::shared_ptr<cDrawScene> scene = nullptr;
 bool esc_pushed = false;
 bool gPause = true;
+
 static void ResizeCallback(GLFWwindow *window, int w, int h)
 {
     scene->Resize(w, h);

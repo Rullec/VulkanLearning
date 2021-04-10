@@ -45,3 +45,10 @@ struct tRay
     tVector mOrigin;
     tVector mDir;
 };
+
+struct tRectangle
+{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    tRectangle();
+    tVector mVertex[4];
+};

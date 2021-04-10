@@ -1,5 +1,6 @@
 #include "SimScene.h"
 #include "geometries/Primitives.h"
+#include "scenes/DrawScene.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
 
@@ -277,4 +278,34 @@ cSimScene::~cSimScene()
         delete x;
 
     mVertexArray.clear();
+}
+
+/**
+ * \brief               Event response (add perturb)
+*/
+void cSimScene::CursorMove(cDrawScene *draw_scene, int xpos, int ypos) {}
+
+/**
+ * \brief               Event response (add perturb)
+*/
+void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
+                            int mods)
+{
+    // std::cout << "[sim] mouse button\n";
+    if (cDrawScene::IsMouseRightButton(button) == true)
+    {
+        // std::cout << "[sim] mouse button right\n";
+        if (cDrawScene::IsPress(action) == true)
+        {
+            // std::cout << "[sim] mouse button right press\n";
+            tVector tar_pos = draw_scene->CalcCursorPointWorldPos();
+            tVector camera_pos = draw_scene->GetCameraPos();
+            tRay *ray = new tRay(camera_pos, tar_pos);
+            RayCast(ray);
+        }
+        else if (cDrawScene::IsRelease(action) == true)
+        {
+            
+        }
+    }
 }

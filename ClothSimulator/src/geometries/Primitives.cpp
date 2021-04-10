@@ -28,3 +28,11 @@ tRay::tRay(const tVector &ori, const tVector &end)
     mOrigin = ori;
     mDir = (end - ori).normalized();
 }
+
+tRectangle::tRectangle()
+{
+    for (int i = 0; i < 4; i++)
+    {
+        mVertex[i].setZero();
+    }
+}

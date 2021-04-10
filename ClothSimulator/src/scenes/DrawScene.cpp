@@ -1,9 +1,11 @@
 #include "DrawScene.h"
+#include "SceneBuilder.h"
+#include "cameras/ArcBallCamera.h"
 #include "geometries/Primitives.h"
 #include "glm/glm.hpp"
 #include "scenes/SimScene.h"
+#include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
-#include "utils/MathUtil.h"
 #include "vulkan/vulkan.h"
 #include <iostream>
 #include <optional>
@@ -48,8 +50,9 @@ bool enableValidationLayers = true;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const float fov = 45.0f;
-const float near = 0.1f;
+float fov = 45.0f;
+float near = 0.1f;
+float far = 100.0f;
 
 #include "utils/MathUtil.h"
 #include <array>
@@ -111,6 +114,76 @@ std::vector<tVkVertex> ground_vertices = {
     {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
     {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, ground_scale}},
 };
+
+tVector cDrawScene::GetCameraPos() const
+{
+    tVector pos = tVector::Ones();
+    pos.segment(0, 3) = mCamera->pos.cast<double>();
+    return pos;
+}
+bool cDrawScene::IsMouseRightButton(int glfw_button)
+{
+    return glfw_button == GLFW_MOUSE_BUTTON_RIGHT;
+}
+
+bool cDrawScene::IsRelease(int glfw_action)
+{
+    return GLFW_RELEASE == glfw_action;
+}
+bool cDrawScene::IsPress(int glfw_action) { return GLFW_PRESS == glfw_action; }
+tVector cDrawScene::CalcCursorPointWorldPos() const
+{
+    tMatrix mat;
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+    // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
+    int height = mSwapChainExtent.height, width = mSwapChainExtent.width;
+    // shape the conversion mat
+    tVector test = tVector(xpos, ypos, 1, 1);
+    tMatrix mat1 = tMatrix::Identity();
+    mat1(0, 0) = 1.0 / width;
+    mat1(0, 3) = 0.5 / width;
+    mat1(1, 1) = 1.0 / height;
+    mat1(1, 3) = 0.5 / height;
+    // std::cout << "after 1, vec = "
+    //           << (test = mat1 * test).transpose() << std::endl;
+
+    tMatrix mat2 = tMatrix::Identity();
+    mat2(0, 0) = 2;
+    mat2(0, 3) = -1;
+    mat2(1, 1) = -2;
+    mat2(1, 3) = 1;
+    // std::cout << "after 2, vec = "
+    //           << (test = mat2 * test).transpose() << std::endl;
+
+    // pos = mat2 * pos;
+    tMatrix mat3 = tMatrix::Identity();
+    // mat3(0, 0) = std::tan(cMathUtil::Radians(mFov) / 2) * mNear;
+    mat3(0, 0) = width * 1.0 / height * std::tan(glm::radians(fov) / 2) * near;
+    mat3(1, 1) = std::tan(glm::radians(fov) / 2) * near;
+    mat3(2, 2) = 0, mat3(2, 3) = -near;
+    // std::cout << "after 3, vec = "
+    //           << (test = mat3 * test).transpose() << std::endl;
+
+    // std::cout << "mat 3 = " << mat3 << std::endl;
+    // exit(1);
+    // pos = mat3 * pos;
+    tMatrix mat4 = mCamera->ViewMatrix().inverse().cast<double>();
+    // std::cout << "after 4, vec = "
+    //           << (test = mat4 * test).transpose() << std::endl;
+    // std::cout <<"dir = " <<  (test - mCamera->GetCameraPos()).normalized().transpose() << std::endl;
+    mat = mat4 * mat3 * mat2 * mat1;
+    // exit(1);
+
+    tVector pos = mat * tVector(xpos, ypos, 1, 1);
+    // tVector camera_pos = tVector::Ones();
+    // camera_pos.segment(0, 3) = mCamera->pos.cast<double>();
+    return pos;
+    // tRay *ray = new tRay(camera_pos, pos);
+    // std::cout << "ray origin " << ray->mOrigin.transpose()
+    //           << ", target = " << pos.transpose() << std::endl;
+    // mSimScene->RayCast(ray);
+}
 
 // };
 cDrawScene::cDrawScene()
@@ -388,10 +461,6 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
 /**
  * \brief       Init vulkan and other stuff
 */
-#include "cameras/ArcBallCamera.h"
-// #include "SimScene.h"
-#include "SceneBuilder.h"
-#include "utils/JsonUtil.h"
 void cDrawScene::Init(const std::string &conf_path)
 {
     // init camera pos
@@ -412,6 +481,9 @@ void cDrawScene::Init(const std::string &conf_path)
         mCameraInitPos = tVector3f(camera_pos_json[0].asFloat(),
                                    camera_pos_json[1].asFloat(),
                                    camera_pos_json[2].asFloat());
+        fov = cJsonUtil::ParseAsFloat("fov", camera_json);
+        near = cJsonUtil::ParseAsFloat("near", camera_json);
+        far = cJsonUtil::ParseAsFloat("far", camera_json);
         SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(),
                  mCameraInitFocus.transpose());
     }
@@ -443,12 +515,11 @@ void cDrawScene::Resize(int w, int h) { mFrameBufferResized = true; }
 
 void cDrawScene::CursorMove(int xpos, int ypos)
 {
-    mRasterMousePosX = xpos;
-    mRasterMousePosY = ypos;
     if (mLeftButtonPress)
     {
         mCamera->MouseMove(xpos, ypos);
     }
+    mSimScene->CursorMove(this, xpos, ypos);
     // std::cout << "camera mouse move to " << xpos << " " << ypos << std::endl;
 }
 
@@ -467,62 +538,7 @@ void cDrawScene::MouseButton(int button, int action, int mods)
             mLeftButtonPress = true;
         }
     }
-    else if (button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS)
-    {
-        {
-            tMatrix mat;
-            {
-                int height = mSwapChainExtent.height,
-                    width = mSwapChainExtent.width;
-                // shape the conversion mat
-                tVector test =
-                    tVector(mRasterMousePosX, mRasterMousePosY, 1, 1);
-                tMatrix mat1 = tMatrix::Identity();
-                mat1(0, 0) = 1.0 / width;
-                mat1(0, 3) = 0.5 / width;
-                mat1(1, 1) = 1.0 / height;
-                mat1(1, 3) = 0.5 / height;
-                // std::cout << "after 1, vec = "
-                //           << (test = mat1 * test).transpose() << std::endl;
-
-                tMatrix mat2 = tMatrix::Identity();
-                mat2(0, 0) = 2;
-                mat2(0, 3) = -1;
-                mat2(1, 1) = -2;
-                mat2(1, 3) = 1;
-                // std::cout << "after 2, vec = "
-                //           << (test = mat2 * test).transpose() << std::endl;
-
-                // pos = mat2 * pos;
-                tMatrix mat3 = tMatrix::Identity();
-                // mat3(0, 0) = std::tan(cMathUtil::Radians(mFov) / 2) * mNear;
-                mat3(0, 0) = width * 1.0 / height *
-                             std::tan(glm::radians(fov) / 2) * near;
-                mat3(1, 1) = std::tan(glm::radians(fov) / 2) * near;
-                mat3(2, 2) = 0, mat3(2, 3) = -near;
-                // std::cout << "after 3, vec = "
-                //           << (test = mat3 * test).transpose() << std::endl;
-
-                // std::cout << "mat 3 = " << mat3 << std::endl;
-                // exit(1);
-                // pos = mat3 * pos;
-                tMatrix mat4 = mCamera->ViewMatrix().inverse().cast<double>();
-                // std::cout << "after 4, vec = "
-                //           << (test = mat4 * test).transpose() << std::endl;
-                // std::cout <<"dir = " <<  (test - mCamera->GetCameraPos()).normalized().transpose() << std::endl;
-                mat = mat4 * mat3 * mat2 * mat1;
-                // exit(1);
-            }
-            tVector pos =
-                mat * tVector(mRasterMousePosX, mRasterMousePosY, 1, 1);
-            tVector camera_pos = tVector::Ones();
-            camera_pos.segment(0, 3) = mCamera->pos.cast<double>();
-            tRay *ray = new tRay(camera_pos, pos);
-            std::cout << "ray origin " << ray->mOrigin.transpose()
-                      << ", target = " << pos.transpose() << std::endl;
-            mSimScene->RayCast(ray);
-        }
-    }
+    mSimScene->MouseButton(this, button, action, mods);
 }
 
 void cDrawScene::Scroll(double xoff, double yoff)
@@ -980,7 +996,7 @@ void cDrawScene::UpdateMVPUniformValue(int image_idx)
     ubo.view = E2GLM(eigen_view);
     ubo.proj = glm::perspective(
         glm::radians(fov),
-        mSwapChainExtent.width / (float)mSwapChainExtent.height, near, 100.0f);
+        mSwapChainExtent.width / (float)mSwapChainExtent.height, near, far);
     ubo.proj[1][1] *= -1;
 
     void *data;

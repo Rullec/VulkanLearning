@@ -388,9 +388,9 @@ void cTrimeshScene::CalcExtForce(tVectorXd &ext_force) const
 
 void cTrimeshScene::RayCast(tRay *ray)
 {
-    // std::cout << "begin to do ray cast for ray from "
-    //           << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
-    //           << std::endl;
+    std::cout << "begin to do ray cast for ray from "
+              << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
+              << std::endl;
     // for ()
     for (int i = 0; i < mTriangleArray.size(); i++)
     {
