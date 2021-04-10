@@ -23,6 +23,7 @@ struct tVertex;
 struct tEdge;
 struct tTriangle;
 struct tRay;
+struct tPerturb;
 class cDrawScene;
 class cSimScene : public cScene
 {
@@ -41,6 +42,7 @@ public:
                              int mods);
 
 protected:
+    tPerturb *mPerturb;
     tVectorXd mInvMassMatrixDiag; // diag inv mass matrix
     std::string mGeometryType;
     eIntegrationScheme mScheme;

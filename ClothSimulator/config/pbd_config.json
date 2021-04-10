@@ -11,13 +11,13 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 20,
-    "damping": 1e-4,
+    "subdivision": 100,
+    "damping": 1e-3,
     "default_timestep": 1e-3,
     "pbd_config": {
         "enable_parallel_pbd": true,
         "max_pbd_iters": 20,
-        "stiffness_pbd": 0.6
+        "stiffness_pbd": 1
     },
     "constraints": {
         "fixed_point": [

@@ -10,10 +10,10 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 100,
-    "damping": 1e-4,
-    "stiffness": 100,
-    "default_timestep": 3e-4,
+    "subdivision": 80,
+    "damping": 0,
+    "stiffness": 300,
+    "default_timestep": 1e-4,
     "constraints": {
         "fixed_point": [
             [
@@ -29,13 +29,13 @@
     "pause_at_first": false,
     "camera": {
         "camera_pos": [
-            2.5,
-            2,
-            2
+            0,
+            1,
+            4
         ],
         "camera_focus": [
-            0.5,
-            1.5,
+            0,
+            1,
             0
         ],
         "fov": 45,

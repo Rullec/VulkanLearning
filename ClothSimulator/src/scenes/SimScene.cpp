@@ -1,4 +1,5 @@
 #include "SimScene.h"
+#include "Perturb.h"
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
 #include "scenes/DrawScene.h"
@@ -31,6 +32,7 @@ cSimScene::cSimScene()
     mEdgeArray.clear();
     mVertexArray.clear();
     mFixedPointIds.clear();
+    mPerturb = nullptr;
     // mClothInitPos.setZero();
 }
 
@@ -142,12 +144,34 @@ int cSimScene::GetNumOfEdges() const { return mEdgeArray.size(); }
 extern const tVector gGravity;
 void cSimScene::CalcExtForce(tVectorXd &ext_force) const
 {
-// apply gravity
+// 1. apply gravity
 #pragma omp parallel for
     for (int i = 0; i < mVertexArray.size(); i++)
     {
         ext_force.segment(3 * i, 3) +=
             gGravity.segment(0, 3) * mVertexArray[i]->mMass;
+    }
+
+    // std::cout << "add ext noise\n";
+    // ext_force.segment(3 * (mVertexArray.size() - 1), 3) += tVector3d(0, 0, 10);
+
+    //  2. add perturb force
+    if (mPerturb != nullptr)
+    {
+        tVector perturb_force = mPerturb->GetPerturbForce();
+        // printf(
+        //     "[debug] perturb vid %d %d %d, ", mPerturb->mAffectedVerticesId[0],
+        //     mPerturb->mAffectedVerticesId[1], mPerturb->mAffectedVerticesId[2]);
+        // std::cout << "perturb force = " << perturb_force.transpose()
+        //           << std::endl;
+        ext_force.segment(mPerturb->mAffectedVerticesId[0] * 3, 3) +=
+            perturb_force.segment(0, 3) / 3;
+        ext_force.segment(mPerturb->mAffectedVerticesId[1] * 3, 3) +=
+            perturb_force.segment(0, 3) / 3;
+        ext_force.segment(mPerturb->mAffectedVerticesId[2] * 3, 3) +=
+            perturb_force.segment(0, 3) / 3;
+        // 2. give the ray to the perturb, calculate force on each vertices
+        // 3. apply the force
     }
 }
 
@@ -304,7 +328,20 @@ cSimScene::~cSimScene()
 /**
  * \brief               Event response (add perturb)
 */
-void cSimScene::CursorMove(cDrawScene *draw_scene, int xpos, int ypos) {}
+void cSimScene::CursorMove(cDrawScene *draw_scene, int xpos, int ypos)
+{
+    if (mPerturb != nullptr)
+    {
+        // update perturb
+        tVector camera_pos = draw_scene->GetCameraPos();
+        tVector dir = draw_scene->CalcCursorPointWorldPos() - camera_pos;
+        dir[3] = 0;
+        dir.normalize();
+        mPerturb->UpdatePerturb(camera_pos, dir);
+        // std::cout << "now perturb force = "
+        //           << mPerturb->GetPerturbForce().transpose() << std::endl;
+    }
+}
 
 /**
  * \brief               Event response (add perturb)
@@ -312,13 +349,10 @@ void cSimScene::CursorMove(cDrawScene *draw_scene, int xpos, int ypos) {}
 void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
                             int mods)
 {
-    // std::cout << "[sim] mouse button\n";
     if (cDrawScene::IsMouseRightButton(button) == true)
     {
-        // std::cout << "[sim] mouse button right\n";
         if (cDrawScene::IsPress(action) == true)
         {
-            // std::cout << "[sim] mouse button right press\n";
             tVector tar_pos = draw_scene->CalcCursorPointWorldPos();
             tVector camera_pos = draw_scene->GetCameraPos();
             tRay *ray = new tRay(camera_pos, tar_pos);
@@ -326,6 +360,16 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
         }
         else if (cDrawScene::IsRelease(action) == true)
         {
+            // restore the color
+            mPerturb->mAffectedVertices[0]->mColor =
+                tVector(0, 196.0 / 255, 1, 0);
+            mPerturb->mAffectedVertices[1]->mColor =
+                tVector(0, 196.0 / 255, 1, 0);
+            mPerturb->mAffectedVertices[2]->mColor =
+                tVector(0, 196.0 / 255, 1, 0);
+
+            delete mPerturb;
+            mPerturb = nullptr;
         }
     }
 }
@@ -364,26 +408,57 @@ void cSimScene::InitGeometry(const Json::Value &conf)
 
 void cSimScene::RayCast(tRay *ray)
 {
-    std::cout << "begin to do ray cast for ray from "
-              << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
-              << std::endl;
-    // for ()
+    // std::cout << "begin to do ray cast for ray from "
+    //           << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
+    //           << std::endl;
+    // 1. select triangle
+    tTriangle *selected_tri = nullptr;
+    tVector raycast_point = tVector::Zero();
     for (int i = 0; i < mTriangleArray.size(); i++)
     {
         auto &tri = mTriangleArray[i];
-        tVector res = cMathUtil::RayCast(
+        raycast_point = cMathUtil::RayCast(
             ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
             mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
-        if (res.hasNaN() == false)
+        if (raycast_point.hasNaN() == false)
         {
-            std::cout << "intersect with triangle " << i << std::endl;
-            mVertexArray[tri->mId0]->mColor = tVector(1, 0, 0, 0);
-            mVertexArray[tri->mId1]->mColor = tVector(1, 0, 0, 0);
-            mVertexArray[tri->mId2]->mColor = tVector(1, 0, 0, 0);
+            std::cout << "[debug] add perturb on triangle " << i << std::endl;
+            selected_tri = tri;
+            break;
+            // mVertexArray[tri->mId0]->mColor = tVector(1, 0, 0, 0);
+            // mVertexArray[tri->mId1]->mColor = tVector(1, 0, 0, 0);
+            // mVertexArray[tri->mId2]->mColor = tVector(1, 0, 0, 0);
         }
     }
+    if (selected_tri == nullptr)
+        return;
 
-    mRayArray.push_back(ray);
+    // 2. we have a triangle to track
+    SIM_ASSERT(mPerturb == nullptr);
+
+    mPerturb = new tPerturb();
+
+    mPerturb->mAffectedVerticesId[0] = selected_tri->mId0;
+    mPerturb->mAffectedVerticesId[1] = selected_tri->mId1;
+    mPerturb->mAffectedVerticesId[2] = selected_tri->mId2;
+
+    mPerturb->mAffectedVertices[0] = mVertexArray[selected_tri->mId0];
+    mPerturb->mAffectedVertices[1] = mVertexArray[selected_tri->mId1];
+    mPerturb->mAffectedVertices[2] = mVertexArray[selected_tri->mId2];
+    mPerturb->mBarycentricCoords =
+        cMathUtil::CalcBarycentric(raycast_point,
+                                   mVertexArray[selected_tri->mId0]->mPos,
+                                   mVertexArray[selected_tri->mId1]->mPos,
+                                   mVertexArray[selected_tri->mId2]->mPos)
+            .segment(0, 3);
+    // std::cout << "bary coords = " << mPerturb->mBarycentricCoords.transpose()
+    //           << std::endl;
+    mPerturb->InitTangentRect(-1 * ray->mDir);
+
+    // change the color
+    mVertexArray[selected_tri->mId0]->mColor = tVector(1, 0, 0, 0);
+    mVertexArray[selected_tri->mId1]->mColor = tVector(1, 0, 0, 0);
+    mVertexArray[selected_tri->mId2]->mColor = tVector(1, 0, 0, 0);
 }
 
 /**

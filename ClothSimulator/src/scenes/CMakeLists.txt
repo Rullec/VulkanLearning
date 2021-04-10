@@ -8,6 +8,7 @@ SemiImplicitScene.cpp
 ImplicitScene.cpp
 FastSimScene.cpp
 PBDScene.cpp
+Perturb.cpp
 cameras/CameraBase.cpp
 cameras/FPSCamera.cpp
 cameras/ArcBallCamera.cpp

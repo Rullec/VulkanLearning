@@ -41,6 +41,7 @@ struct tTriangle
 */
 struct tRay
 {
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     explicit tRay(const tVector &ori, const tVector &end);
     tVector mOrigin;
     tVector mDir;

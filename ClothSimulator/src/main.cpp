@@ -78,7 +78,7 @@ void ParseConfig(std::string path);
 int main(int argc, char **argv)
 {
     InitGlfw();
-    std::string conf = "config/pbd_config.json";
+    std::string conf = "config/semi_config.json";
     if (argc == 2)
     {
         conf = std::string(argv[1]);
