@@ -183,7 +183,9 @@ void cPBDScene::ConstraintProcessPBD()
     {
         if (mEnableParallelPBD == true)
         {
+#ifdef USE_OPENMP
 #pragma omp parallel for
+#endif
             for (int e_id = 0; e_id < mEdgeArray.size(); e_id++)
             {
                 auto e = mEdgeArray[e_id];
@@ -208,9 +210,6 @@ void cPBDScene::ConstraintProcessPBD()
                                   coef1 * (dist - raw) * (p1 - p2) / dist,
                               delta_p2 =
                                   coef2 * (dist - raw) * (p1 - p2) / dist;
-                    // #pragma omp ordered
-                    // std::cout << "vertex " << id0 << " += " << delta_p1.segment(0, 3).transpose() << std::endl;
-                    // #pragma omp critical
                     {
                         mXcur[3 * id0 + 0] += delta_p1[0];
                         mXcur[3 * id0 + 1] += delta_p1[1];
@@ -249,9 +248,6 @@ void cPBDScene::ConstraintProcessPBD()
                                   coef1 * (dist - raw) * (p1 - p2) / dist,
                               delta_p2 =
                                   coef2 * (dist - raw) * (p1 - p2) / dist;
-                    // #pragma omp ordered
-                    // std::cout << "vertex " << id0 << " += " << delta_p1.segment(0, 3).transpose() << std::endl;
-                    // #pragma omp critical
                     {
                         mXcur[3 * id0 + 0] += delta_p1[0];
                         mXcur[3 * id0 + 1] += delta_p1[1];

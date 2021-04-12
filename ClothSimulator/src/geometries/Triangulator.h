@@ -24,4 +24,7 @@ protected:
     static void BuildSquareVertices(
         double width, int subdivision,
         std::vector<tVertex *> &edges_array);
+    static void ValidateGeometry(std::vector<tVertex *> &vertices_array,
+                                 std::vector<tEdge *> &edges_array,
+                                 std::vector<tTriangle *> &triangles_array);
 };

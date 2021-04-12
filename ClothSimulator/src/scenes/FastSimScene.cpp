@@ -136,7 +136,9 @@ tVectorXd cFastSimScene::CalcNextPositionOptImplicit() const
             di = (x0^i - x1^i).normalized()
         */
         // std::cout << "step " << i << " X = " << Xnext.transpose() << std::endl;
+#ifdef USE_OPENMP
 #pragma omp parallel for
+#endif
         for (int j = 0; j < GetNumOfEdges(); j++)
         {
             int id0 = mEdgeArray[j]->mId0, id1 = mEdgeArray[j]->mId1;

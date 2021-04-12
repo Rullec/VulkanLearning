@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         // 2. update
         // delta_time = 1e-3;
         // delta_time /= 4;
-        double limit = 1.0 / 10;
+        double limit = 1.0 / 100;
         // double limit = 1e-4;
         delta_time = std::min(delta_time, limit);
         // delta_time = 1e-4;

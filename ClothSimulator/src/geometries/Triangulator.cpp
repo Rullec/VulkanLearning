@@ -39,13 +39,14 @@ void cTriangulator::BuildGeometry(const Json::Value &config, std::vector<tVertex
     {
         SIM_ERROR("unsupported geo type {}", geo_type);
     }
-
+    ValidateGeometry(vertices_array, edges_array, triangles_array);
     // support vertices
     for (auto &v : vertices_array)
     {
         v->mMass = mass / vertices_array.size();
         v->mPos.segment(0, 3) += mClothInitPos.segment(0, 3);
     }
+
     printf(
         "[debug] init geometry type %s, create %d vertices, %d edges, %d triangles\n", geo_type.c_str(), vertices_array.size(), edges_array.size(), triangles_array.size());
     // exit(0);
@@ -406,8 +407,8 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                     }
                 }
                 edges_array.push_back(edge);
-                printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                       edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
+                //        edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
             }
             if (row_id == subdivision)
                 break;
@@ -417,6 +418,7 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
             {
                 int col_id = col_counting_id / 2;
                 tEdge *edge = new tEdge();
+
                 if (col_counting_id % 2 == 0)
                 {
                     // vertical line
@@ -439,8 +441,8 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                     {
                         // middle edges
                         edge->mIsBoundary = false;
-                        edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_id;
-                        edge->mTriangleId1 = num_of_triangles_per_line * row_id + col_id + 1;
+                        edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_counting_id - 1;
+                        edge->mTriangleId1 = edge->mTriangleId0 + 1;
                     }
                 }
                 else
@@ -464,8 +466,9 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                     edge->mTriangleId1 = edge->mTriangleId0 + 1;
                 }
                 edges_array.push_back(edge);
-                printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                       edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
+                //        edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
             }
         }
     }
@@ -500,4 +503,47 @@ void cTriangulator::BuildSquareVertices(
             //        vertices_array.size() - 1, v->mPos[0], v->mPos[1],
             //        v->muv[0], v->muv[1]);
         }
+}
+
+bool ConfirmVertexInTriangles(tTriangle *tri, int vid)
+{
+    return (tri->mId0 == vid) ||
+           (tri->mId1 == vid) ||
+           (tri->mId2 == vid);
+};
+void cTriangulator::ValidateGeometry(std::vector<tVertex *> &vertices_array,
+                                     std::vector<tEdge *> &edges_array,
+                                     std::vector<tTriangle *> &triangles_array)
+{
+    // confirm the edges is really shared by triangles
+    for (int i = 0; i < edges_array.size(); i++)
+    {
+        auto &e = edges_array[i];
+        if (e->mTriangleId0 != -1)
+        {
+            auto tri = triangles_array[e->mTriangleId0];
+            if (
+                (
+                    ConfirmVertexInTriangles(tri, e->mId0) &&
+                    ConfirmVertexInTriangles(tri, e->mId1)) == false)
+            {
+                printf("[error] validate geometry adjoint edge %d failed between tri%d - tri%d\n",
+                       i, e->mTriangleId0, e->mTriangleId1);
+                exit(0);
+            }
+        }
+        if (e->mTriangleId1 != -1)
+        {
+            auto tri = triangles_array[e->mTriangleId1];
+            if (
+                (
+                    ConfirmVertexInTriangles(tri, e->mId0) &&
+                    ConfirmVertexInTriangles(tri, e->mId1)) == false)
+            {
+                printf("[error] validate geometry adjoint edge %d failed between tri%d - tri%d\n",
+                       i, e->mTriangleId1, e->mTriangleId1);
+                exit(0);
+            }
+        }
+    }
 }

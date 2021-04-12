@@ -8,7 +8,7 @@
 
 std::string
     gIntegrationSchemeStr[eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
-        "semi_implicit",          "implicit",  "opt_implicit", "tri_pbd",
+        "semi_implicit", "implicit", "opt_implicit", "tri_pbd",
         "tri_projective_dynamic", "tri_baraff"};
 
 eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
@@ -43,7 +43,7 @@ void cSimScene::Init(const std::string &conf_path)
     cJsonUtil::LoadJson(conf_path, root);
 
     mDamping = cJsonUtil::ParseAsDouble("damping", root);
-
+    mEnableProfiling = cJsonUtil::ParseAsBool("enable_profiling", root);
     mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
     mScheme = BuildIntegrationScheme(
         cJsonUtil::ParseAsString("integration_scheme", root));
@@ -106,6 +106,9 @@ void cSimScene::ClearForce()
 void cSimScene::UpdateCurNodalPosition(const tVectorXd &newpos)
 {
     mXcur = newpos;
+#ifdef USE_OPENMP
+#pragma omp parallel for
+#endif
     for (int i = 0; i < mVertexArray.size(); i++)
     {
         mVertexArray[i]->mPos.segment(0, 3).noalias() = mXcur.segment(i * 3, 3);
@@ -145,7 +148,9 @@ extern const tVector gGravity;
 void cSimScene::CalcExtForce(tVectorXd &ext_force) const
 {
 // 1. apply gravity
+#ifdef USE_OPENMP
 #pragma omp parallel for
+#endif
     for (int i = 0; i < mVertexArray.size(); i++)
     {
         ext_force.segment(3 * i, 3) +=
@@ -360,16 +365,19 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
         }
         else if (cDrawScene::IsRelease(action) == true)
         {
-            // restore the color
-            mPerturb->mAffectedVertices[0]->mColor =
-                tVector(0, 196.0 / 255, 1, 0);
-            mPerturb->mAffectedVertices[1]->mColor =
-                tVector(0, 196.0 / 255, 1, 0);
-            mPerturb->mAffectedVertices[2]->mColor =
-                tVector(0, 196.0 / 255, 1, 0);
+            if (mPerturb != nullptr)
+            {
+                // restore the color
+                mPerturb->mAffectedVertices[0]->mColor =
+                    tVector(0, 196.0 / 255, 1, 0);
+                mPerturb->mAffectedVertices[1]->mColor =
+                    tVector(0, 196.0 / 255, 1, 0);
+                mPerturb->mAffectedVertices[2]->mColor =
+                    tVector(0, 196.0 / 255, 1, 0);
 
-            delete mPerturb;
-            mPerturb = nullptr;
+                delete mPerturb;
+                mPerturb = nullptr;
+            }
         }
     }
 }
@@ -472,11 +480,12 @@ void cSimScene::CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const
     // double res = 1;
     // std::vector<double> int_force_atomic(int_force.size());
 
-    // #pragma omp parallel for
     // std::cout << "input fint = " << int_force.transpose() << std::endl;
     int id0, id1;
     double dist;
-#pragma omp parallel for private(id0, id1, dist) num_threads(12)
+#ifdef USE_OPENMP
+#pragma omp parallel for private(id0, id1, dist)
+#endif
     for (int i = 0; i < mEdgeArray.size(); i++)
     {
         const auto &spr = mEdgeArray[i];
@@ -491,27 +500,34 @@ void cSimScene::CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const
         // tVector3d force1 = -force0;
         // const tVectorXd &inf_force_0 = int_force.segment(3 * id0, 3);
         // const tVectorXd &inf_force_1 = int_force.segment(3 * id1, 3);
-        // #pragma omp critical
         //         std::cout << "spring " << i << " force = " << force0.transpose() << ", dist " << dist << ", v0 " << id0 << " v1 " << id1 << std::endl;
         // std::cout << "spring " << i << ", v0 = " << id0 << " v1 = " << id1 << std::endl;
         // 2. add force
         {
+#ifdef USE_OPENMP
 #pragma omp atomic
+#endif
             int_force[3 * id0 + 0] += force0[0];
-            int_force[3 * id0 + 1] += force0[1];
-            int_force[3 * id0 + 2] += force0[2];
-// #pragma omp atomic
-// #pragma omp atomic
+#ifdef USE_OPENMP
 #pragma omp atomic
+#endif
+            int_force[3 * id0 + 1] += force0[1];
+#ifdef USE_OPENMP
+#pragma omp atomic
+#endif
+            int_force[3 * id0 + 2] += force0[2];
+#ifdef USE_OPENMP
+#pragma omp atomic
+#endif
             int_force[3 * id1 + 0] += -force0[0];
+#ifdef USE_OPENMP
+#pragma omp atomic
+#endif
             int_force[3 * id1 + 1] += -force0[1];
+#ifdef USE_OPENMP
+#pragma omp atomic
+#endif
             int_force[3 * id1 + 2] += -force0[2];
-            // #pragma omp atomic
-            // #pragma omp atomic
-            // #pragma omp atomic
-            //             inf_force_0 += force0;
-            // #pragma omp atomic
-            //             inf_force_1 += force1;
         }
     }
     // std::cout << "output fint = " << int_force.transpose() << std::endl;

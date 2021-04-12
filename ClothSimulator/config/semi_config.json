@@ -11,8 +11,10 @@
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
     "subdivision": 80,
-    "damping": 0,
-    "stiffness": 300,
+    "damping": 1e-3,
+    "stiffness": 1000,
+    "bending_stiffness": 0.01,
+    "enable_Q_bending": true,
     "default_timestep": 1e-4,
     "constraints": {
         "fixed_point": [
@@ -41,5 +43,6 @@
         "fov": 45,
         "near": 0.1,
         "far": 100
-    }
+    },
+    "enable_profiling": false
 }

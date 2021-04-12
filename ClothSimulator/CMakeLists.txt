@@ -11,10 +11,24 @@ find_package(GLFW3 REQUIRED)
 include_directories(./src)
 find_package(OpenMP REQUIRED)
 
-add_definitions(-fopenmp)
-# add address sanitzer
-# add_definitions(-std=c++17 -fsanitize=address -fno-omit-frame-pointer)
+
 add_definitions(-std=c++17)
+
+# ---------------------enable debug symbols---------------------
+add_definitions(-g)
+
+# -------------------enable openmp---------------------
+
+if(USE_OPENMP)
+    add_definitions(-fopenmp)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP")
+    message(STATUS "we use openmp")
+else()
+    message(STATUS "we dont use openmp")
+endif()
+
+
+# ---------------------add address sanitzer---------------------
 # set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 # set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 

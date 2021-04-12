@@ -14,13 +14,17 @@ public:
     virtual void Reset() override;
 
 protected:
-    double mStiffness; // K
-
+    double mStiffness;        // K
+    double mBendingStiffness; // bending stiffness
+    bool mEnableQBending;     // enable Q bending
+    tSparseMat mBendingHessianQ;
     virtual void InitGeometry(const Json::Value &conf) override final;
     virtual void InitConstraint(const Json::Value &root) override final;
+    void InitBendingHessian();
 
     tVectorXd
     CalcNextPositionSemiImplicit() const; // calculate xnext by semi implicit
+    virtual void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const override final;
 
     // optimization implicit methods (fast simulation)
     void PushState(const std::string &name) const;

@@ -140,6 +140,9 @@ tVector cDrawScene::CalcCursorPointWorldPos() const
     glfwGetCursorPos(window, &xpos, &ypos);
     // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
     int height = mSwapChainExtent.height, width = mSwapChainExtent.width;
+#ifdef __APPLE__
+    xpos *= 2, ypos *= 2;
+#endif
     // shape the conversion mat
     tVector test = tVector(xpos, ypos, 1, 1);
     tMatrix mat1 = tMatrix::Identity();

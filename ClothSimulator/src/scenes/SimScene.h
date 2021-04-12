@@ -46,6 +46,7 @@ protected:
     tVectorXd mInvMassMatrixDiag; // diag inv mass matrix
     std::string mGeometryType;
     eIntegrationScheme mScheme;
+    bool mEnableProfiling;
     // double mClothWidth;           // a square cloth
     // double mClothMass;            // cloth mass
     // tVector mClothInitPos;        //
@@ -70,7 +71,7 @@ protected:
     virtual void InitGeometry(
         const Json::Value &conf); // discretazation from square cloth to
     void ClearForce();            // clear all forces
-    void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
+    virtual void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
     virtual void CalcExtForce(tVectorXd &ext_force) const;
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //
