@@ -12,7 +12,7 @@ enum eIntegrationScheme
     // MS means mass-spring system
     MS_SEMI_IMPLICIT = 0,
     MS_IMPLICIT,
-    MS_OPT_IMPLICIT, // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
+    PROJECTIVE_DYNAMIC, // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
     TRI_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
     TRI_PROJECTIVE_DYNAMIC,     // trimesh
     TRI_BARAFF, // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"

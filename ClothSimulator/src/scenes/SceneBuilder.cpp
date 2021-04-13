@@ -1,5 +1,5 @@
 #include "SceneBuilder.h"
-#include "FastSimScene.h"
+#include "PDScene.h"
 #include "ImplicitScene.h"
 #include "SemiImplicitScene.h"
 #include "PBDScene.h"
@@ -31,15 +31,19 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
     switch (scheme)
     {
     case eIntegrationScheme::MS_IMPLICIT:
-
-    case eIntegrationScheme::MS_OPT_IMPLICIT:
+        SIM_ERROR("hasn't been impled yet");
+        break;
+    case eIntegrationScheme::PROJECTIVE_DYNAMIC:
+        scene = std::make_shared<cPDScene>();
+        break;
     case eIntegrationScheme::MS_SEMI_IMPLICIT:
         scene = std::make_shared<cSemiImplicitScene>();
         break;
     case eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC:
-    case eIntegrationScheme::TRI_BARAFF:
         scene = std::make_shared<cPBDScene>();
         break;
+    case eIntegrationScheme::TRI_BARAFF:
+        SIM_ERROR("hasn't been impled yet");
     default:
         SIM_ERROR("unsupported sim scene {}", type);
         break;

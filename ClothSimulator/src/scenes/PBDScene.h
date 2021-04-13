@@ -2,10 +2,8 @@
 #include "SimScene.h"
 
 /**
- * \brief           using trimesh to modeling the cloth
+ * \brief           Positon based method 
  * 
- *  1. Positon based method 
- *  2. baraff 98 siggraph method
 */
 
 struct tTriangle;
@@ -14,9 +12,10 @@ struct tRay;
 class cPBDScene : public cSimScene
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     explicit cPBDScene();
     virtual void Init(const std::string &conf_path) override;
-    ~cPBDScene();
+    virtual ~cPBDScene();
 
 protected:
     const int mMaxDrawRayDebug = 100;

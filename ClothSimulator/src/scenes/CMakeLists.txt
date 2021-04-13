@@ -6,7 +6,7 @@ Scene.cpp
 SimScene.cpp
 SemiImplicitScene.cpp
 ImplicitScene.cpp
-FastSimScene.cpp
+PDScene.cpp
 PBDScene.cpp
 Perturb.cpp
 cameras/CameraBase.cpp

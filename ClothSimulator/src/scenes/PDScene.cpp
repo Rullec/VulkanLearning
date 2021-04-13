@@ -1,8 +1,14 @@
-#include "FastSimScene.h"
+#include "PDScene.h"
 #include "geometries/Primitives.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
-void cFastSimScene::Init(const std::string &conf_path)
+
+cPDScene::cPDScene()
+{
+    mMaxSteps_Opt = 0;
+}
+
+void cPDScene::Init(const std::string &conf_path)
 {
 
     Json::Value root;
@@ -20,10 +26,20 @@ void cFastSimScene::Init(const std::string &conf_path)
     I_plus_dt2_Minv_L_sparse_solver.analyzePattern(I_plus_dt2_Minv_L_sparse);
     I_plus_dt2_Minv_L_sparse_solver.factorize(I_plus_dt2_Minv_L_sparse);
 }
+
+void cPDScene::InitGeometry(const Json::Value &conf)
+{
+    cSimScene::InitGeometry(conf);
+    double mStiffness = cJsonUtil::ParseAsDouble("stiffness", conf);
+    for (auto &e : mEdgeArray)
+    {
+        e->mK_spring = mStiffness;
+    }
+}
 /**
  * \brief           initialize sparse variables for paper "fast simulation"
 */
-void cFastSimScene::InitVarsOptImplicitSparse()
+void cPDScene::InitVarsOptImplicitSparse()
 {
     int num_of_sprs = GetNumOfEdges();
     int node_dof = GetNumOfFreedom();
@@ -106,7 +122,7 @@ void cFastSimScene::InitVarsOptImplicitSparse()
  *      3. return the result
 */
 #include "utils/TimeUtil.hpp"
-tVectorXd cFastSimScene::CalcNextPositionOptImplicit() const
+tVectorXd cPDScene::CalcNextPositionOptImplicit() const
 {
 
     // cTimeUtil::Begin("fast simulation calc next");
@@ -172,3 +188,17 @@ tVectorXd cFastSimScene::CalcNextPositionOptImplicit() const
     // cTimeUtil::End("fast simulation calc next");
     return Xnext;
 }
+
+void cPDScene::UpdateSubstep()
+{
+    ClearForce();
+
+    const tVectorXd &Xnext = CalcNextPositionOptImplicit();
+    mXpre.noalias() = mXcur;
+    mXcur.noalias() = Xnext;
+    UpdateCurNodalPosition(mXcur);
+}
+
+void cPDScene::Reset() { cSimScene::Reset(); }
+
+void cPDScene::Update(double dt) { cSimScene::Update(dt); }
