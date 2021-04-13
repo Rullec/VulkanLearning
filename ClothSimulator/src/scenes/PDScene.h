@@ -14,10 +14,13 @@ public:
 
 protected:
     int mMaxSteps_Opt; // iterations used in fast simulation
-
+    bool mEnableBending;
+    double mBendingStiffness; //bending stiffness
     tVectorXd CalcNextPositionOptImplicit() const;
     // void InitVarsOptImplicit();
     void InitVarsOptImplicitSparse();
+    const tEigenArr<tTriplet> &GetStretchTriplet() const;
+    void AddBendTriplet(tEigenArr<tTriplet> &) const;
     // tMatrixXd J, I_plus_dt2_Minv_L_inv; // vars used in fast simulation
     tSparseMat J_sparse,
         I_plus_dt2_Minv_L_sparse; // vars used in fast simulation
