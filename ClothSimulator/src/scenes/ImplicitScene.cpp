@@ -1,6 +1,7 @@
 #include "ImplicitScene.h"
 #include "geometries/Primitives.h"
 #include "utils/JsonUtil.h"
+#include "utils/TimeUtil.hpp"
 #include <iostream>
 cImplicitScene::cImplicitScene() {}
 cImplicitScene::~cImplicitScene() {}
@@ -10,7 +11,7 @@ void cImplicitScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
     mMaxNewtonIters = cJsonUtil::ParseAsInt("max_newton_iters", root);
-
+    mStiffness = cJsonUtil::ParseAsInt("stiffness", root);
     InitGeometry(root);
     InitConstraint(root);
 
@@ -19,7 +20,19 @@ void cImplicitScene::Init(const std::string &conf_path)
     mXcur.noalias() = mXpre;
     std::cout << "init sim scene done\n";
 }
-void cImplicitScene::Update(double dt) {}
+
+void cImplicitScene::InitGeometry(const Json::Value &conf)
+{
+    cSimScene::InitGeometry(conf);
+    // int gap = mSubdivision + 1;
+
+    // set up the vertex pos data
+    // in XOY plane
+
+    mStiffness = cJsonUtil::ParseAsDouble("stiffness", conf);
+    for (auto &x : mEdgeArray)
+        x->mK_spring = mStiffness;
+}
 void cImplicitScene::Reset() {}
 
 /**
@@ -41,7 +54,7 @@ tVectorXd cImplicitScene::CalcNextPositionImplicit()
     */
 
     int max_iters = mMaxNewtonIters;
-    double cnvg_thre = 1e-4; // convergence threshold
+    double cnvg_thre = 1e-5; // convergence threshold
     tVectorXd x0 = mXcur;
     int dof = GetNumOfFreedom();
     tVectorXd res = tVectorXd::Zero(dof);
@@ -52,6 +65,7 @@ tVectorXd cImplicitScene::CalcNextPositionImplicit()
 
     while (true)
     {
+        ClearForce();
         // step 1
         CalcGxImplicit(x0, res, mIntForce, mExtForce, mDampingForce);
         double res_norm = res.norm();
@@ -175,7 +189,8 @@ void cImplicitScene::CalcdGxdxImplicit(const tVectorXd &x,
         {
             printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
                    id0, id0, id1, dist);
-            std::cout << "dfidxi = \n" << dfidxi << std::endl;
+            std::cout << "dfidxi = \n"
+                      << dfidxi << std::endl;
             std::cout << "pos0 = " << pos0.transpose() << std::endl;
             std::cout << "pos1 = " << pos1.transpose() << std::endl;
             std::cout << "x = " << x.transpose() << std::endl;
@@ -223,7 +238,8 @@ void cImplicitScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
         {
             printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
                    id0, id0, id1, dist);
-            std::cout << "dfidxi = \n" << dfidxi << std::endl;
+            std::cout << "dfidxi = \n"
+                      << dfidxi << std::endl;
             std::cout << "pos0 = " << pos0.transpose() << std::endl;
             std::cout << "pos1 = " << pos1.transpose() << std::endl;
             std::cout << "x = " << x.transpose() << std::endl;
@@ -290,4 +306,38 @@ void cImplicitScene::TestdGxdxImplicit(const tVectorXd &x0,
         x_now[i] -= eps;
     }
     SIM_INFO("test dG/dx succ");
+}
+
+void cImplicitScene::UpdateSubstep()
+{
+    // std::cout << "-----------------\n";
+    if (mEnableProfiling == true)
+        cTimeUtil::Begin("substep");
+    SIM_ASSERT(std::fabs(mCurdt - mIdealDefaultTimestep) < 1e-10);
+    // std::cout << "[update] x = " << mXcur.transpose() << std::endl;
+    // 1. clear force
+    ClearForce();
+
+    // std::cout << "mInt force = " << mIntForce.transpose() << std::endl;
+    // std::cout << "mExt force = " << mExtForce.transpose() << std::endl;
+    // 3. forward simulation
+    tVectorXd mXnext = tVectorXd::Zero(GetNumOfFreedom());
+
+    // 2. calculate force
+    CalcIntForce(mXcur, mIntForce);
+    CalcExtForce(mExtForce);
+    CalcDampingForce((mXcur - mXpre) / mCurdt, mDampingForce);
+
+    // std::cout << "before x = " << mXcur.transpose() << std::endl;
+    // std::cout << "fint = " << mIntForce.transpose() << std::endl;
+    // std::cout << "fext = " << mExtForce.transpose() << std::endl;
+    // std::cout << "fdamp = " << mDampingForce.transpose() << std::endl;
+    mXnext = CalcNextPositionImplicit();
+
+    // std::cout << "mXnext = " << mXnext.transpose() << std::endl;
+    mXpre.noalias() = mXcur;
+    mXcur.noalias() = mXnext;
+    UpdateCurNodalPosition(mXcur);
+    if (mEnableProfiling == true)
+        cTimeUtil::End("substep");
 }

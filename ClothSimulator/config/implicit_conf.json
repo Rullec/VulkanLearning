@@ -1,5 +1,5 @@
 {
-    "integration_scheme": "projective_dynamic",
+    "integration_scheme": "implicit",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -10,13 +10,11 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 100,
-    "damping": 1e-5,
-    "stiffness": 1e2,
-    "enable_bending": true,
-    "bending_stiffness": 1e2,
-    "default_timestep": 0.033333333333,
-    "max_steps_opt": 10,
+    "subdivision": 10,
+    "damping": 1e-3,
+    "stiffness": 100,
+    "default_timestep": 1e-3,
+    "max_newton_iters": 4,
     "constraints": {
         "fixed_point": [
             [
@@ -32,17 +30,17 @@
     "pause_at_first": false,
     "camera": {
         "camera_pos": [
-            2.5,
-            2,
-            2
+            0,
+            1,
+            4
         ],
         "camera_focus": [
-            0.5,
-            1.5,
+            0,
+            1,
             0
         ],
         "fov": 45,
-        "near": 0.01,
+        "near": 0.1,
         "far": 100
     },
     "enable_profiling": false

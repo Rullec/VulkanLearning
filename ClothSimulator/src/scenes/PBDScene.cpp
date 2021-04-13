@@ -148,29 +148,6 @@ void cPBDScene::UpdateSubstep()
     // std::cout << "[before update] x = " << mXcur.transpose() << std::endl;
     // exit(0);
     // std::cout << "update sub step " << mCurdt << std::endl;
-    switch (mScheme)
-    {
-    case eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC:
-        UpdateSubstepPBD();
-        break;
-    case eIntegrationScheme::TRI_BARAFF:
-        SIM_ERROR("baraff hasn't been impled");
-        break;
-    case eIntegrationScheme::TRI_PROJECTIVE_DYNAMIC:
-        UpdateSubstepProjDyn();
-        break;
-    default:
-        SIM_ERROR("unsupported scheme {}", mScheme);
-        break;
-    }
-    // std::cout << "xcur res = " << mXcur.transpose() << std::endl;
-}
-
-/**
- * \brief           Update for position based dynamics
-*/
-void cPBDScene::UpdateSubstepPBD()
-{
     ClearForce();
 
     // 1. calc ext force

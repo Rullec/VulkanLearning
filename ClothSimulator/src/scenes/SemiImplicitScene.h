@@ -25,9 +25,5 @@ protected:
     tVectorXd
     CalcNextPositionSemiImplicit() const; // calculate xnext by semi implicit
     virtual void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const override final;
-
-    // optimization implicit methods (fast simulation)
-    void PushState(const std::string &name) const;
-    void PopState(const std::string &name);
     virtual void UpdateSubstep() override final;
 };

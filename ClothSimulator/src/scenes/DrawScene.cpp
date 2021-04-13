@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 #include "scenes/SimScene.h"
 #include "utils/JsonUtil.h"
+#include "utils/TimeUtil.hpp"
 #include "utils/LogUtil.h"
 #include "vulkan/vulkan.h"
 #include <iostream>
@@ -345,7 +346,7 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
     raster_info.depthClampEnable =
         VK_FALSE; // clamp the data outside of the near-far plane insteand of deleting them
     raster_info.rasterizerDiscardEnable =
-        VK_FALSE; // disable the rasterization, it certainly should be disable
+        VK_FALSE;                                   // disable the rasterization, it certainly should be disable
     raster_info.polygonMode = VK_POLYGON_MODE_FILL; // normal
     raster_info.lineWidth =
         1.0f; // if not 1.0, we need to enable the GPU "line_width" feature
@@ -512,7 +513,9 @@ void cDrawScene::Init(const std::string &conf_path)
 */
 void cDrawScene::Update(double dt)
 {
+    // cTimeUtil::Begin("sim_step");
     mSimScene->Update(dt);
+    // cTimeUtil::End("sim_step");
     DrawFrame();
 }
 
@@ -788,10 +791,12 @@ void cDrawScene::DrawFrame()
     mImagesInFlight[imageIndex] = mImagesInFlight[mCurFrame];
 
     // updating the uniform buffer values
+    // cTimeUtil::Begin("update_buffers");
     UpdateMVPUniformValue(imageIndex);
     UpdateVertexBufferCloth(imageIndex);
     UpdateVertexBufferGround(imageIndex);
     UpdateLineBuffer(imageIndex);
+    // cTimeUtil::End("update_buffers");
 
     // 2. submitting the command buffer
     VkSubmitInfo submit_info{};
@@ -913,7 +918,7 @@ void cDrawScene::CreateDescriptorSetLayout()
     mvpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     mvpLayoutBinding.descriptorCount = 1;
     mvpLayoutBinding.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT; // we use the descriptor in vertex shader
+        VK_SHADER_STAGE_VERTEX_BIT;                // we use the descriptor in vertex shader
     mvpLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
     // sampler

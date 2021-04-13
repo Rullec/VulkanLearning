@@ -4,18 +4,17 @@
 
 namespace Json
 {
-class Value;
+    class Value;
 };
 
 enum eIntegrationScheme
 {
     // MS means mass-spring system
-    MS_SEMI_IMPLICIT = 0,
-    MS_IMPLICIT,
-    PROJECTIVE_DYNAMIC, // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
-    TRI_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
-    TRI_PROJECTIVE_DYNAMIC,     // trimesh
-    TRI_BARAFF, // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
+    SCHEME_SEMI_IMPLICIT = 0,
+    SCHEME_IMPLICIT,
+    SCHEME_PROJECTIVE_DYNAMIC,     // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
+    SCHEME_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
+    SCHEME_BARAFF,                 // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
     NUM_OF_INTEGRATION_SCHEMES
 };
 
@@ -63,7 +62,7 @@ protected:
     tVectorXd mExtForce;                     // external force
     tVectorXd mDampingForce;                 // external force
 
-    tVectorXd mXpre, mXcur; // previous node position & current node position
+    tVectorXd mXpre, mXcur;          // previous node position & current node position
     std::vector<int> mFixedPointIds; // fixed constraint point
 
     // base methods

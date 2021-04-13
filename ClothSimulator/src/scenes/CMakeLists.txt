@@ -5,6 +5,7 @@ SceneBuilder.cpp
 Scene.cpp
 SimScene.cpp
 SemiImplicitScene.cpp
+BaraffScene.cpp
 ImplicitScene.cpp
 PDScene.cpp
 PBDScene.cpp

@@ -81,6 +81,7 @@ int main(int argc, char **argv)
     // std::string conf = "config/semi_config.json";
     // std::string conf = "config/pbd_config.json";
     std::string conf = "config/pd_config.json";
+    // std::string conf = "config/implicit_conf.json";
     if (argc == 2)
     {
         conf = std::string(argv[1]);
@@ -108,7 +109,9 @@ int main(int argc, char **argv)
         // delta_time = 1e-4;
         if (gPause == false)
         {
+            // cTimeUtil::Begin("scene_update");
             scene->Update(delta_time);
+            // cTimeUtil::End("scene_update");
         }
 
         last = cur;

@@ -155,11 +155,6 @@ void cSemiImplicitScene::InitConstraint(const Json::Value &root)
     // exit(0);
 }
 
-// -----------implicit methods-------------
-void cSemiImplicitScene::PushState(const std::string &name) const {}
-
-void cSemiImplicitScene::PopState(const std::string &name) {}
-
 #include "omp.h"
 #include <iostream>
 /**

@@ -1,4 +1,5 @@
 #include "PDScene.h"
+#include "utils/TimeUtil.hpp"
 #include "geometries/Primitives.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
@@ -31,8 +32,11 @@ void cPDScene::Init(const std::string &conf_path)
     CalcNodePositionVector(mXpre);
     mXcur.noalias() = mXpre;
     InitVarsOptImplicitSparse();
+    InitVarsOptImplicitSparseFast();
     I_plus_dt2_Minv_L_sparse_solver.analyzePattern(I_plus_dt2_Minv_L_sparse);
     I_plus_dt2_Minv_L_sparse_solver.factorize(I_plus_dt2_Minv_L_sparse);
+    I_plus_dt2_Minv_L_sparse_fast_solver.analyzePattern(I_plus_dt2_Minv_L_sparse_fast);
+    I_plus_dt2_Minv_L_sparse_fast_solver.factorize(I_plus_dt2_Minv_L_sparse_fast);
 }
 
 void cPDScene::InitGeometry(const Json::Value &conf)
@@ -135,6 +139,30 @@ void cPDScene::InitVarsOptImplicitSparse()
                                              I_plus_dt2_Minv_L.end());
 }
 
+void cPDScene::InitVarsOptImplicitSparseFast()
+{
+    int dof_3 = GetNumOfVertices();
+    I_plus_dt2_Minv_L_sparse_fast.resize(dof_3, dof_3);
+    std::vector<tTriplet> tri_lst(0);
+    for (int k = 0; k < I_plus_dt2_Minv_L_sparse.outerSize(); k++)
+    {
+        for (tSparseMat::InnerIterator it(I_plus_dt2_Minv_L_sparse, k); it; ++it)
+        {
+            // printf("row %d col %d value %.4f\n", it.row(),
+            //        it.col(), it.value());
+            if (
+                (it.row() % 3 == 0) && (it.col() % 3 == 0))
+            {
+                tri_lst.push_back(tTriplet(it.row() / 3, it.col() / 3, it.value()));
+            }
+        }
+    }
+    I_plus_dt2_Minv_L_sparse_fast.setFromTriplets(tri_lst.begin(), tri_lst.end());
+    // std::cout << "old = \n " << I_plus_dt2_Minv_L_sparse << std::endl;
+    // std::cout << "new = \n " << I_plus_dt2_Minv_L_sparse_fast << std::endl;
+
+    // exit(0);
+}
 /**
  * \brief           calculat next position by optimization implciit method (fast simulation)
  * 
@@ -142,12 +170,62 @@ void cPDScene::InitVarsOptImplicitSparse()
  *      2. begin to do iteration
  *      3. return the result
 */
-#include "utils/TimeUtil.hpp"
-tVectorXd cPDScene::CalcNextPositionOptImplicit() const
+template <typename T>
+void SolveFast(
+    const tSparseMat &A,
+    const T &solver, tVectorXd &residual, tVectorXd &solution)
 {
+    int size = residual.size();
+    if (solution.size() != size)
+        solution.resize(size);
+    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res0(residual.data(), size / 3);
+    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res1(residual.data() + 1, size / 3);
+    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res2(residual.data() + 2, size / 3);
 
+    // Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> sol0(solution.data(), size / 3);
+    // Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> sol1(solution.data() + 1, size / 3);
+    // Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> sol2(solution.data() + 2, size / 3);
+
+    const tVectorXd &sol0_solved = solver.solve(res0);
+    const tVectorXd &sol1_solved = solver.solve(res1);
+    const tVectorXd &sol2_solved = solver.solve(res2);
+    // cTimeUtil::Begin("assign");
+    for (int i = 0; i < solution.size(); i++)
+    {
+        switch (i % 3)
+        {
+        case 0:
+            solution[i] = sol0_solved[i / 3];
+            break;
+        case 1:
+            solution[i] = sol1_solved[i / 3];
+            break;
+        case 2:
+            solution[i] = sol2_solved[i / 3];
+            break;
+
+        default:
+            SIM_ERROR("illegal case");
+            break;
+        }
+    }
+    // cTimeUtil::End("assign");
+    // std::cout << "new sol0 = " << sol0_solved.transpose() << std::endl;
+    // std::cout << "new res0 = " << res0.transpose() << std::endl;
+    // std::cout << "new err = " << (A * sol0_solved - res0).transpose() << std::endl;
+    // std::cout << "map sol0 = " << sol0.transpose() << std::endl;
+    // std::cout << "map res0 = " << res0.transpose() << std::endl;
+    // std::cout << "map err = " << (A * sol0 - res0).transpose() << std::endl;
+    // std::cout << "sol1 = " << sol1.transpose() << std::endl;
+    // std::cout << "sol2 = " << sol2.transpose() << std::endl;
+    // std::cout << "res = " << residual.transpose() << std::endl;
+    // exit(0);
+}
+tVectorXd tmp;
+tVectorXd cPDScene::CalcNextPosition() const
+{
     // cTimeUtil::Begin("fast simulation calc next");
-    // std::cout << "begin CalcNextPositionOptImplicit\n";
+    // std::cout << "begin CalcNextPosition\n";
     tVectorXd y = 2 * mXcur - mXpre;
     tVectorXd Xnext = y;
     tVectorXd d = tVectorXd::Zero(3 * GetNumOfEdges());
@@ -167,6 +245,8 @@ tVectorXd cPDScene::CalcNextPositionOptImplicit() const
     // std::cout << "max step = " << mMaxSteps_Opt << std::endl;
     for (int i = 0; i < mMaxSteps_Opt; i++)
     {
+        // cTimeUtil::Begin("onestep");
+
         /*
             1. fixed x, calculate the d
             d = [d1, d2, ... dn]
@@ -176,6 +256,8 @@ tVectorXd cPDScene::CalcNextPositionOptImplicit() const
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
+        // cTimeUtil::Begin("calc_d");
+
         for (int j = 0; j < GetNumOfEdges(); j++)
         {
             int id0 = mEdgeArray[j]->mId0, id1 = mEdgeArray[j]->mId1;
@@ -184,6 +266,7 @@ tVectorXd cPDScene::CalcNextPositionOptImplicit() const
                     .normalized() *
                 mEdgeArray[j]->mRawLength;
         }
+        // cTimeUtil::End("calc_d");
         // std::cout << "d = " << d.transpose() << std::endl;
         // std::cout << "J * d = " << (J * d).transpose() << std::endl;
         // std::cout << "b= " << b.transpose() << std::endl;
@@ -191,10 +274,35 @@ tVectorXd cPDScene::CalcNextPositionOptImplicit() const
             2. fixed the d, calulcate the x
             x = (M + dt2 * L).inv() * (dt2 * J * d - b)
         */
-        // cTimeUtil::BeginLazy("fast simulation sparse solve");
-        Xnext.noalias() = I_plus_dt2_Minv_L_sparse_solver.solve(
-            mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y);
-        // cTimeUtil::EndLazy("fast simulation sparse solve");
+        // // // cTimeUtil::BeginLazy("fast simulation sparse solve");
+        // cTimeUtil::Begin("calc_res");
+        tmp.noalias() = mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y;
+        // cTimeUtil::End("calc_res");
+
+        // 70 percent
+        // cTimeUtil::Begin("solve");
+        // Xnext.noalias() = I_plus_dt2_Minv_L_sparse_solver.solve(
+        //     tmp);
+        // cTimeUtil::End("solve");
+        // tVectorXd sol;
+        // std::cout << "A_fast = \n"
+        //           << I_plus_dt2_Minv_L_sparse_fast << std::endl;
+        // cTimeUtil::Begin("solve_fast");
+        // printf("[debug] A size = %d, nonzeros %d\n", Xnext.size(), I_plus_dt2_Minv_L_sparse.nonZeros());
+        SolveFast(I_plus_dt2_Minv_L_sparse_fast, I_plus_dt2_Minv_L_sparse_fast_solver, tmp, Xnext);
+        // cTimeUtil::End("solve_fast");
+        // std::cout << "new sol = " << sol.transpose() << std::endl;
+        // std::cout << "old sol = " << Xnext.transpose() << std::endl;
+        // std::cout << "diff = " << (sol - Xnext).transpose() << std::endl;
+        // std::cout << "---------------\n";
+        // std::cout << "A = \n"
+        //           << I_plus_dt2_Minv_L_sparse << std::endl;
+
+        // std::cout << "res = \n"
+        //           << tmp.transpose() << std::endl;
+
+        // exit(0);
+        // // cTimeUtil::EndLazy("fast simulation sparse solve");
         //  = I_plus_dt2_Minv_L_inv * ();
         if (Xnext.hasNaN())
         {
@@ -202,6 +310,7 @@ tVectorXd cPDScene::CalcNextPositionOptImplicit() const
                       << std::endl;
             exit(0);
         }
+        // cTimeUtil::End("onestep");
     }
     // cTimeUtil::ClearLazy("fast simulation sparse solve");
     // std::cout << "done, xnext = " << Xnext.transpose() << std::endl;
@@ -212,12 +321,18 @@ tVectorXd cPDScene::CalcNextPositionOptImplicit() const
 
 void cPDScene::UpdateSubstep()
 {
+    // cTimeUtil::Begin("substep");
     ClearForce();
 
-    const tVectorXd &Xnext = CalcNextPositionOptImplicit();
+    // cTimeUtil::Begin("substep_calc_next_pos");
+    const tVectorXd &Xnext = CalcNextPosition();
+    // cTimeUtil::End("substep_calc_next_pos");
     mXpre.noalias() = mXcur;
     mXcur.noalias() = Xnext;
+    // cTimeUtil::Begin("substep_update_pos");
     UpdateCurNodalPosition(mXcur);
+    // cTimeUtil::End("substep_update_pos");
+    // cTimeUtil::End("substep");
 }
 
 void cPDScene::Reset() { cSimScene::Reset(); }

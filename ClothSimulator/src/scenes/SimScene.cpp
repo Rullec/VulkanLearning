@@ -8,8 +8,8 @@
 
 std::string
     gIntegrationSchemeStr[eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
-        "semi_implicit", "implicit", "projective_dynamic", "tri_pbd",
-        "tri_projective_dynamic", "tri_baraff"};
+        "semi_implicit", "implicit", "projective_dynamic", "pbd",
+        "tri_baraff"};
 
 eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
 {
@@ -102,6 +102,7 @@ void cSimScene::ClearForce()
     int dof = GetNumOfFreedom();
     mIntForce.noalias() = tVectorXd::Zero(dof);
     mExtForce.noalias() = tVectorXd::Zero(dof);
+    mDampingForce.noalias() = tVectorXd::Zero(dof);
 }
 
 void cSimScene::UpdateCurNodalPosition(const tVectorXd &newpos)

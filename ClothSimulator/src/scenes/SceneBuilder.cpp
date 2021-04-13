@@ -2,6 +2,7 @@
 #include "PDScene.h"
 #include "ImplicitScene.h"
 #include "SemiImplicitScene.h"
+#include "BaraffScene.h"
 #include "PBDScene.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
@@ -30,20 +31,21 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
     std::shared_ptr<cSimScene> scene = nullptr;
     switch (scheme)
     {
-    case eIntegrationScheme::MS_IMPLICIT:
-        SIM_ERROR("hasn't been impled yet");
+    case eIntegrationScheme::SCHEME_IMPLICIT:
+        scene = std::make_shared<cImplicitScene>();
         break;
-    case eIntegrationScheme::PROJECTIVE_DYNAMIC:
+    case eIntegrationScheme::SCHEME_PROJECTIVE_DYNAMIC:
         scene = std::make_shared<cPDScene>();
         break;
-    case eIntegrationScheme::MS_SEMI_IMPLICIT:
+    case eIntegrationScheme::SCHEME_SEMI_IMPLICIT:
         scene = std::make_shared<cSemiImplicitScene>();
         break;
-    case eIntegrationScheme::TRI_POSITION_BASED_DYNAMIC:
+    case eIntegrationScheme::SCHEME_POSITION_BASED_DYNAMIC:
         scene = std::make_shared<cPBDScene>();
         break;
-    case eIntegrationScheme::TRI_BARAFF:
-        SIM_ERROR("hasn't been impled yet");
+    case eIntegrationScheme::SCHEME_BARAFF:
+        scene = std::make_shared<cBaraffScene>();
+        break;
     default:
         SIM_ERROR("unsupported sim scene {}", type);
         break;
