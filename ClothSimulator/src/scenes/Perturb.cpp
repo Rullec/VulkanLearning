@@ -26,7 +26,7 @@ void tPerturb::InitTangentRect(const tVector &plane_normal)
     // each row is a vector
     tMatrixXd four_vectors = cMathUtil::ExpandFrictionCone(4, plane_normal);
     // std::cout << "four vecs = \n" << four_vectors << std::endl;
-    double plane_scale = 10000;
+    double plane_scale = 1e10;
     four_vectors *= plane_scale;
     for (int i = 0; i < 4; i++)
     {

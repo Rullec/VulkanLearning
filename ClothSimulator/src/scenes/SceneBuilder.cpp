@@ -9,14 +9,16 @@
 std::shared_ptr<cDrawScene>
 cSceneBuilder::BuildScene(const std::string type, bool enable_draw /*= true*/)
 {
+    std::shared_ptr<cDrawScene> scene = nullptr;
     if (enable_draw == true)
     {
-        return std::make_shared<cDrawScene>();
+        scene = std::make_shared<cDrawScene>();
     }
     else
     {
         SIM_ASSERT(false);
     }
+    return scene;
 }
 std::shared_ptr<cSimScene>
 cSceneBuilder::BuildSimScene(const std::string config_file)

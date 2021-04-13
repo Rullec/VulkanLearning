@@ -34,7 +34,10 @@ protected:
     // PBD methods
     int mItersPBD;
     double mStiffnessPBD;
-    bool mEnableParallelPBD; // enable parallel pbd
+    bool mEnableParallelPBD;                 // enable parallel pbd
+    bool mEnableBendingPBD;                  // enable bending constraint
+    double mBendingStiffnessPBD;             // bending constraint stiffness PBD
+    tEigenArr<tVector> mBendingMatrixKArray; // the array of bending matrix "K" for inextensible surface
     // std::vector<std::vector<int>> mColorGroupPBD; // divide all constraints into several groups, which there is not shared vertices in a same group
 
     // void InitColorGroupPBD();
@@ -45,6 +48,9 @@ protected:
     void ConstraintProcessPBD();
     void PostProcessPBD();
 
+    void StretchConstraintProcessPBD(double final_k);
+    void BendingConstraintProcessPBD(double final_k);
+    void InitBendingMatrixPBD();
     // Projective dynamic
     void UpdateSubstepProjDyn();
 };

@@ -10,10 +10,10 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 80,
+    "subdivision": 50,
     "damping": 1e-3,
-    "stiffness": 1000,
-    "bending_stiffness": 0.01,
+    "stiffness": 10000,
+    "bending_stiffness": 1e-2,
     "enable_Q_bending": true,
     "default_timestep": 1e-4,
     "constraints": {

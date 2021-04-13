@@ -78,7 +78,8 @@ void ParseConfig(std::string path);
 int main(int argc, char **argv)
 {
     InitGlfw();
-    std::string conf = "config/semi_config.json";
+    // std::string conf = "config/semi_config.json";
+    std::string conf = "config/pbd_config.json";
     if (argc == 2)
     {
         conf = std::string(argv[1]);
@@ -100,7 +101,7 @@ int main(int argc, char **argv)
         // 2. update
         // delta_time = 1e-3;
         // delta_time /= 4;
-        double limit = 1.0 / 100;
+        double limit = 1.0 / 30;
         // double limit = 1e-4;
         delta_time = std::min(delta_time, limit);
         // delta_time = 1e-4;

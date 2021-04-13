@@ -11,13 +11,15 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 100,
+    "subdivision": 20,
     "damping": 1e-3,
     "default_timestep": 1e-3,
     "pbd_config": {
         "enable_parallel_pbd": true,
-        "max_pbd_iters": 20,
-        "stiffness_pbd": 1
+        "max_pbd_iters": 4,
+        "stiffness_pbd": 1,
+        "enable_bending_pbd": true,
+        "bending_stiffness_pbd": 1e-2
     },
     "constraints": {
         "fixed_point": [
@@ -51,5 +53,6 @@
         "fov": 45,
         "near": 0.1,
         "far": 100
-    }
+    },
+    "enable_profiling": true
 }

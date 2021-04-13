@@ -42,6 +42,7 @@ void cSimScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
 
+    mGeometryType = cJsonUtil::ParseAsString("geometry_type", root);
     mDamping = cJsonUtil::ParseAsDouble("damping", root);
     mEnableProfiling = cJsonUtil::ParseAsBool("enable_profiling", root);
     mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
