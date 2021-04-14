@@ -15,7 +15,7 @@ public:
     static void ClearLazy(const std::string &name);
 
     static std::string GetSystemTime();
-    static std::chrono::system_clock::time_point GetCurrentTime();
+    static std::chrono::system_clock::time_point GetCurrentTime_chrono();
     static double
     CalcTimeElaspedms(const std::chrono::system_clock::time_point &st,
                       const std::chrono::system_clock::time_point &ed);

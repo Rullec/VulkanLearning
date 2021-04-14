@@ -60,7 +60,7 @@ void cTimeUtil::ClearLazy(const std::string &name)
     mLazyTimeTable[name] = 0;
 }
 
-std::chrono::system_clock::time_point cTimeUtil::GetCurrentTime()
+std::chrono::system_clock::time_point cTimeUtil::GetCurrentTime_chrono()
 {
     return std::chrono::system_clock::now();
 }

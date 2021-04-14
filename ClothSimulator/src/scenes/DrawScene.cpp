@@ -52,8 +52,8 @@ bool enableValidationLayers = true;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 float fov = 45.0f;
-float near = 0.1f;
-float far = 100.0f;
+float near_plane_dist = 0.1f;
+float far_plane_dist = 100.0f;
 
 #include "utils/MathUtil.h"
 #include <array>
@@ -165,9 +165,9 @@ tVector cDrawScene::CalcCursorPointWorldPos() const
     // pos = mat2 * pos;
     tMatrix mat3 = tMatrix::Identity();
     // mat3(0, 0) = std::tan(cMathUtil::Radians(mFov) / 2) * mNear;
-    mat3(0, 0) = width * 1.0 / height * std::tan(glm::radians(fov) / 2) * near;
-    mat3(1, 1) = std::tan(glm::radians(fov) / 2) * near;
-    mat3(2, 2) = 0, mat3(2, 3) = -near;
+    mat3(0, 0) = width * 1.0 / height * std::tan(glm::radians(fov) / 2) * near_plane_dist;
+    mat3(1, 1) = std::tan(glm::radians(fov) / 2) * near_plane_dist;
+    mat3(2, 2) = 0, mat3(2, 3) = -near_plane_dist;
     // std::cout << "after 3, vec = "
     //           << (test = mat3 * test).transpose() << std::endl;
 
@@ -488,8 +488,8 @@ void cDrawScene::Init(const std::string &conf_path)
                                    camera_pos_json[1].asFloat(),
                                    camera_pos_json[2].asFloat());
         fov = cJsonUtil::ParseAsFloat("fov", camera_json);
-        near = cJsonUtil::ParseAsFloat("near", camera_json);
-        far = cJsonUtil::ParseAsFloat("far", camera_json);
+        near_plane_dist = cJsonUtil::ParseAsFloat("near", camera_json);
+        far_plane_dist = cJsonUtil::ParseAsFloat("far", camera_json);
         SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(),
                  mCameraInitFocus.transpose());
     }
@@ -1006,7 +1006,7 @@ void cDrawScene::UpdateMVPUniformValue(int image_idx)
     ubo.view = E2GLM(eigen_view);
     ubo.proj = glm::perspective(
         glm::radians(fov),
-        mSwapChainExtent.width / (float)mSwapChainExtent.height, near, far);
+        mSwapChainExtent.width / (float)mSwapChainExtent.height, near_plane_dist, far_plane_dist);
     ubo.proj[1][1] *= -1;
 
     void *data;

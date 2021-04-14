@@ -91,13 +91,13 @@ int main(int argc, char **argv)
     scene = cSceneBuilder::BuildScene("cloth_sim_draw");
     scene->Init(conf);
 
-    auto last = cTimeUtil::GetCurrentTime();
+    auto last = cTimeUtil::GetCurrentTime_chrono();
     while (glfwWindowShouldClose(window) == false && esc_pushed == false)
     {
         glfwPollEvents();
 
         // 1. calc delta time for real time simulation
-        auto cur = cTimeUtil::GetCurrentTime();
+        auto cur = cTimeUtil::GetCurrentTime_chrono();
         double delta_time = cTimeUtil::CalcTimeElaspedms(last, cur) * 1e-3;
 
         // 2. update
@@ -105,7 +105,12 @@ int main(int argc, char **argv)
         // delta_time /= 4;
         double limit = 1.0 / 30;
         // double limit = 1e-4;
+#ifdef _WIN32
+        delta_time = min(delta_time, limit);
+#else
         delta_time = std::min(delta_time, limit);
+#endif
+        
         // delta_time = 1e-4;
         if (gPause == false)
         {

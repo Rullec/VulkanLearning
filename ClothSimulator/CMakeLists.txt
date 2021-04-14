@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.0.0)
 project(ClothSim VERSION 0.1.0)
 
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+if(WIN32)
+    include_directories(./includes)
+    link_directories(./lib)
+endif()
+
 find_package(Vulkan REQUIRED)
 if(Vulkan_FOUND)
 include_directories(${Vulkan_INCLUDE_DIRS})
@@ -11,11 +17,19 @@ find_package(GLFW3 REQUIRED)
 include_directories(./src)
 find_package(OpenMP REQUIRED)
 
-
-add_definitions(-std=c++17)
-
-# ---------------------enable debug symbols---------------------
-add_definitions(-g)
+if(WIN32)
+    add_definitions(-D _USE_MATH_DEFINES)
+    add_definitions(-D _CRT_NO_VA_START_VALIDATION)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /bigobj")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4061 /wd4244 /wd4246 /wd4305 /wd4267 /wd4711 /wd4710 /wd4514 /wd4477")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+else()
+    add_definitions(-std=c++17)
+    # message(FATAL_ERROR add unix c++17 definitions)
+    # ---------------------enable debug symbols---------------------
+    add_definitions(-g)
+endif()
 
 # -------------------enable openmp---------------------
 
@@ -43,9 +57,11 @@ set(libs ${Vulkan_LIBRARIES} ${GLFW3_LIBRARY} ${my_libs})
 add_executable(main ./src/main.cpp)
 target_link_libraries(main ${libs} scenes_lib utils_lib geo_lib OpenMP::OpenMP_CXX)
 
+if(NOT WIN32)
 add_custom_command(
     TARGET main POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E rename
         ${CMAKE_CURRENT_BINARY_DIR}/main        
         ${CMAKE_SOURCE_DIR}/main    
 )
+endif()
