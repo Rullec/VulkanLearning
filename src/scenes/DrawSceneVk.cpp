@@ -1099,7 +1099,7 @@ void cDrawScene::CreateTextureImage()
 {
     // 1. load the image from the file
     int tex_width, tex_height, tex_channels;
-    std::string ground_png_path = "grid0.png";
+    std::string ground_png_path = "data/grid0.png";
     SIM_ASSERT(cFileUtil::ExistsFile(ground_png_path));
     stbi_uc *pixels = stbi_load(ground_png_path.c_str(), &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
     SIM_ASSERT(tex_channels == 4);

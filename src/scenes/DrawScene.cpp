@@ -257,8 +257,8 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
                                         VkPipeline &pipeline)
 {
     // load and create the module
-    auto VertShaderCode = ReadFile("src/shaders/shader.vert.spv");
-    auto FragShaderCode = ReadFile("src/shaders/shader.frag.spv");
+    auto VertShaderCode = ReadFile("data/shaders/shader.vert.spv");
+    auto FragShaderCode = ReadFile("data/shaders/shader.frag.spv");
     VkShaderModule VertShaderModule = CreateShaderModule(VertShaderCode);
     VkShaderModule FragShaderModule = CreateShaderModule(FragShaderCode);
 

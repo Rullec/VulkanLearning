@@ -50,7 +50,6 @@ endif()
 add_subdirectory(./src/utils)
 add_subdirectory(./src/geometries)
 add_subdirectory(./src/scenes)
-add_subdirectory(./src/shaders)
 
 set(my_libs ${scenes_lib} ${utils_lib})
 set(libs ${Vulkan_LIBRARIES} ${GLFW3_LIBRARY} ${my_libs})
