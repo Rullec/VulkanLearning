@@ -8,12 +8,18 @@ void cTriangulator::BuildGeometry(const Json::Value &config, std::vector<tVertex
     std::string geo_type = cJsonUtil::ParseAsString("geometry_type", config);
     double width = cJsonUtil::ParseAsDouble("cloth_size", config);
     double mass = cJsonUtil::ParseAsDouble("cloth_mass", config);
-    Json::Value init_pos_json = cJsonUtil::ParseAsValue("cloth_init_pos", config);
-    SIM_ASSERT(init_pos_json.size() == 3);
-    tVector mClothInitPos = tVector(
-        init_pos_json[0].asDouble(),
-        init_pos_json[1].asDouble(),
-        init_pos_json[2].asDouble(), 1);
+    tVector cloth_init_pos = tVector::Zero();
+    tVector cloth_init_orientation = tVector::Zero();
+
+    {
+        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("cloth_init_pos", config), cloth_init_pos);
+        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("cloth_init_orientation", config), cloth_init_orientation);
+    }
+    // std::cout << "cloth init pos = " << cloth_init_pos.transpose() << std::endl;
+    // std::cout << "cloth init orientation = " << cloth_init_orientation.transpose() << std::endl;
+    tMatrix init_trans_mat = cMathUtil::TransformMat(cloth_init_pos, cloth_init_orientation);
+    // std::cout << init_trans_mat << std::endl;
+    // exit(0);
     int subdivision = cJsonUtil::ParseAsInt("subdivision", config);
     if (geo_type == "uniform_square")
     {
@@ -44,7 +50,8 @@ void cTriangulator::BuildGeometry(const Json::Value &config, std::vector<tVertex
     for (auto &v : vertices_array)
     {
         v->mMass = mass / vertices_array.size();
-        v->mPos.segment(0, 3) += mClothInitPos.segment(0, 3);
+        v->mPos = init_trans_mat * v->mPos;
+        // v->mPos.segment(0, 3) += cloth_init_pos.segment(0, 3);
     }
 
     // printf(
@@ -493,16 +500,18 @@ void cTriangulator::BuildSquareVertices(
             tVertex *v = new tVertex();
 
             v->mPos =
-                tVector(unit_edge_length * j, width - unit_edge_length * i, 0, 1);
+                tVector(unit_edge_length * j - width / 2, width - unit_edge_length * i - width / 2, 0, 1);
             v->mPos[3] = 1;
             v->mColor = tVector(0, 196.0 / 255, 1, 0);
             vertices_array.push_back(v);
             v->muv =
                 tVector2f(i * 1.0 / subdivision, j * 1.0 / subdivision);
+            // std::cout << "uv = " << v->muv.transpose() << std::endl;
             // printf("create vertex %d at (%.3f, %.3f), uv (%.3f, %.3f)\n",
             //        vertices_array.size() - 1, v->mPos[0], v->mPos[1],
             //        v->muv[0], v->muv[1]);
         }
+    // exit(0);
 }
 
 bool ConfirmVertexInTriangles(tTriangle *tri, int vid)

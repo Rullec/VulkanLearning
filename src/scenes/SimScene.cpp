@@ -3,6 +3,7 @@
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
 #include "scenes/DrawScene.h"
+#include "sim/KinematicBody.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
 
@@ -48,8 +49,38 @@ void cSimScene::Init(const std::string &conf_path)
     mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
     mScheme = BuildIntegrationScheme(
         cJsonUtil::ParseAsString("integration_scheme", root));
+    mEnableObstacle = cJsonUtil::ParseAsBool("enable_obstacle", root);
+    if (mEnableObstacle)
+        CreateObstacle(cJsonUtil::ParseAsValue("obstacle_conf", root));
 }
 
+void cSimScene::InitDrawBuffer()
+{
+    // 2. build arrays
+    // init the buffer
+    {
+        int num_of_triangles_cloth = mTriangleArray.size();
+        int num_of_triangles_obstacle = mObstacle == nullptr ? 0 : mObstacle->GetDrawNumOfTriangles();
+        int num_of_triangles = num_of_triangles_cloth + num_of_triangles_obstacle;
+        int num_of_vertices = num_of_triangles * 3;
+        int size_per_vertices = RENDERING_SIZE_PER_VERTICE;
+        int cloth_trinalge_size = num_of_vertices * size_per_vertices;
+
+        mTriangleDrawBuffer.resize(cloth_trinalge_size);
+        // std::cout << "triangle draw buffer size = " << mTriangleDrawBuffer.size() << std::endl;
+        // exit(0);
+    }
+    {
+        int num_of_edges_cloth = mEdgeArray.size();
+        int num_of_edges_obstacle = mObstacle == nullptr ? 0 : mObstacle->GetDrawNumOfEdges();
+        int num_of_edges = num_of_edges_obstacle + num_of_edges_cloth;
+        int size_per_edge = 2 * RENDERING_SIZE_PER_VERTICE;
+        mEdgesDrawBuffer.resize(num_of_edges * size_per_edge);
+    }
+
+    CalcTriangleDrawBuffer();
+    CalcEdgesDrawBuffer();
+}
 /**
  * \brief           Update the simulation procedure
 */
@@ -129,18 +160,18 @@ void cSimScene::GetVertexRenderingData() {}
 int cSimScene::GetNumOfFreedom() const { return GetNumOfVertices() * 3; }
 
 void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
-                                  tVectorXf &buffer, int &st_pos)
+                                  Eigen::Map<tVectorXf> &buffer, int &st_pos)
 {
     // std::cout << "buffer size " << buffer.size() << " st pos " << st_pos << std::endl;
     buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = v0->mColor.segment(0, 3).cast<float>();
-    st_pos += 8;
+    st_pos += RENDERING_SIZE_PER_VERTICE;
     buffer.segment(st_pos, 3) = v1->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = v1->mColor.segment(0, 3).cast<float>();
-    st_pos += 8;
+    st_pos += RENDERING_SIZE_PER_VERTICE;
     buffer.segment(st_pos, 3) = v2->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = v2->mColor.segment(0, 3).cast<float>();
-    st_pos += 8;
+    st_pos += RENDERING_SIZE_PER_VERTICE;
 }
 int cSimScene::GetNumOfEdges() const { return mEdgeArray.size(); }
 /**
@@ -182,27 +213,27 @@ void cSimScene::CalcExtForce(tVectorXd &ext_force) const
     }
 }
 
-void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, tVectorXf &buffer,
+void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, Eigen::Map<tVectorXf> &buffer,
                               int &st_pos)
 {
 
     buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = tVector3f(0, 0, 0);
-    st_pos += 8;
+    st_pos += RENDERING_SIZE_PER_VERTICE;
     buffer.segment(st_pos, 3) = v1->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = tVector3f(0, 0, 0);
-    st_pos += 8;
+    st_pos += RENDERING_SIZE_PER_VERTICE;
 }
 
 void CalcEdgeDrawBufferSingle(const tVector &v0, const tVector &v1,
-                              tVectorXf &buffer, int &st_pos)
+                              Eigen::Map<tVectorXf> &buffer, int &st_pos)
 {
     buffer.segment(st_pos, 3) = v0.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = tVector3f(0, 0, 0);
-    st_pos += 8;
+    st_pos += RENDERING_SIZE_PER_VERTICE;
     buffer.segment(st_pos, 3) = v1.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = tVector3f(1, 0, 0);
-    st_pos += 8;
+    st_pos += RENDERING_SIZE_PER_VERTICE;
 }
 const tVectorXf &cSimScene::GetTriangleDrawBuffer()
 {
@@ -214,26 +245,38 @@ const tVectorXf &cSimScene::GetTriangleDrawBuffer()
 void cSimScene::CalcTriangleDrawBuffer()
 {
     mTriangleDrawBuffer.fill(std::nan(""));
-    // counter clockwise
-    int subdivision = std::sqrt(mVertexArray.size()) - 1;
-    int gap = subdivision + 1;
+    // 1. calculate for cloth triangle
     int st = 0;
-    for (int i = 0; i < subdivision; i++)     // row
-        for (int j = 0; j < subdivision; j++) // column
+    {
+        Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data(), mTriangleDrawBuffer.size());
+        // counter clockwise
+        int subdivision = std::sqrt(mVertexArray.size()) - 1;
+        int gap = subdivision + 1;
+        for (int i = 0; i < subdivision; i++)     // row
+            for (int j = 0; j < subdivision; j++) // column
+            {
+                // left up coner
+                int left_up = gap * i + j;
+                int right_up = left_up + 1;
+                int left_down = left_up + gap;
+                int right_down = right_up + gap;
+                // mVertexArray[left_up]->mPos *= (1 + 1e-3);
+                CalcTriangleDrawBufferSingle(
+                    mVertexArray[right_down], mVertexArray[left_up],
+                    mVertexArray[left_down], ref, st);
+                CalcTriangleDrawBufferSingle(
+                    mVertexArray[right_down], mVertexArray[right_up],
+                    mVertexArray[left_up], ref, st);
+            }
+    }
+    // 2. calculate for obstacle triangle
+    {
+        if (mObstacle != nullptr)
         {
-            // left up coner
-            int left_up = gap * i + j;
-            int right_up = left_up + 1;
-            int left_down = left_up + gap;
-            int right_down = right_up + gap;
-            // mVertexArray[left_up]->mPos *= (1 + 1e-3);
-            CalcTriangleDrawBufferSingle(
-                mVertexArray[right_down], mVertexArray[left_up],
-                mVertexArray[left_down], mTriangleDrawBuffer, st);
-            CalcTriangleDrawBufferSingle(
-                mVertexArray[right_down], mVertexArray[right_up],
-                mVertexArray[left_up], mTriangleDrawBuffer, st);
+            Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data() + st, mTriangleDrawBuffer.size() - st);
+            mObstacle->CalcTriangleDrawBuffer(ref);
         }
+    }
 }
 
 const tVectorXf &cSimScene::GetEdgesDrawBuffer() { return mEdgesDrawBuffer; }
@@ -242,10 +285,21 @@ void cSimScene::CalcEdgesDrawBuffer()
 {
     mEdgesDrawBuffer.fill(std::nan(""));
     int st = 0;
+    // 1. for cloth draw buffer
+    Eigen::Map<tVectorXf> cloth_ref(mEdgesDrawBuffer.data(), mEdgesDrawBuffer.size());
     for (auto &e : mEdgeArray)
     {
         CalcEdgeDrawBufferSingle(mVertexArray[e->mId0], mVertexArray[e->mId1],
-                                 mEdgesDrawBuffer, st);
+                                 cloth_ref, st);
+    }
+    // 2. for draw buffer
+    {
+        if (mObstacle != nullptr)
+        {
+            Eigen::Map<tVectorXf> ref(mEdgesDrawBuffer.data() + st, mEdgesDrawBuffer.size() - st);
+            // std::cout << "[debug] calc edge draw buffer obstacle, size = " << ref.size() << std::endl;
+            mObstacle->CalcEdgeDrawBuffer(ref);
+        }
     }
 }
 
@@ -376,26 +430,11 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
 void cSimScene::InitGeometry(const Json::Value &conf)
 {
     // 1. build the geometry
+    mClothWidth = cJsonUtil::ParseAsDouble("cloth_size", conf);
+    mClothMass = cJsonUtil::ParseAsDouble("cloth_mass", conf);
+    
     cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray,
                                  mTriangleArray);
-    // 2. build arrays
-    // init the buffer
-    {
-        int num_of_triangles = mTriangleArray.size();
-        int num_of_vertices = num_of_triangles * 3;
-        int size_per_vertices = 8;
-        mTriangleDrawBuffer.resize(num_of_vertices * size_per_vertices);
-        // std::cout << "triangle draw buffer size = " << mTriangleDrawBuffer.size() << std::endl;
-        // exit(0);
-    }
-    {
-        int num_of_edges = mEdgeArray.size();
-        int size_per_edge = 16;
-        mEdgesDrawBuffer.resize(num_of_edges * size_per_edge);
-    }
-
-    CalcTriangleDrawBuffer();
-    CalcEdgesDrawBuffer();
 
     // init the inv mass vector
     mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());
@@ -543,4 +582,12 @@ void cSimScene::ReleasePerturb()
         delete mPerturb;
         mPerturb = nullptr;
     }
+}
+
+void cSimScene::CreateObstacle(const Json::Value &conf)
+{
+    mObstacle = std::make_shared<cKinematicBody>();
+    mObstacle->Init(conf);
+    std::cout << "[debug] create obstacle done, now begin to exit\n";
+    // exit(0);
 }

@@ -1,24 +1,35 @@
 #pragma once
-
+#include <string>
+#include "utils/MathUtil.h"
 enum eObjectType
 {
+    KINEMATICBODY_TYPE,
     RIGIDBODY_TYPE,
     CLOTH_TYPE,
     NUM_OBJ_TYPES,
     INVALID_OBJ_TYPE
-}
+};
 
 /**
  * \brief           base object class
  * 
 */
+namespace Json
+{
+    class Value;
+};
+
 class cBaseObject
 {
 public:
-    cBaseObject(eObjectType type);
-    ~cBaseObject();
-    virtual void Init() = 0;
+    explicit cBaseObject(eObjectType type);
+    virtual ~cBaseObject();
+    virtual void Init(const Json::Value &conf) = 0;
     static eObjectType BuildObjectType(std::string type);
+    virtual int GetDrawNumOfTriangles() const = 0;
+    virtual int GetDrawNumOfEdges() const = 0;
+    virtual void CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res) const = 0;
+    virtual void CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res) const = 0;
 
 protected:
     eObjectType mType;

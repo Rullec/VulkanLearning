@@ -49,6 +49,7 @@ endif()
 
 add_subdirectory(./src/utils)
 add_subdirectory(./src/geometries)
+add_subdirectory(./src/sim)
 add_subdirectory(./src/scenes)
 
 set(my_libs ${scenes_lib} ${utils_lib})

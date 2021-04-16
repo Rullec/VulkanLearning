@@ -7,24 +7,37 @@
         1,
         0
     ],
+    "cloth_init_orientation": [
+        -1,
+        0,
+        0
+    ],
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 100,
+    "subdivision": 40,
     "damping": 1e-5,
     "stiffness": 1e2,
     "enable_bending": true,
-    "bending_stiffness": 1e2,
+    "bending_stiffness": 1,
     "default_timestep": 0.033333333333,
     "max_steps_opt": 10,
     "constraints": {
-        "fixed_point": [
+        "fixed_point.bal": [
             [
                 0,
                 0
             ],
             [
                 0,
+                1
+            ],
+            [
+                1,
+                0
+            ],
+            [
+                1,
                 1
             ]
         ]
@@ -45,5 +58,6 @@
         "near": 0.01,
         "far": 100
     },
-    "enable_profiling": false
+    "enable_profiling": false,
+    "enable_obstacle": false
 }

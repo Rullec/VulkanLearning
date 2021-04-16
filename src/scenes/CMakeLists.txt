@@ -16,7 +16,7 @@ cameras/FPSCamera.cpp
 cameras/ArcBallCamera.cpp
 cameras/CameraUtil.cpp
 )
-target_link_libraries(scenes_lib ${GLFW3_LIBRARY} ${Vulkan_LIBRARIES})
+target_link_libraries(scenes_lib ${GLFW3_LIBRARY} ${Vulkan_LIBRARIES} sim_lib)
 
 if(WIN32)
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")

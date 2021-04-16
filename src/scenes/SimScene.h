@@ -1,6 +1,7 @@
 #pragma once
 #include "Scene.h"
 #include "utils/MathUtil.h"
+#include "utils/DefUtil.h"
 
 namespace Json
 {
@@ -25,6 +26,7 @@ struct tTriangle;
 struct tRay;
 struct tPerturb;
 class cDrawScene;
+SIM_DECLARE_CLASS_AND_PTR(cKinematicBody)
 class cSimScene : public cScene
 {
 public:
@@ -42,11 +44,15 @@ public:
                              int mods);
 
 protected:
+    double mClothWidth;
+    double mClothMass;
     tPerturb *mPerturb;
     tVectorXd mInvMassMatrixDiag; // diag inv mass matrix
     std::string mGeometryType;
     eIntegrationScheme mScheme;
     bool mEnableProfiling;
+    bool mEnableObstacle;        // using obstacle?
+    cKinematicBodyPtr mObstacle; // obstacle for cloth simulation
     // double mClothWidth;           // a square cloth
     // double mClothMass;            // cloth mass
     // tVector mClothInitPos;        //
@@ -68,6 +74,7 @@ protected:
 
     // base methods
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
+    virtual void InitDrawBuffer();
     virtual void InitGeometry(
         const Json::Value &conf); // discretazation from square cloth to
     void ClearForce();            // clear all forces
@@ -86,4 +93,5 @@ protected:
 
     // virtual void CreatePerturb(tRay *ray);
     virtual void ReleasePerturb();
+    virtual void CreateObstacle(const Json::Value &conf);
 };

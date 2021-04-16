@@ -105,7 +105,7 @@ tVkVertex::getAttributeDescriptions()
     1. position: vec2f in NDC
     2. color: vec3f \in [0, 1]
 */
-const float ground_scale = 100.0;
+const float ground_scale = 1000.0;
 std::vector<tVkVertex> ground_vertices = {
     {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
     {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},

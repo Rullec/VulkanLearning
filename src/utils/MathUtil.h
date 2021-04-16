@@ -190,6 +190,7 @@ public:
     static double SmoothStep(double t);
 
     // matrices
+    static tMatrix TransformMat(const tVector &translation, const tVector & euler_xyz_orientation);
     static tMatrix TranslateMat(const tVector &trans);
     static tMatrix ScaleMat(double scale);
     static tMatrix ScaleMat(const tVector &scale);

@@ -84,7 +84,7 @@ void cLinctexScene::Init(const std::string &path)
 
     InitGeometry(root);
     InitConstraint(root);
-
+    InitDrawBuffer();
     // std::cout << "init cons done\n";
     // for (auto &x : mFixedPointIds)
     //     std::cout << x << std::endl;
@@ -152,7 +152,7 @@ SePiecePtr SePiece::Create(const std::vector<Int3> & triangles,
     {
         auto v = mVertexArray[i];
         pos3D.push_back(Float3(v->mPos[0], v->mPos[1], v->mPos[2]));
-        pos2D.push_back(Float2(v->mPos[0], v->mPos[1]));
+        pos2D.push_back(Float2(v->muv[0], v->muv[1]) * mClothWidth);
     }
 
     for (int i = 0; i < mTriangleArray.size(); i++)
@@ -164,6 +164,13 @@ SePiecePtr SePiece::Create(const std::vector<Int3> & triangles,
     }
 
     auto phyProp = SePhysicalProperties::Create();
+    // {
+    //     std::cout << phyProp->GetStretchWarp() << std::endl;
+    //     std::cout << phyProp->GetStretchWeft() << std::endl;
+    //     std::cout << phyProp->GetBendingWarp() << std::endl;
+    //     std::cout << phyProp->GetBendingWeft() << std::endl;
+    //     // exit(0);
+    // }
     phyProp->SetStretchWarp(mClothProp.mStretchWarp);
     phyProp->SetStretchWeft(mClothProp.mStretchWeft);
     phyProp->SetBendingWarp(mClothProp.mBendingWarp);
@@ -232,5 +239,74 @@ void cLinctexScene::tPhyProperty::Init(const Json::Value &root)
     mStretchWeft = cJsonUtil::ParseAsDouble("stretch_weft", conf);
     mBendingWarp = cJsonUtil::ParseAsDouble("bending_warp", conf);
     mBendingWeft = cJsonUtil::ParseAsDouble("bending_weft", conf);
+}
+#include "SeObstacle.h"
+#include "sim/KinematicBody.h"
+tVector CalcNormal(
+    const tVector &v0,
+    const tVector &v1,
+    const tVector &v2)
+{
+
+    return ((v1 - v0).cross3(v2 - v1)).normalized();
+}
+void cLinctexScene::CreateObstacle(const Json::Value &conf)
+{
+    cSimScene::CreateObstacle(conf);
+    std::vector<Int3> se_triangles(0);
+    std::vector<Float3> se_positions(0);
+    std::vector<Float3> se_normals(0);
+    {
+        const auto &v_array = mObstacle->GetVertexArray();
+        // const auto &e_array = mObstacle->GetEdgeArray();
+        const auto &t_array = mObstacle->GetTriangleArray();
+
+        tEigenArr<tVector> v_normal_array(v_array.size(), tVector::Zero());
+        std::vector<int> v_normal_array_count(v_array.size(), 0);
+
+        //  init triangle and calculate vertex normal
+        for (int i = 0; i < t_array.size(); i++)
+        {
+            se_triangles.push_back(Int3(
+                t_array[i]->mId0,
+                t_array[i]->mId1,
+                t_array[i]->mId2));
+            tVector f_normal = CalcNormal(
+                v_array[t_array[i]->mId0]->mPos,
+                v_array[t_array[i]->mId1]->mPos,
+                v_array[t_array[i]->mId2]->mPos);
+            {
+                v_normal_array[t_array[i]->mId0] += f_normal;
+                v_normal_array[t_array[i]->mId1] += f_normal;
+                v_normal_array[t_array[i]->mId2] += f_normal;
+            }
+            {
+                v_normal_array_count[t_array[i]->mId0] += 1;
+                v_normal_array_count[t_array[i]->mId1] += 1;
+                v_normal_array_count[t_array[i]->mId2] += 1;
+            }
+        }
+
+        // calculate vertices and normals
+        for (int i = 0; i < v_array.size(); i++)
+        {
+            se_positions.push_back(
+                Float3(
+                    v_array[i]->mPos[0],
+                    v_array[i]->mPos[1],
+                    v_array[i]->mPos[2]));
+            v_normal_array[i] /= v_normal_array_count[i];
+            se_normals.push_back(
+                Float3(
+                    v_normal_array[i][0],
+                    v_normal_array[i][1],
+                    v_normal_array[i][2]));
+        }
+    }
+
+    mSeScene->AddObstacle(SeObstacle::Create(se_triangles,
+                                             se_positions,
+                                             se_normals));
+    std::cout << "[debug] add linctex obstacle succ\n";
 }
 #endif

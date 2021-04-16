@@ -1874,3 +1874,10 @@ tVector cMathUtil::RayCast(const tVector &ori, const tVector &dir,
     }
     return inter;
 }
+
+tMatrix cMathUtil::TransformMat(const tVector &translation, const tVector &euler_xyz_orientation)
+{
+    tMatrix mat = cMathUtil::EulerAnglesToRotMat(euler_xyz_orientation, eRotationOrder::XYZ);
+    mat.block(0, 3, 3, 1) = translation.segment(0, 3);
+    return mat;
+}

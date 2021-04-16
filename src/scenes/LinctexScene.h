@@ -28,6 +28,7 @@ protected:
     virtual bool CreatePerturb(tRay *ray) override final;
     virtual void ReleasePerturb() override final;
     virtual void UpdatePerturb();
+    virtual void CreateObstacle(const Json::Value &conf);
     std::shared_ptr<StyleEngine::SePiece> mCloth;
     std::shared_ptr<StyleEngine::SeDraggedPoints> mDragPt;
     std::shared_ptr<StyleEngine::SeScene> mSeScene;

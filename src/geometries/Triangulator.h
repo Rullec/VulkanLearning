@@ -11,6 +11,9 @@ public:
                               std::vector<tEdge *> &edges_array,
                               std::vector<tTriangle *> &triangles_array);
 
+    static void ValidateGeometry(std::vector<tVertex *> &vertices_array,
+                                 std::vector<tEdge *> &edges_array,
+                                 std::vector<tTriangle *> &triangles_array);
 protected:
     static void BuildGeometry_UniformSquare(double width, int subdivistion, std::vector<tVertex *> &vertices_array,
                                             std::vector<tEdge *> &edges_array,
@@ -24,7 +27,4 @@ protected:
     static void BuildSquareVertices(
         double width, int subdivision,
         std::vector<tVertex *> &edges_array);
-    static void ValidateGeometry(std::vector<tVertex *> &vertices_array,
-                                 std::vector<tEdge *> &edges_array,
-                                 std::vector<tTriangle *> &triangles_array);
 };

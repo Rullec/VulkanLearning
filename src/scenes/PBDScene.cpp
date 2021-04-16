@@ -73,7 +73,7 @@ void cPBDScene::InitGeometry(const Json::Value &conf)
                                  mTriangleArray);
     // init the draw buffer
     {
-        int size_per_vertices = 8;
+        int size_per_vertices = RENDERING_SIZE_PER_VERTICE;
         int size_per_triangle = 3 * size_per_vertices;
         mTriangleDrawBuffer.resize(size_per_triangle * mTriangleArray.size());
 
@@ -104,21 +104,22 @@ void cPBDScene::InitGeometry(const Json::Value &conf)
 }
 
 extern void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
-                                         tVectorXf &buffer, int &st_pos);
+                                         Eigen::Map<tVectorXf> &buffer, int &st_pos);
 extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1,
-                                     tVectorXf &buffer, int &st_pos);
+                                     Eigen::Map<tVectorXf> &buffer, int &st_pos);
 extern void CalcEdgeDrawBufferSingle(const tVector &v0, const tVector &v1,
-                                     tVectorXf &buffer, int &st_pos);
+                                     Eigen::Map<tVectorXf> &buffer, int &st_pos);
 
 void cPBDScene::CalcTriangleDrawBuffer()
 {
     mTriangleDrawBuffer.fill(std::nan(""));
     int st = 0;
+    Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data(), mTriangleDrawBuffer.size());
     for (auto &x : mTriangleArray)
     {
         CalcTriangleDrawBufferSingle(
             mVertexArray[x->mId0], mVertexArray[x->mId1], mVertexArray[x->mId2],
-            mTriangleDrawBuffer, st);
+            ref, st);
     }
 }
 
@@ -126,17 +127,18 @@ void cPBDScene::CalcEdgesDrawBuffer()
 {
     mEdgesDrawBuffer.fill(std::nan(""));
     int st = 0;
+    Eigen::Map<tVectorXf> ref(mEdgesDrawBuffer.data(), mEdgesDrawBuffer.size());
     for (auto &x : mEdgeArray)
     {
         CalcEdgeDrawBufferSingle(mVertexArray[x->mId0], mVertexArray[x->mId1],
-                                 mEdgesDrawBuffer, st);
+                                 ref, st);
     }
     // std::cout << "calc edges draw buffer size = " << mRayArray.size()
     //           << std::endl;
     for (auto &x : mRayArray)
     {
         CalcEdgeDrawBufferSingle(x->mOrigin, x->mOrigin + x->mDir * 10,
-                                 mEdgesDrawBuffer, st);
+                                 ref, st);
     }
 }
 

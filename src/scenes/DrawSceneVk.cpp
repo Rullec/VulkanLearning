@@ -1175,9 +1175,9 @@ void cDrawScene::CreateTextureSampler()
         throw std::runtime_error("failed to create texture sampler!");
     }
 }
-
+#include "utils/DefUtil.h"
 int cDrawScene::GetNumOfLineVertices() const
 {
     const tVectorXf &result = mSimScene->GetEdgesDrawBuffer();
-    return axes_vertices.size() + result.size() / 8;
+    return axes_vertices.size() + result.size() / RENDERING_SIZE_PER_VERTICE;
 }

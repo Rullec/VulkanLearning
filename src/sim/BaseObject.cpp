@@ -1,5 +1,6 @@
 #include "BaseObject.h"
 #include "utils/LogUtil.h"
+#include "utils/MathUtil.h"
 #include <string>
 std::string gObjectTypeStr[eObjectType::NUM_OBJ_TYPES] = {
     "Rigidbody", "Cloth"};
