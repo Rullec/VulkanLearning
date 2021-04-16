@@ -6,6 +6,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(WIN32)
     include_directories(./includes)
     link_directories(./lib)
+    include_directories("D:\\Projects\\Simulation")
 endif()
 
 find_package(Vulkan REQUIRED)
@@ -57,11 +58,27 @@ set(libs ${Vulkan_LIBRARIES} ${GLFW3_LIBRARY} ${my_libs})
 add_executable(main ./src/main.cpp)
 target_link_libraries(main ${libs} scenes_lib utils_lib geo_lib OpenMP::OpenMP_CXX)
 
-if(NOT WIN32)
-add_custom_command(
-    TARGET main POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rename
-        ${CMAKE_CURRENT_BINARY_DIR}/main        
-        ${CMAKE_SOURCE_DIR}/main    
-)
+if(WIN32)
+    if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+        add_custom_command(
+            TARGET main POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rename
+                ${CMAKE_CURRENT_BINARY_DIR}/Debug/main.exe
+                ${CMAKE_SOURCE_DIR}/main.exe
+        )
+    else()
+        add_custom_command(
+            TARGET main POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rename
+                ${CMAKE_CURRENT_BINARY_DIR}/Release/main.exe
+                ${CMAKE_SOURCE_DIR}/main.exe
+        )
+    endif()
+else()
+    add_custom_command(
+        TARGET main POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rename
+            ${CMAKE_CURRENT_BINARY_DIR}/main        
+            ${CMAKE_SOURCE_DIR}/main    
+    )
 endif()

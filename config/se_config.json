@@ -1,5 +1,5 @@
 {
-    "integration_scheme": "opt_implicit",
+    "integration_scheme": "se",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -7,14 +7,16 @@
         1,
         0
     ],
-    "geometry_type_bak": "uniform_square",
-    "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 1,
+    "subdivision": 200,
     "damping": 1e-3,
-    "stiffness": 3000,
-    "default_timestep": 1.5e-4,
-    "max_steps_opt": 1,
+    "default_timestep": 1e-3,
+    "cloth_property": {
+        "stretch_warp": 1e10,
+        "stretch_weft": 1e10,
+        "bending_warp": 1e3,
+        "bending_weft": 1e3
+    },
     "constraints": {
         "fixed_point": [
             [
@@ -40,7 +42,8 @@
             0
         ],
         "fov": 45,
-        "near": 0.01,
+        "near": 0.1,
         "far": 100
-    }
+    },
+    "enable_profiling": true
 }

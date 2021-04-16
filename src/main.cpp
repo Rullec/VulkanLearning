@@ -80,8 +80,13 @@ int main(int argc, char **argv)
     InitGlfw();
     // std::string conf = "config/semi_config.json";
     // std::string conf = "config/pbd_config.json";
-    std::string conf = "config/pd_config.json";
+    // std::string conf = "config/pd_config.json";
     // std::string conf = "config/implicit_conf.json";
+#ifdef _WIN32
+    std::string conf = "config/se_config.json";
+#else
+    std::string conf = "config/pd_config.json";
+#endif
     if (argc == 2)
     {
         conf = std::string(argv[1]);
@@ -110,7 +115,7 @@ int main(int argc, char **argv)
 #else
         delta_time = std::min(delta_time, limit);
 #endif
-        
+
         // delta_time = 1e-4;
         if (gPause == false)
         {

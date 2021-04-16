@@ -3,7 +3,9 @@
 #include "ImplicitScene.h"
 #include "SemiImplicitScene.h"
 #include "BaraffScene.h"
+#include "LinctexScene.h"
 #include "PBDScene.h"
+#include "SeScene.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 
@@ -45,6 +47,9 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
         break;
     case eIntegrationScheme::SCHEME_BARAFF:
         scene = std::make_shared<cBaraffScene>();
+        break;
+    case eIntegrationScheme::SCHEME_SE:
+        scene = std::make_shared<cLinctexScene>();
         break;
     default:
         SIM_ERROR("unsupported sim scene {}", type);

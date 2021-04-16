@@ -47,8 +47,8 @@ void cTriangulator::BuildGeometry(const Json::Value &config, std::vector<tVertex
         v->mPos.segment(0, 3) += mClothInitPos.segment(0, 3);
     }
 
-    printf(
-        "[debug] init geometry type %s, create %d vertices, %d edges, %d triangles\n", geo_type.c_str(), vertices_array.size(), edges_array.size(), triangles_array.size());
+    // printf(
+    //     "[debug] init geometry type %s, create %d vertices, %d edges, %d triangles\n", geo_type.c_str(), vertices_array.size(), edges_array.size(), triangles_array.size());
     // exit(0);
 }
 
@@ -326,9 +326,9 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                 auto tri2 = new tTriangle(up_left, up_left + 1 + num_of_lines, up_left + 1);
 
                 triangles_array.push_back(tri1);
-                printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
                 triangles_array.push_back(tri2);
-                printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
             }
             else
             {
@@ -337,9 +337,9 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                 auto tri2 = new tTriangle(up_left + 1, up_left + num_of_lines, up_left + 1 + num_of_lines);
 
                 triangles_array.push_back(tri1);
-                printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
                 triangles_array.push_back(tri2);
-                printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
             }
         }
     }

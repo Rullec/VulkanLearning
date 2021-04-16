@@ -15,6 +15,8 @@ struct tPerturb
     void UpdatePerturb(const tVector & cur_camera_pos, const tVector & cur_cursor_pos_world);
 
     tVector GetPerturbForce() const;
+    tVector CalcPerturbPos() const;
+    int mAffectedTriId; // triangle id
     int mAffectedVerticesId[3];
     tVertex *mAffectedVertices[3];
     tVector3d
@@ -23,5 +25,4 @@ protected:
     tVector mPerturbForce;
     tTriangle *mRectTri0, *mRectTri1; // tangent plane across the raycast point
     tVertex *mRectVertices[4];
-    tVector CalcPerturbPos() const;
 };

@@ -15,6 +15,7 @@ enum eIntegrationScheme
     SCHEME_PROJECTIVE_DYNAMIC,     // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
     SCHEME_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
     SCHEME_BARAFF,                 // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
+    SCHEME_SE,                     // style 3d engine
     NUM_OF_INTEGRATION_SCHEMES
 };
 
@@ -35,7 +36,7 @@ public:
     const tVectorXf &GetTriangleDrawBuffer();
     const tVectorXf &GetEdgesDrawBuffer();
     static eIntegrationScheme BuildIntegrationScheme(const std::string &str);
-    virtual void RayCast(tRay *ray);
+    virtual bool CreatePerturb(tRay *ray);
     virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos);
     virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
                              int mods);
@@ -82,4 +83,7 @@ protected:
     virtual void InitConstraint(const Json::Value &root);
     void UpdateCurNodalPosition(const tVectorXd &xcur);
     virtual void UpdateSubstep() = 0;
+
+    // virtual void CreatePerturb(tRay *ray);
+    virtual void ReleasePerturb();
 };

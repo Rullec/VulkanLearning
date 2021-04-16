@@ -9,7 +9,7 @@
 std::string
     gIntegrationSchemeStr[eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
         "semi_implicit", "implicit", "projective_dynamic", "pbd",
-        "tri_baraff"};
+        "tri_baraff", "se"};
 
 eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
 {
@@ -168,9 +168,9 @@ void cSimScene::CalcExtForce(tVectorXd &ext_force) const
         tVector perturb_force = mPerturb->GetPerturbForce();
         // printf(
         //     "[debug] perturb vid %d %d %d, ", mPerturb->mAffectedVerticesId[0],
-        //     mPerturb->mAffectedVerticesId[1], mPerturb->mAffectedVerticesId[2]);
-        // std::cout << "perturb force = " << perturb_force.transpose()
-        //           << std::endl;
+        //     mPerturb->mAffectedVerticesId[1], mPerturb        // std::cout << "perturb force = " << perturb_force.transpose()
+        //           << std::endl;->mAffectedVerticesId[2]);
+
         ext_force.segment(mPerturb->mAffectedVerticesId[0] * 3, 3) +=
             perturb_force.segment(0, 3) / 3;
         ext_force.segment(mPerturb->mAffectedVerticesId[1] * 3, 3) +=
@@ -363,23 +363,12 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
             tVector tar_pos = draw_scene->CalcCursorPointWorldPos();
             tVector camera_pos = draw_scene->GetCameraPos();
             tRay *ray = new tRay(camera_pos, tar_pos);
-            RayCast(ray);
+            CreatePerturb(ray);
         }
         else if (cDrawScene::IsRelease(action) == true)
         {
-            if (mPerturb != nullptr)
-            {
-                // restore the color
-                mPerturb->mAffectedVertices[0]->mColor =
-                    tVector(0, 196.0 / 255, 1, 0);
-                mPerturb->mAffectedVertices[1]->mColor =
-                    tVector(0, 196.0 / 255, 1, 0);
-                mPerturb->mAffectedVertices[2]->mColor =
-                    tVector(0, 196.0 / 255, 1, 0);
 
-                delete mPerturb;
-                mPerturb = nullptr;
-            }
+            ReleasePerturb();
         }
     }
 }
@@ -416,7 +405,7 @@ void cSimScene::InitGeometry(const Json::Value &conf)
     }
 }
 
-void cSimScene::RayCast(tRay *ray)
+bool cSimScene::CreatePerturb(tRay *ray)
 {
     // std::cout << "begin to do ray cast for ray from "
     //           << ray->mOrigin.transpose() << " to " << ray->mDir.transpose()
@@ -424,6 +413,7 @@ void cSimScene::RayCast(tRay *ray)
     // 1. select triangle
     tTriangle *selected_tri = nullptr;
     tVector raycast_point = tVector::Zero();
+    int selected_tri_id = -1;
     for (int i = 0; i < mTriangleArray.size(); i++)
     {
         auto &tri = mTriangleArray[i];
@@ -434,6 +424,7 @@ void cSimScene::RayCast(tRay *ray)
         {
             std::cout << "[debug] add perturb on triangle " << i << std::endl;
             selected_tri = tri;
+            selected_tri_id = i;
             break;
             // mVertexArray[tri->mId0]->mColor = tVector(1, 0, 0, 0);
             // mVertexArray[tri->mId1]->mColor = tVector(1, 0, 0, 0);
@@ -441,13 +432,14 @@ void cSimScene::RayCast(tRay *ray)
         }
     }
     if (selected_tri == nullptr)
-        return;
+        return false;
 
     // 2. we have a triangle to track
     SIM_ASSERT(mPerturb == nullptr);
 
     mPerturb = new tPerturb();
 
+    mPerturb->mAffectedTriId = selected_tri_id;
     mPerturb->mAffectedVerticesId[0] = selected_tri->mId0;
     mPerturb->mAffectedVerticesId[1] = selected_tri->mId1;
     mPerturb->mAffectedVerticesId[2] = selected_tri->mId2;
@@ -469,6 +461,7 @@ void cSimScene::RayCast(tRay *ray)
     mVertexArray[selected_tri->mId0]->mColor = tVector(1, 0, 0, 0);
     mVertexArray[selected_tri->mId1]->mColor = tVector(1, 0, 0, 0);
     mVertexArray[selected_tri->mId2]->mColor = tVector(1, 0, 0, 0);
+    return true;
 }
 
 /**
@@ -534,4 +527,20 @@ void cSimScene::CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const
     }
     // std::cout << "output fint = " << int_force.transpose() << std::endl;
     // exit(0);
+}
+
+void cSimScene::ReleasePerturb()
+{
+    if (mPerturb != nullptr)
+    {
+        // restore the color
+        mPerturb->mAffectedVertices[0]->mColor =
+            tVector(0, 196.0 / 255, 1, 0);
+        mPerturb->mAffectedVertices[1]->mColor =
+            tVector(0, 196.0 / 255, 1, 0);
+        mPerturb->mAffectedVertices[2]->mColor =
+            tVector(0, 196.0 / 255, 1, 0);
+        delete mPerturb;
+        mPerturb = nullptr;
+    }
 }

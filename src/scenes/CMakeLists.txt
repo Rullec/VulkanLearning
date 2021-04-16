@@ -7,6 +7,7 @@ SimScene.cpp
 SemiImplicitScene.cpp
 BaraffScene.cpp
 ImplicitScene.cpp
+LinctexScene.cpp
 PDScene.cpp
 PBDScene.cpp
 Perturb.cpp
@@ -15,4 +16,14 @@ cameras/FPSCamera.cpp
 cameras/ArcBallCamera.cpp
 cameras/CameraUtil.cpp
 )
-target_link_libraries(scenes_lib ${GLFW3_LIBRARY} ${Vulkan_LIBRARIES} )
+target_link_libraries(scenes_lib ${GLFW3_LIBRARY} ${Vulkan_LIBRARIES})
+
+if(WIN32)
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    # message(FATAL_ERROR debug)
+    target_link_libraries(scenes_lib Simulationd)
+else()
+    # message(FATAL_ERROR release)
+    target_link_libraries(scenes_lib Simulation)
+endif()
+endif()
