@@ -8,6 +8,7 @@ SemiImplicitScene.cpp
 BaraffScene.cpp
 ImplicitScene.cpp
 LinctexScene.cpp
+SynDataScene.cpp
 PDScene.cpp
 PBDScene.cpp
 Perturb.cpp

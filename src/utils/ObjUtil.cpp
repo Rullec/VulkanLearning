@@ -183,9 +183,9 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
         edge->mTriangleId1 = tid1;
         edge->mIsBoundary = (tid1 == -1);
         e_array.push_back(edge);
-        printf("[debug] edge %d, v0 %d, v1 %d, raw length %.3f, t0 %d, t1 %d, is_boud %d\n",
+        // printf("[debug] edge %d, v0 %d, v1 %d, raw length %.3f, t0 %d, t1 %d, is_boud %d\n",
 
-               e_array.size() - 1, v0, v1, edge->mRawLength, tid0, tid1, edge->mIsBoundary);
+            //    e_array.size() - 1, v0, v1, edge->mRawLength, tid0, tid1, edge->mIsBoundary);
     }
     std::cout << "[debug] build " << e_array.size() << " edges\n";
 }

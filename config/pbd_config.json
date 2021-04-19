@@ -1,6 +1,6 @@
 {
-    "integration_scheme_bak1": "semi_implicit",
-    "integration_scheme": "pbd",
+    "scene_type_bak1": "semi_implicit",
+    "scene_type": "pbd",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [

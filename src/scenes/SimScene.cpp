@@ -8,23 +8,23 @@
 #include <iostream>
 
 std::string
-    gIntegrationSchemeStr[eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES] = {
+    gSceneTypeStr[eSceneType::NUM_OF_SCENE_TYPES] = {
         "semi_implicit", "implicit", "projective_dynamic", "pbd",
-        "tri_baraff", "se"};
+        "tri_baraff", "se", "data_synthesis"};
 
-eIntegrationScheme cSimScene::BuildIntegrationScheme(const std::string &str)
+eSceneType cSimScene::BuildSceneType(const std::string &str)
 {
     int i = 0;
-    for (i = 0; i < eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES; i++)
+    for (i = 0; i < eSceneType::NUM_OF_SCENE_TYPES; i++)
     {
-        if (str == gIntegrationSchemeStr[i])
+        if (str == gSceneTypeStr[i])
         {
             break;
         }
     }
 
-    SIM_ASSERT(i != eIntegrationScheme::NUM_OF_INTEGRATION_SCHEMES);
-    return static_cast<eIntegrationScheme>(i);
+    SIM_ASSERT(i != eSceneType::NUM_OF_SCENE_TYPES);
+    return static_cast<eSceneType>(i);
 }
 
 cSimScene::cSimScene()
@@ -47,8 +47,8 @@ void cSimScene::Init(const std::string &conf_path)
     mDamping = cJsonUtil::ParseAsDouble("damping", root);
     mEnableProfiling = cJsonUtil::ParseAsBool("enable_profiling", root);
     mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
-    mScheme = BuildIntegrationScheme(
-        cJsonUtil::ParseAsString("integration_scheme", root));
+    mScheme = BuildSceneType(
+        cJsonUtil::ParseAsString("scene_type", root));
     mEnableObstacle = cJsonUtil::ParseAsBool("enable_obstacle", root);
     if (mEnableObstacle)
         CreateObstacle(cJsonUtil::ParseAsValue("obstacle_conf", root));
@@ -78,8 +78,7 @@ void cSimScene::InitDrawBuffer()
         mEdgesDrawBuffer.resize(num_of_edges * size_per_edge);
     }
 
-    CalcTriangleDrawBuffer();
-    CalcEdgesDrawBuffer();
+    UpdateRenderingResource();
 }
 /**
  * \brief           Update the simulation procedure
@@ -105,8 +104,8 @@ void cSimScene::Update(double delta_time)
     }
 
     // 4. post process
-    CalcTriangleDrawBuffer();
-    CalcEdgesDrawBuffer();
+    // CalcTriangleDrawBuffer();
+    // CalcEdgesDrawBuffer();
     // std::cout << "xcur = " << mXcur.transpose() << std::endl;
     SIM_ASSERT(mXcur.hasNaN() == false);
 }
@@ -281,6 +280,12 @@ void cSimScene::CalcTriangleDrawBuffer()
 
 const tVectorXf &cSimScene::GetEdgesDrawBuffer() { return mEdgesDrawBuffer; }
 
+void cSimScene::UpdateRenderingResource()
+{
+    CalcEdgesDrawBuffer();
+    CalcTriangleDrawBuffer();
+}
+
 void cSimScene::CalcEdgesDrawBuffer()
 {
     mEdgesDrawBuffer.fill(std::nan(""));
@@ -432,9 +437,11 @@ void cSimScene::InitGeometry(const Json::Value &conf)
     // 1. build the geometry
     mClothWidth = cJsonUtil::ParseAsDouble("cloth_size", conf);
     mClothMass = cJsonUtil::ParseAsDouble("cloth_mass", conf);
-    
+
     cTriangulator::BuildGeometry(conf, mVertexArray, mEdgeArray,
                                  mTriangleArray);
+
+    CalcNodePositionVector(mClothInitPos);
 
     // init the inv mass vector
     mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());

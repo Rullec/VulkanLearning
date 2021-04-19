@@ -52,7 +52,7 @@ bool enableValidationLayers = true;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 float fov = 45.0f;
-float near_plane_dist = 0.1f;
+float near_plane_dist = 1e-6f;
 float far_plane_dist = 100.0f;
 
 #include "utils/MathUtil.h"
@@ -515,6 +515,7 @@ void cDrawScene::Update(double dt)
 {
     // cTimeUtil::Begin("sim_step");
     mSimScene->Update(dt);
+    mSimScene->UpdateRenderingResource();
     // cTimeUtil::End("sim_step");
     DrawFrame();
 }
@@ -548,6 +549,13 @@ void cDrawScene::MouseButton(int button, int action, int mods)
     }
     mSimScene->MouseButton(this, button, action, mods);
 }
+void cDrawScene::Key(int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
+    {
+        Reset();
+    }
+}
 
 void cDrawScene::Scroll(double xoff, double yoff)
 {
@@ -560,7 +568,10 @@ void cDrawScene::Scroll(double xoff, double yoff)
 /**
  * \brief           Reset the whole scene
 */
-void cDrawScene::Reset() {}
+void cDrawScene::Reset()
+{
+    mSimScene->Reset();
+}
 
 /**
  * \brief           Do initialization for vulkan
@@ -720,6 +731,7 @@ void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
 void cDrawScene::CreateVertexBufferCloth()
 {
     const tVectorXf &draw_buffer = mSimScene->GetTriangleDrawBuffer();
+    std::cout << "[debug] get triangle draw buffer size = " << draw_buffer.size() << std::endl;
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;

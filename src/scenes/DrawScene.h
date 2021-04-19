@@ -29,6 +29,7 @@ public:
     void Resize(int w, int h);
     void CursorMove(int xpos, int ypos);
     void MouseButton(int button, int action, int mods);
+    void Key(int key, int scancode, int action, int mods);
     void Scroll(double xoff, double yoff);
     virtual void Reset() override final;
     tVector CalcCursorPointWorldPos() const;

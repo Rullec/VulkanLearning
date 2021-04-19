@@ -76,13 +76,6 @@ void cKinematicBody::BuildCustomKinematicBody()
                       mEdgeArray,
                       mTriangleArray);
 
-    {
-        tVector aabbmin, aabbmax;
-        CalcAABB(aabbmin, aabbmax);
-        std::cout << "old aabb min = " << aabbmin.transpose() << std::endl;
-        std::cout << "old aabb max = " << aabbmax.transpose() << std::endl;
-        std::cout << "old aabb diff = " << (aabbmax - aabbmin).transpose() << std::endl;
-    }
     tMatrix trans = tMatrix::Identity();
     {
         trans.block(0, 3, 3, 1) = mInitPos.segment(0, 3);
@@ -111,15 +104,6 @@ void cKinematicBody::BuildCustomKinematicBody()
     cTriangulator::ValidateGeometry(mVertexArray,
                                     mEdgeArray,
                                     mTriangleArray);
-
-    {
-        tVector aabbmin, aabbmax;
-        CalcAABB(aabbmin, aabbmax);
-        std::cout << "new aabb min = " << aabbmin.transpose() << std::endl;
-        std::cout << "new aabb max = " << aabbmax.transpose() << std::endl;
-        std::cout << "new aabb diff = " << (aabbmax - aabbmin).transpose() << std::endl;
-    }
-    // exit(0);
 }
 
 int cKinematicBody::GetDrawNumOfTriangles() const

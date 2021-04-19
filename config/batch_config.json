@@ -1,0 +1,46 @@
+{
+    "scene_type": "data_synthesis",
+    "default_config_path": "config/se_config.json",
+    "pause_at_first": true,
+    "camera": {
+        "camera_pos": [
+            0.5,
+            0.5,
+            0.5
+        ],
+        "camera_focus": [
+            0.0,
+            0.15,
+            0
+        ],
+        "fov": 45,
+        "near": 0.1,
+        "far": 100
+    },
+    "property_manager": {
+        "prop_range": {
+            "stretch_warp": [
+                1e3,
+                1e4,
+                1e6
+            ],
+            "stretch_weft": [
+                1e3,
+                1e4,
+                1e6
+            ],
+            "bending_warp": [
+                1e2,
+                1e3,
+                1e4
+            ],
+            "bending_weft": [
+                1e2,
+                1e3,
+                1e4
+            ]
+        },
+        "mode": "log",
+        "sample": 2
+    }
+}

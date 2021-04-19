@@ -7,14 +7,14 @@
 
 namespace Json
 {
-
+    class Value;
 };
 class cJsonUtil
 {
 public:
-    static std::string BuildVectorJson(const tVector &vec);
+    // static Json::Value BuildVectorJson(const tVector &vec);
     static tVectorXd ReadVectorJson(const Json::Value &root);
-    static std::string BuildVectorJson(const Eigen::VectorXd &vec);
+    static Json::Value BuildVectorJson(const Eigen::VectorXd &vec);
     static std::string BuildVectorString(const Eigen::VectorXd &vec);
     static bool ReadVectorJson(const Json::Value &root,
                                Eigen::VectorXd &out_vec);

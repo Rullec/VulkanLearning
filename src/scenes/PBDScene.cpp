@@ -83,8 +83,7 @@ void cPBDScene::InitGeometry(const Json::Value &conf)
                                 (mEdgeArray.size() + mMaxDrawRayDebug));
     }
 
-    CalcTriangleDrawBuffer();
-    CalcEdgesDrawBuffer();
+    UpdateRenderingResource();
 
     // init the inv mass vector
     mInvMassMatrixDiag.noalias() = tVectorXd::Zero(GetNumOfFreedom());

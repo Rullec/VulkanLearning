@@ -3,19 +3,24 @@
 #include "utils/LogUtil.h"
 #include "SeScene.h"
 #include "SePhysicalProperties.h"
+#include "SeSimulationProperties.h"
 #include "SeScene.h"
 #include "SePiece.h"
 #include "geometries/Primitives.h"
 #include "Core/SeLogger.h"
 #include "SeSimParameters.h"
+#include "SeSceneOptions.h"
+#include "sim/ClothProperty.h"
 #include <iostream>
-
+#include <thread> // std::this_thread::sleep_for
+#include <chrono> // std::chrono::seconds
 SE_USING_NAMESPACE
 cLinctexScene::cLinctexScene()
 {
     // auto phyProp = SePhysicalProperties::Create();
     // piece = SePiece::Create(indices, pos3D, pos2D, phyProp);
     mSeScene = SeScene::Create();
+    mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
     mDragPt = nullptr;
     // sim_conf = mSeScene->GetSimulationParameters();
     // SIM_INFO("init linctex succ");
@@ -43,6 +48,8 @@ extern const tVector gGravity;
 
 void logging(const char *a, const char *b, int c, SeLogger::Level d, const char *e)
 {
+    if (d != SeLogger::Level::Error)
+        return;
     std::string prefix = "";
     switch (d)
     {
@@ -71,7 +78,13 @@ void logging(const char *a, const char *b, int c, SeLogger::Level d, const char 
     // std::cout << "[debug] d = " << d << std::endl;
     // std::cout << "[debug] e = " << e << std::endl;
 }
-
+void cLinctexScene::Reset()
+{
+    mSeScene->End();
+    mEngineStart = false;
+    UpdateCurNodalPosition(mClothInitPos);
+    UpdateClothFeatureVector();
+}
 void cLinctexScene::Init(const std::string &path)
 {
     SeLogger::GetInstance()->RegisterCallback(logging);
@@ -79,12 +92,14 @@ void cLinctexScene::Init(const std::string &path)
     Json::Value root;
     cJsonUtil::LoadJson(path, root);
     {
-        mClothProp.Init(root);
+        mClothProp = std::make_shared<tPhyProperty>();
+        mClothProp->Init(root);
     }
 
     InitGeometry(root);
     InitConstraint(root);
     InitDrawBuffer();
+    InitClothFeatureVector();
     // std::cout << "init cons done\n";
     // for (auto &x : mFixedPointIds)
     //     std::cout << x << std::endl;
@@ -95,7 +110,14 @@ void cLinctexScene::Init(const std::string &path)
     // init other scene
     auto ptr = mSeScene->GetSimulationParameters();
     ptr->SetGravity(gGravity[1]);
-    mSeScene->Start();
+    mEngineStart = false;
+    // ptr->GetCollisionThickness();
+    auto cloth_sim_prop = mCloth->GetSimulationProperties();
+    // cloth_sim_prop->SetCollisionThickness(0);
+    mCloth->GetPhysicalProperties()->SetThickness(0);
+    std::cout << "[debug] se col thickness = " << cloth_sim_prop->GetCollisionThickness() << std::endl;
+    // exit(0);
+    // mSeScene->GetOptions(
     // {
     //     TriangleBaryCoord baryCoord(0.5, 0.5, 0.5);
     //     // baryCoord.coord
@@ -108,6 +130,12 @@ void cLinctexScene::Init(const std::string &path)
 
 void cLinctexScene::Update(double dt)
 {
+    // std::cout << "linctex update\n";
+    if (mEngineStart == false)
+    {
+        mEngineStart = true;
+        mSeScene->Start();
+    }
     // std::cout << "update " << dt << std::endl;
     // SIM_ERROR("update hasn't been supported");
     // mSeScene->
@@ -125,15 +153,16 @@ void cLinctexScene::Update(double dt)
                     pos[i][1],
                     pos[i][2], 1);
         }
+        UpdateClothFeatureVector();
     }
-
+    // std::cout << "[debug] cloth feature norm = " << GetClothFeatureVector().norm() << std::endl;
     // else
     // {
     //     std::cout << "doesn't capture\n";
     //     exit(0);
     // }
-    CalcEdgesDrawBuffer();
-    CalcTriangleDrawBuffer();
+    // CalcEdgesDrawBuffer();
+    // CalcTriangleDrawBuffer();
 }
 
 void cLinctexScene::AddPiece()
@@ -164,22 +193,14 @@ SePiecePtr SePiece::Create(const std::vector<Int3> & triangles,
     }
 
     auto phyProp = SePhysicalProperties::Create();
-    // {
-    //     std::cout << phyProp->GetStretchWarp() << std::endl;
-    //     std::cout << phyProp->GetStretchWeft() << std::endl;
-    //     std::cout << phyProp->GetBendingWarp() << std::endl;
-    //     std::cout << phyProp->GetBendingWeft() << std::endl;
-    //     // exit(0);
-    // }
-    phyProp->SetStretchWarp(mClothProp.mStretchWarp);
-    phyProp->SetStretchWeft(mClothProp.mStretchWeft);
-    phyProp->SetBendingWarp(mClothProp.mBendingWarp);
-    phyProp->SetBendingWeft(mClothProp.mBendingWeft);
-    std::cout << "mass density = " << phyProp->GetMassDensity() << std::endl;
+    // std::cout << "mass density = " << phyProp->GetMassDensity() << std::endl;
     mCloth = SePiece::Create(indices, pos3D, pos2D, phyProp);
-
+    SetSimProperty(mClothProp);
     mSeScene->AddPiece(mCloth);
-    mCloth->AddFixedVertices(mFixedPointIds);
+    if (mFixedPointIds.size())
+    {
+        mCloth->AddFixedVertices(mFixedPointIds);
+    }
 }
 
 void cLinctexScene::ReadVertexPosFromEngine()
@@ -232,14 +253,6 @@ void cLinctexScene::UpdatePerturb()
     }
 }
 
-void cLinctexScene::tPhyProperty::Init(const Json::Value &root)
-{
-    Json::Value conf = cJsonUtil::ParseAsValue("cloth_property", root);
-    mStretchWarp = cJsonUtil::ParseAsDouble("stretch_warp", conf);
-    mStretchWeft = cJsonUtil::ParseAsDouble("stretch_weft", conf);
-    mBendingWarp = cJsonUtil::ParseAsDouble("bending_warp", conf);
-    mBendingWeft = cJsonUtil::ParseAsDouble("bending_weft", conf);
-}
 #include "SeObstacle.h"
 #include "sim/KinematicBody.h"
 tVector CalcNormal(
@@ -303,10 +316,85 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
                     v_normal_array[i][2]));
         }
     }
-
-    mSeScene->AddObstacle(SeObstacle::Create(se_triangles,
-                                             se_positions,
-                                             se_normals));
+    auto obstacle = SeObstacle::Create(se_triangles,
+                                       se_positions,
+                                       se_normals);
+    // std::cout << "old obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
+    obstacle->SetSurfaceOffset(0);
+    // mSeScene->GetSimulationParameters()->
+    // this->mCloth->GetSimulationProperties()->
+    // std::cout << "new obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
+    // exit(0);
+    mSeScene->AddObstacle(obstacle);
     std::cout << "[debug] add linctex obstacle succ\n";
 }
 #endif
+
+void cLinctexScene::SetSimProperty(const tPhyPropertyPtr &prop)
+{
+    mClothProp = prop;
+    auto phyProp = mCloth->GetPhysicalProperties();
+    phyProp->SetStretchWarp(mClothProp->mStretchWarp);
+    phyProp->SetStretchWeft(mClothProp->mStretchWeft);
+    phyProp->SetBendingWarp(mClothProp->mBendingWarp);
+    phyProp->SetBendingWeft(mClothProp->mBendingWeft);
+}
+tPhyPropertyPtr cLinctexScene::GetSimProperty() const
+{
+    return mClothProp;
+}
+
+/**
+ * \brief           Get the feature vector of this cloth
+ * 
+ *  Current it's all nodal position of current time
+*/
+const tVectorXd &cLinctexScene::GetClothFeatureVector() const
+{
+    return mClothFeature;
+}
+
+int cLinctexScene::GetClothFeatureSize() const
+{
+    return mClothFeature.size();
+}
+/**
+ * \brief               Init the feature vector
+*/
+void cLinctexScene::InitClothFeatureVector()
+{
+    mClothFeature.noalias() = tVectorXd::Zero(mVertexArray.size() * 3);
+    UpdateClothFeatureVector();
+}
+
+/**
+ * \brief               Calculate the feature vector of the cloth
+*/
+void cLinctexScene::UpdateClothFeatureVector()
+{
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        mClothFeature.segment(3 * i, 3).noalias() = mVertexArray[i]->mPos.segment(0, 3);
+    }
+}
+
+/**
+ * \brief               Update nodal position from a vector
+*/
+void cLinctexScene::UpdateCurNodalPosition(const tVectorXd &xcur)
+{
+    cSimScene::UpdateCurNodalPosition(xcur);
+    if (mCloth)
+    {
+        std::vector<Float3> pos(0);
+        for (int i = 0; i < mVertexArray.size(); i++)
+        {
+            pos.push_back(
+                Float3(
+                    xcur[3 * i + 0],
+                    xcur[3 * i + 1],
+                    xcur[3 * i + 2]));
+        }
+        mCloth->SetPositions(pos);
+    }
+}

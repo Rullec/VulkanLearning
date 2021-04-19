@@ -1,0 +1,38 @@
+#ifdef _WIN32
+#pragma once
+#include "SimScene.h"
+#include <string>
+#include "utils/DefUtil.h"
+#include "LinctexScene.h"
+/**
+ * \brief           scene for synthetic data
+*/
+SIM_DECLARE_CLASS_AND_PTR(cLinctexScene);
+SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
+SIM_DECLARE_CLASS_AND_PTR(tPhyPropertyManager);
+class cSynDataScene : public cSimScene
+{
+public:
+    explicit cSynDataScene();
+    virtual void Init(const std::string &conf_path) override;
+    virtual void Update(double dt) override;
+    virtual void Reset() override;
+    virtual const tVectorXf &GetTriangleDrawBuffer() override;
+    virtual const tVectorXf &GetEdgesDrawBuffer() override;
+    static eSceneType BuildSceneType(const std::string &str);
+    virtual bool CreatePerturb(tRay *ray) override;
+    virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos) override;
+    virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
+                             int mods) override;
+
+protected:
+    cLinctexScenePtr mLinScene;
+    std::string mDefaultConfigPath;      // config used to build simulation
+    tPhyPropertyManagerPtr mPropManager; // physical property manager
+    std::string mExportDataDir;
+    virtual void UpdateSubstep() override final;
+    void RunSimulation(tPhyPropertyPtr props);
+    void InitExportDataDir();
+    tVectorXd buffer0, buffer1;
+};
+#endif

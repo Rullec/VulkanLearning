@@ -5,18 +5,14 @@
 #include <memory>
 
 // tLogger cJsonUtil::mLogger = cLogUtil::CreateLogger("cJsonUtil");
-std::string cJsonUtil::BuildVectorJson(const tVector &vec)
+Json::Value cJsonUtil::BuildVectorJson(const tVectorXd &vec)
 {
-    std::string json = "";
+    Json::Value json = Json::arrayValue;
+
     for (int i = 0; i < vec.size(); ++i)
     {
-        if (i != 0)
-        {
-            json += ", ";
-        }
-        json += std::to_string(vec[i]);
+        json.append(vec[i]);
     }
-    json = "[" + json + "]";
     return json;
 }
 
@@ -41,12 +37,12 @@ bool cJsonUtil::ReadVectorJson(const Json::Value &root, tVector &out_vec)
     return succ;
 }
 
-std::string cJsonUtil::BuildVectorJson(const Eigen::VectorXd &vec)
-{
-    std::string json = BuildVectorString(vec);
-    json = "[" + json + "]";
-    return json;
-}
+// std::string cJsonUtil::BuildVectorJson(const Eigen::VectorXd &vec)
+// {
+//     std::string json = BuildVectorString(vec);
+//     json = "[" + json + "]";
+//     return json;
+// }
 
 std::string cJsonUtil::BuildVectorString(const Eigen::VectorXd &vec)
 {

@@ -367,6 +367,7 @@ build*/
 ClothSimulator/main
 *spv
 main.exe
+export_data/
 
 # global tags generator
 GPATH

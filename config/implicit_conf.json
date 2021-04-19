@@ -1,5 +1,5 @@
 {
-    "integration_scheme": "implicit",
+    "scene_type": "implicit",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [

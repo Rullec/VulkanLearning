@@ -4,18 +4,20 @@
 #include "SemiImplicitScene.h"
 #include "BaraffScene.h"
 #include "LinctexScene.h"
+#include "SynDataScene.h"
 #include "PBDScene.h"
 #include "SeScene.h"
+#include "DrawScene.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 
-std::shared_ptr<cDrawScene>
+std::shared_ptr<cScene>
 cSceneBuilder::BuildScene(const std::string type, bool enable_draw /*= true*/)
 {
-    std::shared_ptr<cDrawScene> scene = nullptr;
+    std::shared_ptr<cScene> scene = nullptr;
     if (enable_draw == true)
     {
-        scene = std::make_shared<cDrawScene>();
+        scene = std::dynamic_pointer_cast<cScene>(std::make_shared<cDrawScene>());
     }
     else
     {
@@ -28,28 +30,31 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
 {
     Json::Value root;
     cJsonUtil::LoadJson(config_file, root);
-    std::string type = cJsonUtil::ParseAsString("integration_scheme", root);
-    eIntegrationScheme scheme = cSimScene::BuildIntegrationScheme(type);
+    std::string type = cJsonUtil::ParseAsString("scene_type", root);
+    eSceneType scheme = cSimScene::BuildSceneType(type);
     std::shared_ptr<cSimScene> scene = nullptr;
     switch (scheme)
     {
-    case eIntegrationScheme::SCHEME_IMPLICIT:
+    case eSceneType::SCENE_IMPLICIT:
         scene = std::make_shared<cImplicitScene>();
         break;
-    case eIntegrationScheme::SCHEME_PROJECTIVE_DYNAMIC:
+    case eSceneType::SCENE_PROJECTIVE_DYNAMIC:
         scene = std::make_shared<cPDScene>();
         break;
-    case eIntegrationScheme::SCHEME_SEMI_IMPLICIT:
+    case eSceneType::SCENE_SEMI_IMPLICIT:
         scene = std::make_shared<cSemiImplicitScene>();
         break;
-    case eIntegrationScheme::SCHEME_POSITION_BASED_DYNAMIC:
+    case eSceneType::SCENE_POSITION_BASED_DYNAMIC:
         scene = std::make_shared<cPBDScene>();
         break;
-    case eIntegrationScheme::SCHEME_BARAFF:
+    case eSceneType::SCENE_BARAFF:
         scene = std::make_shared<cBaraffScene>();
         break;
-    case eIntegrationScheme::SCHEME_SE:
+    case eSceneType::SCENE_SE:
         scene = std::make_shared<cLinctexScene>();
+        break;
+    case eSceneType::SCENE_SYN_DATA:
+        scene = std::make_shared<cSynDataScene>();
         break;
     default:
         SIM_ERROR("unsupported sim scene {}", type);
