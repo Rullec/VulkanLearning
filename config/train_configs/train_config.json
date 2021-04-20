@@ -1,0 +1,15 @@
+{
+    "lr": 1e-4,
+    "lr_decay": 1,
+    "weight_decay": 1e-2,
+    "covg_threshold": 1e-2,
+    "data_dir": "D:\\SimpleClothSimulator\\export_data\\16items",
+    "layers": [
+        128,
+        32
+    ],
+    "model_output_dir": "../output/",
+    "model_path": "../output/04-20-22_12_58-0.165.pkl",
+    "save_model_iters": 100,
+    "logging_iters": 100
+}

@@ -65,7 +65,7 @@ bool tPhyPropertyManager::IsEnd() const
         for (int i = 0; i < tPhyProperty::mNumOfProperties; i++)
         {
             SIM_ASSERT((mNextSampleIndices[i] >= 0) &&
-                       (mNextSampleIndices[i] < tPhyProperty::mNumOfProperties));
+                       (mNextSampleIndices[i] < mSamples));
             if (mNextSampleIndices[i] != 0)
             {
                 is_end = false;

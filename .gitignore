@@ -368,6 +368,7 @@ ClothSimulator/main
 *spv
 main.exe
 export_data/
+output*/
 
 # global tags generator
 GPATH
