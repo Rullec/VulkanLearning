@@ -92,6 +92,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
         Json::Value export_json;
         export_json["input"] = cJsonUtil::BuildVectorJson(mLinScene->GetClothFeatureVector());
         export_json["output"] = cJsonUtil::BuildVectorJson(props->BuildFeatureVector());
+        std::cout << "feature = " << props->BuildFeatureVector().transpose() << std::endl;
         cJsonUtil::WriteJson(full_name, export_json);
         std::cout << "[debug] save data to " << single_name << std::endl;
         // 3. "output"

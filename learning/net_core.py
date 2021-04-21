@@ -28,7 +28,7 @@ class fc_net(nn.Module):
 
         x = self.output(x).to(self.device)
 
-        x = F.relu(x).to(self.device)
+        # x = F.relu(x).to(self.device)
 
         return x
 

@@ -1,7 +1,7 @@
 {
     "scene_type": "se",
     "cloth_size": 0.3,
-    "cloth_mass": 0.5,
+    "cloth_mass": 0.027,
     "cloth_init_pos": [
         0,
         0.21,
@@ -14,12 +14,12 @@
         0
     ],
     "geometry_type": "regular_triangle",
-    "subdivision": 40,
+    "subdivision": 100,
     "damping": 1e-3,
     "default_timestep": 1e-3,
     "cloth_property": {
-        "stretch_warp": 1e4,
-        "stretch_weft": 1e4,
+        "stretch_warp": 1e5,
+        "stretch_weft": 1e5,
         "bending_warp": 1e3,
         "bending_weft": 1e3
     },

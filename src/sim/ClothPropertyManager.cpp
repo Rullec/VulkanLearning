@@ -122,10 +122,28 @@ tVectorXd tPhyPropertyManager::CalcPropertyFromIndices(const std::vector<int> &i
     {
         int id = indices[i];
         int gap = mSamples - 1;
-        double min_log_value = std::log(mPropMin[i]);
-        double incremental =
-            (gap > 0 ? (std::log(mPropMax[i]) - std::log(mPropMin[i])) / (gap) : 0) * id;
-        prop[i] = std::exp(min_log_value + incremental);
+        switch (this->mSampleMode)
+        {
+        case eSampleMode::LOG:
+        {
+            double min_log_value = std::log(mPropMin[i]);
+            double incremental =
+                (gap > 0 ? (std::log(mPropMax[i]) - std::log(mPropMin[i])) / (gap) : 0) * id;
+            prop[i] = std::exp(min_log_value + incremental);
+            break;
+        }
+        case eSampleMode::LINEAR:
+        {
+            double min_value = mPropMin[i];
+            double incremental =
+                (gap > 0 ? (mPropMax[i] - mPropMin[i]) / (gap) : 0) * id;
+            prop[i] = min_value + incremental;
+            break;
+        }
+        default:
+            SIM_ERROR("unsupported prop {}", mSampleMode);
+            break;
+        }
     }
     return prop;
 }
