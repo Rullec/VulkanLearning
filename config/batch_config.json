@@ -1,9 +1,11 @@
 {
     "scene_type": "data_synthesis",
     "default_config_path": "config/se_config.json",
+    "enable_data_aug": false,
     "pause_at_first": true,
+    "convergence_threshold": 0.1,
     "camera": {
-        "camera_pos": [ 
+        "camera_pos": [
             0.5,
             0.5,
             0.5

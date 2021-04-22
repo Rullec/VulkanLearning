@@ -45,6 +45,7 @@ public:
     virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos);
     virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
                              int mods);
+    virtual void Key(int key, int scancode, int action, int mods);
 
 protected:
     double mClothWidth;
@@ -74,7 +75,7 @@ protected:
 
     tVectorXd mXpre, mXcur;          // previous node position & current node position
     std::vector<int> mFixedPointIds; // fixed constraint point
-    tVectorXd mClothInitPos; // init position of the cloth
+    tVectorXd mClothInitPos;         // init position of the cloth
     // base methods
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     virtual void InitDrawBuffer();

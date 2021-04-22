@@ -77,6 +77,12 @@ import torch
 
 class DataLoader():
     PKL_FILE_NAME = "train_data.pkl"
+    X_KEY = "X"
+    Y_KEY = "Y"
+    INPUT_MEAN_KEY = "input_mean"
+    INPUT_STD_KEY = "input_std"
+    OUTPUT_MEAN_KEY = "output_mean"
+    OUTPUT_STD_KEY = "output_std"
 
     def __init__(self, data_dir: str, train_perc: float, test_perc: float,
                  batch_size: int, enable_log_prediction: bool) -> None:
@@ -151,8 +157,12 @@ class DataLoader():
             import pickle
             with open(pkl_file, 'rb') as f:
                 cont = pickle.load(f)
-                X_lst = cont["X"]
-                Y_lst = cont["Y"]
+                X_lst = cont[DataLoader.X_KEY]
+                Y_lst = cont[DataLoader.Y_KEY]
+                self.input_mean = cont[DataLoader.INPUT_MEAN_KEY]
+                self.input_std = cont[DataLoader.INPUT_STD_KEY]
+                self.output_mean = cont[DataLoader.OUTPUT_MEAN_KEY]
+                self.output_std = cont[DataLoader.OUTPUT_STD_KEY]
         else:
             from tqdm import tqdm
             X_lst, Y_lst = [], []
@@ -167,15 +177,22 @@ class DataLoader():
                     Y_lst.append(Y)
             X_lst = np.array(X_lst)
             Y_lst = np.array(Y_lst)
-            cont = {"X": X_lst, "Y": Y_lst}
+            self.input_mean = X_lst.mean(axis=0)
+            self.input_std = X_lst.std(axis=0)
+            self.output_mean = Y_lst.mean(axis=0)
+            self.output_std = Y_lst.std(axis=0)
+
+            cont = {
+                DataLoader.X_KEY: X_lst,
+                DataLoader.Y_KEY: Y_lst,
+                DataLoader.INPUT_MEAN_KEY: self.input_mean,
+                DataLoader.INPUT_STD_KEY: self.input_std,
+                DataLoader.OUTPUT_MEAN_KEY: self.output_mean,
+                DataLoader.OUTPUT_STD_KEY: self.output_std
+            }
             import pickle
             with open(pkl_file, 'wb') as f:
                 pickle.dump(cont, f)
-
-        self.input_mean = X_lst.mean(axis=0)
-        self.input_std = X_lst.std(axis=0)
-        self.output_mean = Y_lst.mean(axis=0)
-        self.output_std = Y_lst.std(axis=0)
 
         X_lst = (X_lst - self.input_mean) / self.input_std
         Y_lst = (Y_lst - self.output_mean) / self.output_std

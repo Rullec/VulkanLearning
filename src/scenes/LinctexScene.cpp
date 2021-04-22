@@ -1,6 +1,7 @@
 #ifdef _WIN32
 #include "LinctexScene.h"
 #include "utils/LogUtil.h"
+#include "utils/FileUtil.h"
 #include "SeScene.h"
 #include "SePhysicalProperties.h"
 #include "SeSimulationProperties.h"
@@ -95,6 +96,22 @@ void cLinctexScene::Init(const std::string &path)
         mClothProp = std::make_shared<tPhyProperty>();
         mClothProp->Init(root);
     }
+    {
+        mEnableNetworkInferenceMode = cJsonUtil::ParseAsBool("enable_network_inference_mode", root);
+        if (mEnableNetworkInferenceMode == true)
+        {
+            mNetworkInfer_ConvThreshold = 0;
+            mNetworkInfer_OutputPath = "";
+            mNetworkInfer_ConvThreshold = cJsonUtil::ParseAsDouble("network_inference_convergence_threshold", root);
+            mNetworkInfer_OutputPath = cJsonUtil::ParseAsString("network_inference_output_path", root);
+            mNetworkInfer_MinIter = cJsonUtil::ParseAsInt("network_inference_min_iter", root);
+            mPreviosFeature.resize(0);
+            mNetworkInfer_CurIter = 0;
+            std::cout << "[NN] output path = " << mNetworkInfer_OutputPath << std::endl;
+            std::cout << "[NN] conv threshold = " << mNetworkInfer_ConvThreshold << std::endl;
+            // exit(0);
+        }
+    }
 
     InitGeometry(root);
     InitConstraint(root);
@@ -127,7 +144,37 @@ void cLinctexScene::Init(const std::string &path)
     //     mCloth->AddDraggedPoint(baryCoord, position);
     // }
 }
-
+void cLinctexScene::NetworkInferenceFunction()
+{
+    bool convergence = true;
+    if (mPreviosFeature.size() != GetNumOfFreedom())
+    {
+        // the first time
+        convergence = false;
+    }
+    else
+    {
+        double cur_norm = (mPreviosFeature - mClothFeature).norm();
+        std::cout << "iter " << mNetworkInfer_CurIter << " cur norm = " << cur_norm << std::endl;
+        if (cur_norm > mNetworkInfer_ConvThreshold || mNetworkInfer_CurIter < mNetworkInfer_MinIter)
+        {
+            convergence = false;
+        }
+    }
+    mPreviosFeature = mClothFeature;
+    if (convergence)
+    {
+        std::cout << "exit, save current result to " << mNetworkInfer_OutputPath << std::endl;
+        cLinctexScene::DumpSimulationData(
+            mClothFeature,
+            mClothProp->BuildFeatureVector(),
+            tVector::Zero(),
+            tVector::Zero(),
+            mNetworkInfer_OutputPath);
+        exit(0);
+    }
+    mNetworkInfer_CurIter++;
+}
 void cLinctexScene::Update(double dt)
 {
     // std::cout << "linctex update\n";
@@ -154,6 +201,9 @@ void cLinctexScene::Update(double dt)
                     pos[i][2], 1);
         }
         UpdateClothFeatureVector();
+
+        if (mEnableNetworkInferenceMode == true)
+            NetworkInferenceFunction();
     }
     // std::cout << "[debug] cloth feature norm = " << GetClothFeatureVector().norm() << std::endl;
     // else
@@ -328,7 +378,6 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
     mSeScene->AddObstacle(obstacle);
     std::cout << "[debug] add linctex obstacle succ\n";
 }
-#endif
 
 void cLinctexScene::SetSimProperty(const tPhyPropertyPtr &prop)
 {
@@ -357,6 +406,31 @@ const tVectorXd &cLinctexScene::GetClothFeatureVector() const
 int cLinctexScene::GetClothFeatureSize() const
 {
     return mClothFeature.size();
+}
+
+/**
+ * \brief           Save current simulation correspondence
+*/
+void cLinctexScene::DumpSimulationData(
+    const tVectorXd &simualtion_result,
+    const tVectorXd &simulation_property,
+    const tVector &init_rot_qua,
+    const tVector &init_translation,
+    const std::string &filename)
+{
+    Json::Value export_json;
+    export_json["input"] = cJsonUtil::BuildVectorJson(simualtion_result);
+    export_json["output"] = cJsonUtil::BuildVectorJson(simulation_property);
+    Json::Value extra_info;
+    // std::cout << "feature = " << props->BuildFeatureVector().transpose() << std::endl;
+    // std::cout << "trans = \n"
+    //           << init_trans << std::endl;
+
+    extra_info["init_rot"] = cJsonUtil::BuildVectorJson(init_rot_qua);
+    extra_info["init_pos"] = cJsonUtil::BuildVectorJson(init_translation);
+    export_json["extra_info"] = extra_info;
+    cJsonUtil::WriteJson(filename, export_json);
+    std::cout << "[debug] save data to " << filename << std::endl;
 }
 /**
  * \brief               Init the feature vector
@@ -398,3 +472,71 @@ void cLinctexScene::UpdateCurNodalPosition(const tVectorXd &xcur)
         mCloth->SetPositions(pos);
     }
 }
+
+/**
+ * \brief               Init the geometry and set the init positions
+*/
+void cLinctexScene::InitGeometry(const Json::Value &conf)
+{
+    cSimScene::InitGeometry(conf);
+    std::string init_geo = cJsonUtil::ParseAsString("cloth_init_nodal_position", conf);
+    bool is_illegal = true;
+    if (cFileUtil::ExistsFile(init_geo) == true)
+    {
+        Json::Value value;
+        cJsonUtil::LoadJson(init_geo, value);
+        tVectorXd vec = cJsonUtil::ReadVectorJson(
+            cJsonUtil::ParseAsValue("input", value));
+        // std::cout << "vec size = " << vec.size();
+        if (vec.size() == GetNumOfFreedom())
+        {
+            mClothInitPos = vec;
+            mXcur = vec;
+            UpdateCurNodalPosition(mXcur);
+            std::cout << "[debug] set init vec from " << init_geo << std::endl;
+        }
+        else
+        {
+            is_illegal = false;
+        }
+    }
+    else
+    {
+        is_illegal = false;
+    }
+
+    // 1. check whehter it's illegal
+    if (is_illegal)
+    {
+        std::cout << "[warn] init geometry file " << init_geo << "is illegal, ignore\n";
+    }
+}
+/**
+ * \brief           apply the transform to the cloth
+*/
+void cLinctexScene::ApplyTransform(const tMatrix &trans)
+{
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+
+        tVector cur_pos = tVector::Ones();
+        cur_pos.segment(0, 3).noalias() = mXcur.segment(i * 3, 3);
+        mXcur.segment(i * 3, 3).noalias() = (trans * cur_pos).segment(0, 3);
+    }
+    UpdateCurNodalPosition(mXcur);
+}
+#include "GLFW/glfw3.h"
+void cLinctexScene::Key(int key, int scancode, int action, int mods)
+{
+    cSimScene::Key(key, scancode, action, mods);
+    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    {
+        cLinctexScene::DumpSimulationData(
+            GetClothFeatureVector(),
+            mClothProp->BuildFeatureVector(),
+            tVector::Zero(),
+            tVector::Zero(),
+            "tmp.json");
+    }
+}
+#endif

@@ -82,8 +82,8 @@ void InitGlfw()
 
 #include "utils/LogUtil.h"
 #include "utils/TimeUtil.hpp"
-// bool gEnableDraw = true;
-bool gEnableDraw = false;
+bool gEnableDraw = true;
+// bool gEnableDraw = false;
 void SimDraw(const std::string &conf_path);
 void SimNoDraw(const std::string &conf_path);
 
@@ -108,7 +108,8 @@ int main(int argc, char **argv)
     {
         conf = std::string(argv[1]);
     }
-
+    // std::cout << "conf = " << conf << std::endl;
+    // exit(0);
     {
         SIM_ASSERT(cFileUtil::ExistsFile(conf) == true);
         Json::Value root;

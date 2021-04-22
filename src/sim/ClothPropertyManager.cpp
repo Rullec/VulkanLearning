@@ -29,7 +29,7 @@ tPhyPropertyManager::tPhyPropertyManager(
     SIM_ASSERT(mSamples > 0);
     mNextSampleIndices.resize(tPhyProperty::mNumOfProperties, 0);
     mFirstSample = true;
-    std::cout << "sample " << mSamples << std::endl;
+    // std::cout << "sample " << mSamples << std::endl;
 }
 
 tPhyPropertyPtr tPhyPropertyManager::GetNextProperty()

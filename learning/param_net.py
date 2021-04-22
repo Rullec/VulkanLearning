@@ -72,7 +72,8 @@ class ParamNet:
         self.iters_save_model = int(self.conf[ParamNet.SAVE_MODEL_ITERS_KEY])
         self.iters_logging = int(self.conf[ParamNet.LOGGING_ITERS_KEY])
         self.optimizer_type = self.conf[ParamNet.OPTIMIZER_TYPE_KEY]
-        self.enable_log_prediction = self.conf[ParamNet.ENABLE_LOG_PREDICTION_KEY]
+        self.enable_log_prediction = self.conf[
+            ParamNet.ENABLE_LOG_PREDICTION_KEY]
 
     def save_model(self, name):
         '''
@@ -153,6 +154,15 @@ class ParamNet:
         output_name = f"{output_name}-{str(cur_loss)[:5]}.pkl"
         output_name = os.path.join(self.model_output_dir, output_name)
         return output_name
+
+    def infer(self, input):
+        input = (input -
+                 self.data_loader.input_mean) / self.data_loader.input_std
+        pred = self.net(input)
+        # print(f"[infer] pred {pred.detach().numpy()}")
+        # print(f"[infer] output std {self.data_loader.output_std}")
+        # print(f"[infer] output mean {self.data_loader.output_mean}")
+        return np.exp(pred.detach().numpy() * self.data_loader.output_std + self.data_loader.output_mean)
 
     def train(self):
 

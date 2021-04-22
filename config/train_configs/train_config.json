@@ -11,7 +11,7 @@
         32
     ],
     "model_output_dir": "../output/",
-    "model_path": "",
+    "model_path": "../output/04-22-14_11_05-0.003.pkl",
     "batch_size": 32,
     "save_model_iters": 20,
     "logging_iters": 5,

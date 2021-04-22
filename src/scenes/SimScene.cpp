@@ -432,6 +432,10 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
     }
 }
 
+void cSimScene:: Key(int key, int scancode, int action, int mods)
+{
+
+}
 void cSimScene::InitGeometry(const Json::Value &conf)
 {
     // 1. build the geometry

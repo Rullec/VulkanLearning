@@ -25,9 +25,17 @@ public:
     virtual void Reset() override final;
     // external cloth property settings
     virtual void SetSimProperty(const tPhyPropertyPtr &prop);
+    virtual void ApplyTransform(const tMatrix &trans);
     virtual tPhyPropertyPtr GetSimProperty() const;
     virtual const tVectorXd &GetClothFeatureVector() const;
     virtual int GetClothFeatureSize() const;
+    static void DumpSimulationData(
+        const tVectorXd &simualtion_result,
+        const tVectorXd &simulation_property,
+        const tVector &init_rot_qua,
+        const tVector &init_translation,
+        const std::string &filename);
+    virtual void Key(int key, int scancode, int action, int mods);
 
 protected:
     virtual void UpdateSubstep() override final;
@@ -35,16 +43,24 @@ protected:
     void AddPiece();
     void ReadVertexPosFromEngine();
     virtual void UpdateCurNodalPosition(const tVectorXd &xcur) override final;
-
+    virtual void InitGeometry(const Json::Value &conf);
     virtual void UpdatePerturb();
     virtual void CreateObstacle(const Json::Value &conf);
     tVectorXd mClothFeature;
     virtual void InitClothFeatureVector();
     virtual void UpdateClothFeatureVector();
+    void NetworkInferenceFunction();
     std::shared_ptr<StyleEngine::SePiece> mCloth;
     std::shared_ptr<StyleEngine::SeDraggedPoints> mDragPt;
     std::shared_ptr<StyleEngine::SeScene> mSeScene;
     tPhyPropertyPtr mClothProp; // cloth property
     bool mEngineStart;          // start the engine or not
+
+    bool mEnableNetworkInferenceMode; // if it's true, the simulation is running for the DNN 's inference proceduce
+    double mNetworkInfer_ConvThreshold;
+    std::string mNetworkInfer_OutputPath;
+    int mNetworkInfer_MinIter;
+    int mNetworkInfer_CurIter;
+    tVectorXd mPreviosFeature;
 };
 #endif

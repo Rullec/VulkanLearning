@@ -555,6 +555,7 @@ void cDrawScene::Key(int key, int scancode, int action, int mods)
     {
         Reset();
     }
+    mSimScene->Key(key, scancode, action, mods);
 }
 
 void cDrawScene::Scroll(double xoff, double yoff)

@@ -26,12 +26,29 @@ public:
                              int mods) override;
 
 protected:
+    struct tSyncDataAug
+    {
+        std::vector<double> mRotXAxis;
+        std::vector<double> mRotYAxis;
+        std::vector<double> mRotZAxis;
+        tEigenArr<tVector3d> mTranslationXYZ;
+        // tSyncDataAug(const Json::Value & conf);
+        tSyncDataAug();
+        const tEigenArr<tMatrix> &GetAugTransform() const;
+
+    protected:
+        tEigenArr<tMatrix> GenerateAugmentTransform() const;
+        tEigenArr<tMatrix> mTrans;
+    };
+    std::shared_ptr<tSyncDataAug> mSynDataAug;
     cLinctexScenePtr mLinScene;
     std::string mDefaultConfigPath;      // config used to build simulation
+    bool mEnableDataAug;                 // enable data augmentation
     tPhyPropertyManagerPtr mPropManager; // physical property manager
+    double mConvergenceThreshold;
     std::string mExportDataDir;
     virtual void UpdateSubstep() override final;
-    void RunSimulation(tPhyPropertyPtr props);
+    void RunSimulation(tPhyPropertyPtr props, const tMatrix & init_trans);
     void InitExportDataDir();
     tVectorXd buffer0, buffer1;
 };
