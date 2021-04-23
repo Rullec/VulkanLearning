@@ -14,6 +14,7 @@ void cImplicitScene::Init(const std::string &conf_path)
     mStiffness = cJsonUtil::ParseAsInt("stiffness", root);
     InitGeometry(root);
     InitConstraint(root);
+    InitDrawBuffer();
 
     // 3. set up the init pos
     CalcNodePositionVector(mXpre);

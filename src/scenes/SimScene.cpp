@@ -10,7 +10,7 @@
 std::string
     gSceneTypeStr[eSceneType::NUM_OF_SCENE_TYPES] = {
         "semi_implicit", "implicit", "projective_dynamic", "pbd",
-        "tri_baraff", "se", "data_synthesis"};
+        "tri_baraff", "se", "data_synthesis", "data_process"};
 
 eSceneType cSimScene::BuildSceneType(const std::string &str)
 {
@@ -43,15 +43,15 @@ void cSimScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
 
-    mGeometryType = cJsonUtil::ParseAsString("geometry_type", root);
-    mDamping = cJsonUtil::ParseAsDouble("damping", root);
-    mEnableProfiling = cJsonUtil::ParseAsBool("enable_profiling", root);
-    mIdealDefaultTimestep = cJsonUtil::ParseAsDouble("default_timestep", root);
-    mScheme = BuildSceneType(
-        cJsonUtil::ParseAsString("scene_type", root));
-    mEnableObstacle = cJsonUtil::ParseAsBool("enable_obstacle", root);
+    mGeometryType = cJsonUtil::ParseAsString(cTriangulator::GEOMETRY_TYPE_KEY, root);
+    mDamping = cJsonUtil::ParseAsDouble(cSimScene::DAMPING_KEY, root);
+    mEnableProfiling = cJsonUtil::ParseAsBool(cSimScene::ENABLE_PROFLINE_KEY, root);
+    mIdealDefaultTimestep = cJsonUtil::ParseAsDouble(cSimScene::DEFAULT_TIMESTEP_KEY, root);
+    mSceneType = BuildSceneType(
+        cJsonUtil::ParseAsString(cSimScene::SCENE_TYPE_KEY, root));
+    mEnableObstacle = cJsonUtil::ParseAsBool(cSimScene::ENABLE_OBSTACLE_KEY, root);
     if (mEnableObstacle)
-        CreateObstacle(cJsonUtil::ParseAsValue("obstacle_conf", root));
+        CreateObstacle(cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, root));
 }
 
 void cSimScene::InitDrawBuffer()
@@ -432,9 +432,8 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
     }
 }
 
-void cSimScene:: Key(int key, int scancode, int action, int mods)
+void cSimScene::Key(int key, int scancode, int action, int mods)
 {
-
 }
 void cSimScene::InitGeometry(const Json::Value &conf)
 {

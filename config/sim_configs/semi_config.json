@@ -1,5 +1,5 @@
 {
-    "scene_type": "implicit",
+    "scene_type": "semi_implicit",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -7,14 +7,22 @@
         1,
         0
     ],
+    "cloth_init_orientation": [
+        0,
+        0,
+        0
+    ],
+    "enable_draw": true,
+    "enable_obstacle": false,
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 10,
+    "subdivision": 50,
     "damping": 1e-3,
-    "stiffness": 100,
-    "default_timestep": 1e-3,
-    "max_newton_iters": 4,
+    "stiffness": 10000,
+    "bending_stiffness": 1e-2,
+    "enable_Q_bending": true,
+    "default_timestep": 1e-4,
     "constraints": {
         "fixed_point": [
             [

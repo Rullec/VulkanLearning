@@ -17,7 +17,8 @@ enum eSceneType
     SCENE_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
     SCENE_BARAFF,                 // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
     SCENE_SE,                     // style 3d engine
-    SCENE_SYN_DATA,
+    SCENE_SYN_DATA,               // synthetic train scene
+    SCENE_PROCESS_DATA,           // process train scene
     NUM_OF_SCENE_TYPES
 };
 
@@ -31,6 +32,13 @@ SIM_DECLARE_CLASS_AND_PTR(cKinematicBody)
 class cSimScene : public cScene
 {
 public:
+    inline static const std::string DAMPING_KEY = "damping",
+                                    ENABLE_PROFLINE_KEY = "enable_profiling",
+                                    DEFAULT_TIMESTEP_KEY = "default_timestep",
+                                    SCENE_TYPE_KEY = "scene_type",
+                                    ENABLE_OBSTACLE_KEY = "enable_obstacle",
+                                    OBSTACLE_CONF_KEY = "obstacle_conf";
+
     cSimScene();
     ~cSimScene();
     virtual void Init(const std::string &conf_path) override;
@@ -53,7 +61,7 @@ protected:
     tPerturb *mPerturb;
     tVectorXd mInvMassMatrixDiag; // diag inv mass matrix
     std::string mGeometryType;
-    eSceneType mScheme;
+    eSceneType mSceneType;
     bool mEnableProfiling;
     bool mEnableObstacle;        // using obstacle?
     cKinematicBodyPtr mObstacle; // obstacle for cloth simulation

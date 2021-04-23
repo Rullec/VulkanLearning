@@ -8,6 +8,7 @@
 #include "PBDScene.h"
 #include "SeScene.h"
 #include "DrawScene.h"
+#include "ProcessTrainDataScene.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 
@@ -55,6 +56,9 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
         break;
     case eSceneType::SCENE_SYN_DATA:
         scene = std::make_shared<cSynDataScene>();
+        break;
+    case eSceneType::SCENE_PROCESS_DATA:
+        scene = std::make_shared<cProcessTrainDataScene>();
         break;
     default:
         SIM_ERROR("unsupported sim scene {}", type);

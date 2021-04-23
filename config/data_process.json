@@ -1,0 +1,59 @@
+{
+    "scene_type": "data_process",
+    "pause_at_first": true,
+    
+    "camera": {
+        "camera_pos": [
+            0.5,
+            0.5,
+            0.5
+        ],
+        "camera_focus": [
+            0.0,
+            0.15,
+            0
+        ],
+        "fov": 45,
+        "near": 0.1,
+        "far": 100
+    },
+    "capture_camera_pos": [
+        [
+            1,
+            0,
+            0,
+            1
+        ],
+        [
+            -1,
+            0,
+            0,
+            1
+        ],
+        [
+            0,
+            0,
+            1,
+            1
+        ],
+        [
+            0,
+            0,
+            -1,
+            1
+        ]
+    ],
+    "capture_camera_center": [
+        0,
+        0,
+        0,
+        1
+    ],
+    "capture_camera_up": [
+        0,
+        1,
+        0,
+        0
+    ],
+    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\16items"
+}

@@ -1,6 +1,6 @@
 {
     "scene_type": "data_synthesis",
-    "default_config_path": "config/se_config.json",
+    "default_config_wpath": "config/se_config.json",
     "enable_data_aug": false,
     "pause_at_first": true,
     "convergence_threshold": 0.1,

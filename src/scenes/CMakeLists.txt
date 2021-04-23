@@ -10,6 +10,7 @@ ImplicitScene.cpp
 LinctexScene.cpp
 SynDataScene.cpp
 PDScene.cpp
+ProcessTrainDataScene.cpp
 PBDScene.cpp
 Perturb.cpp
 cameras/CameraBase.cpp

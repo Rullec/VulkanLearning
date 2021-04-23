@@ -5,7 +5,7 @@ void cTriangulator::BuildGeometry(const Json::Value &config, std::vector<tVertex
                                   std::vector<tEdge *> &edges_array,
                                   std::vector<tTriangle *> &triangles_array)
 {
-    std::string geo_type = cJsonUtil::ParseAsString("geometry_type", config);
+    std::string geo_type = cJsonUtil::ParseAsString(cTriangulator::GEOMETRY_TYPE_KEY, config);
     double width = cJsonUtil::ParseAsDouble("cloth_size", config);
     double mass = cJsonUtil::ParseAsDouble("cloth_mass", config);
     tVector cloth_init_pos = tVector::Zero();
@@ -555,4 +555,32 @@ void cTriangulator::ValidateGeometry(std::vector<tVertex *> &vertices_array,
             }
         }
     }
+}
+
+/**
+ * \brief           Given the geometry info, save them to the given "path"
+*/
+void cTriangulator::SaveGeometry(std::vector<tVertex *> &vertices_array,
+                                 std::vector<tEdge *> &edges_array,
+                                 std::vector<tTriangle *> &triangles_array,
+                                 const std::string &path)
+{
+    Json::Value root;
+    // 1. the vertices info
+    root["num_of_vertices"] = vertices_array.size();
+
+    // 2. the edge info
+    // 3. the triangle info
+    root["triangle_array"] = Json::arrayValue;
+    for (auto &x : triangles_array)
+    {
+        Json::Value tri = Json::arrayValue;
+
+        tri.append(x->mId0);
+        tri.append(x->mId1);
+        tri.append(x->mId2);
+        root["triangle_array"].append(tri);
+    }
+    std::cout << "[debug] save geometry to " << path << std::endl;
+    cJsonUtil::WriteJson(path, root, true);
 }

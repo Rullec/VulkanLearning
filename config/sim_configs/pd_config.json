@@ -12,6 +12,7 @@
         0,
         0
     ],
+    "enable_draw": true,
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
@@ -23,7 +24,7 @@
     "default_timestep": 0.033333333333,
     "max_steps_opt": 10,
     "constraints": {
-        "fixed_point.bal": [
+        "fixed_point": [
             [
                 0,
                 0

@@ -5,8 +5,6 @@
 #include "GLFW/glfw3.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif
 
 #ifdef __linux__
@@ -86,37 +84,12 @@ bool gEnableDraw = true;
 // bool gEnableDraw = false;
 void SimDraw(const std::string &conf_path);
 void SimNoDraw(const std::string &conf_path);
-
+void ParseConfig(std::string conf);
 int main(int argc, char **argv)
 {
-    // std::string conf = "config/semi_config.json";
-    // std::string conf = "config/pbd_config.json";
-    // std::string conf = "config/pd_config.json";
-    // std::string conf = "config/implicit_conf.json";
-#ifdef _WIN32
-    // std::string conf = "config/se_config.json";
-
-    std::string conf;
-    if (gEnableDraw == false)
-        conf = "config/batch_config.json";
-    else
-        conf = "config/se_config.json";
-#else
-    std::string conf = "config/pd_config.json";
-#endif
-    if (argc == 2)
-    {
-        conf = std::string(argv[1]);
-    }
-    // std::cout << "conf = " << conf << std::endl;
-    // exit(0);
-    {
-        SIM_ASSERT(cFileUtil::ExistsFile(conf) == true);
-        Json::Value root;
-        cJsonUtil::LoadJson(conf, root);
-        gPause = cJsonUtil::ParseAsBool("pause_at_first", root);
-        SIM_INFO("pause at first = {}", gPause);
-    }
+    SIM_ASSERT(argc == 2);
+    std::string conf = std::string(argv[1]);
+    ParseConfig(conf);
 
     if (gEnableDraw == true)
     {
@@ -185,4 +158,13 @@ void SimNoDraw(const std::string &conf_path)
         scene->Update(dt);
         printf("[debug] iters %d/%d\n", cur_iter, max_iters);
     }
+}
+void ParseConfig(std::string conf)
+{
+    SIM_ASSERT(cFileUtil::ExistsFile(conf) == true);
+    Json::Value root;
+    cJsonUtil::LoadJson(conf, root);
+    gPause = cJsonUtil::ParseAsBool("pause_at_first", root);
+    gEnableDraw = cJsonUtil::ParseAsBool("enable_draw", root);
+    SIM_INFO("pause at first = {}", gPause);
 }

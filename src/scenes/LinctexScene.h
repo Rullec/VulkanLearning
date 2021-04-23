@@ -56,11 +56,14 @@ protected:
     tPhyPropertyPtr mClothProp; // cloth property
     bool mEngineStart;          // start the engine or not
 
-    bool mEnableNetworkInferenceMode; // if it's true, the simulation is running for the DNN 's inference proceduce
-    double mNetworkInfer_ConvThreshold;
-    std::string mNetworkInfer_OutputPath;
-    int mNetworkInfer_MinIter;
-    int mNetworkInfer_CurIter;
-    tVectorXd mPreviosFeature;
+    bool mEnableNetworkInferenceMode;     // if it's true, the simulation is running for the DNN 's inference proceduce
+    double mNetworkInfer_ConvThreshold;   // used in network inference mode, the convergence threshold for diff norm between nodal positions
+    std::string mNetworkInfer_OutputPath; // used in network inference mode, output path of simulation result (nodal positions)
+    int mNetworkInfer_MinIter;            // used in network inference mode, the minimium iteration times before convergence
+    int mNetworkInfer_CurIter;            // used in network inference mode, cur iterations
+    tVectorXd mPreviosFeature;            // used in network inference mode, previous nodal position vector
+
+    bool mEnableDumpGeometryInfo;     // if true, we save the geometry information after the initialization
+    std::string mDumpGeometryInfoPath; // save path for initial geometry
 };
 #endif

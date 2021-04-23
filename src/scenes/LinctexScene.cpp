@@ -12,6 +12,7 @@
 #include "SeSimParameters.h"
 #include "SeSceneOptions.h"
 #include "sim/ClothProperty.h"
+#include "geometries/Triangulator.h"
 #include <iostream>
 #include <thread> // std::this_thread::sleep_for
 #include <chrono> // std::chrono::seconds
@@ -110,6 +111,12 @@ void cLinctexScene::Init(const std::string &path)
             std::cout << "[NN] output path = " << mNetworkInfer_OutputPath << std::endl;
             std::cout << "[NN] conv threshold = " << mNetworkInfer_ConvThreshold << std::endl;
             // exit(0);
+        }
+
+        mEnableDumpGeometryInfo = cJsonUtil::ParseAsBool("enable_dump_geometry_info", root);
+        if (mEnableDumpGeometryInfo)
+        {
+            mDumpGeometryInfoPath = cJsonUtil::ParseAsString("dump_triangle_info_path", root);
         }
     }
 
@@ -509,6 +516,15 @@ void cLinctexScene::InitGeometry(const Json::Value &conf)
     if (is_illegal)
     {
         std::cout << "[warn] init geometry file " << init_geo << "is illegal, ignore\n";
+    }
+
+    if (mEnableDumpGeometryInfo == true)
+    {
+        cTriangulator::SaveGeometry(
+            this->mVertexArray,
+            this->mEdgeArray,
+            this->mTriangleArray,
+            this->mDumpGeometryInfoPath);
     }
 }
 /**
