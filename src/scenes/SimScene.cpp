@@ -463,25 +463,14 @@ bool cSimScene::CreatePerturb(tRay *ray)
     tTriangle *selected_tri = nullptr;
     tVector raycast_point = tVector::Zero();
     int selected_tri_id = -1;
-    for (int i = 0; i < mTriangleArray.size(); i++)
-    {
-        auto &tri = mTriangleArray[i];
-        raycast_point = cMathUtil::RayCast(
-            ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
-            mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
-        if (raycast_point.hasNaN() == false)
-        {
-            std::cout << "[debug] add perturb on triangle " << i << std::endl;
-            selected_tri = tri;
-            selected_tri_id = i;
-            break;
-            // mVertexArray[tri->mId0]->mColor = tVector(1, 0, 0, 0);
-            // mVertexArray[tri->mId1]->mColor = tVector(1, 0, 0, 0);
-            // mVertexArray[tri->mId2]->mColor = tVector(1, 0, 0, 0);
-        }
-    }
+    // double min_depth = std::numeric_limits<double>::max();
+    RayCastScene(ray, &selected_tri, selected_tri_id, raycast_point);
     if (selected_tri == nullptr)
         return false;
+    else
+    {
+        std::cout << "[debug] add perturb on triangle " << selected_tri_id << std::endl;
+    }
 
     // 2. we have a triangle to track
     SIM_ASSERT(mPerturb == nullptr);
@@ -502,9 +491,9 @@ bool cSimScene::CreatePerturb(tRay *ray)
                                    mVertexArray[selected_tri->mId1]->mPos,
                                    mVertexArray[selected_tri->mId2]->mPos)
             .segment(0, 3);
-    // std::cout << "bary coords = " << mPerturb->mBarycentricCoords.transpose()
-    //           << std::endl;
+    SIM_ASSERT(mPerturb->mBarycentricCoords.hasNaN() == false);
     mPerturb->InitTangentRect(-1 * ray->mDir);
+    mPerturb->UpdatePerturb(ray->mOrigin, ray->mDir);
 
     // change the color
     mVertexArray[selected_tri->mId0]->mColor = tVector(1, 0, 0, 0);
@@ -600,4 +589,45 @@ void cSimScene::CreateObstacle(const Json::Value &conf)
     mObstacle->Init(conf);
     std::cout << "[debug] create obstacle done, now begin to exit\n";
     // exit(0);
+}
+
+/**
+ * \brief                   Raycast the whole scene
+ * @param ray:              the given ray
+ * @param selected_tri:     a reference to selected triangle pointer
+ * @param selected_tri_id:  a reference to selected triangle id
+ * @param raycast_point:    a reference to intersection point
+*/
+void cSimScene::RayCastScene(const tRay *ray, tTriangle **selected_tri,
+                             int &selected_tri_id,
+                             tVector &raycast_point) const
+{
+    // 1. init
+    *selected_tri = nullptr;
+    selected_tri_id = -1;
+    double min_depth = std::numeric_limits<double>::max();
+    raycast_point.noalias() = tVector::Ones() * std::nan("");
+
+    // 2. iterate on each triangle
+    for (int i = 0; i < mTriangleArray.size(); i++)
+    {
+        auto &tri = mTriangleArray[i];
+        tVector tmp = cMathUtil::RayCastTri(
+            ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
+            mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
+
+        // if there is an intersection, tmp will have no nan
+        if (tmp.hasNaN() == false)
+        {
+            // std::cout << tmp.transpose() << std::endl;
+            double cur_depth = (tmp - ray->mOrigin).segment(0, 3).norm();
+            if (cur_depth < min_depth)
+            {
+                *selected_tri = tri;
+                selected_tri_id = i;
+                min_depth = cur_depth;
+                raycast_point = tmp;
+            }
+        }
+    }
 }

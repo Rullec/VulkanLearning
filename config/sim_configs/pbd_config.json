@@ -13,6 +13,8 @@
         0,
         0
     ],
+    "window_height": 600,
+    "window_width": 800,
     "enable_draw": true,
     "enable_obstacle": false,
     "geometry_type_bak": "uniform_square",
@@ -58,7 +60,7 @@
             0
         ],
         "fov": 45,
-        "near": 0.1,
+        "near": 0.01,
         "far": 100
     },
     "enable_profiling": true

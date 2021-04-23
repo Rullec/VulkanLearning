@@ -134,13 +134,12 @@ bool cDrawScene::IsRelease(int glfw_action)
 
 bool cDrawScene::IsPress(int glfw_action) { return GLFW_PRESS == glfw_action; }
 
-tVector cDrawScene::CalcCursorPointWorldPos() const
+tVector CalcCursorPointWorldPos_tool(double xpos, double ypos, int height, int width, const tMatrix &view_mat_inv)
 {
-    tMatrix mat;
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
     // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
-    int height = mSwapChainExtent.height, width = mSwapChainExtent.width;
+
+    tMatrix mat;
+    // int height = mSwapChainExtent.height, width = mSwapChainExtent.width;
 #ifdef __APPLE__
     xpos *= 2, ypos *= 2;
 #endif
@@ -174,7 +173,7 @@ tVector cDrawScene::CalcCursorPointWorldPos() const
     // std::cout << "mat 3 = " << mat3 << std::endl;
     // exit(1);
     // pos = mat3 * pos;
-    tMatrix mat4 = mCamera->ViewMatrix().inverse().cast<double>();
+    tMatrix mat4 = view_mat_inv;
     // std::cout << "after 4, vec = "
     //           << (test = mat4 * test).transpose() << std::endl;
     // std::cout <<"dir = " <<  (test - mCamera->GetCameraPos()).normalized().transpose() << std::endl;
@@ -189,6 +188,15 @@ tVector cDrawScene::CalcCursorPointWorldPos() const
     // std::cout << "ray origin " << ray->mOrigin.transpose()
     //           << ", target = " << pos.transpose() << std::endl;
     // mSimScene->RayCast(ray);
+}
+
+extern int gWindowHeight, gWindowWidth;
+tVector cDrawScene::CalcCursorPointWorldPos() const
+{
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+    // return CalcCursorPointWorldPos_tool(xpos, ypos, mSwapChainExtent.height, mSwapChainExtent.width, mCamera->ViewMatrix().inverse().cast<double>());
+    return CalcCursorPointWorldPos_tool(xpos, ypos, gWindowHeight, gWindowWidth, mCamera->ViewMatrix().inverse().cast<double>());
 }
 
 // };
@@ -494,7 +502,7 @@ void cDrawScene::Init(const std::string &conf_path)
                  mCameraInitFocus.transpose());
     }
 
-    mCamera = std::make_shared<ArcBallCamera>(mCameraInitPos, mCameraInitFocus,
+    mCamera = std::make_shared<cArcBallCamera>(mCameraInitPos, mCameraInitFocus,
                                               tVector3f(0, 1, 0));
     mSimScene = cSceneBuilder::BuildSimScene(conf_path);
 

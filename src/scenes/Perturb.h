@@ -12,10 +12,11 @@ struct tPerturb
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     tPerturb();
     void InitTangentRect(const tVector &plane_normal);
-    void UpdatePerturb(const tVector & cur_camera_pos, const tVector & cur_cursor_pos_world);
+    void UpdatePerturb(const tVector &cur_camera_pos, const tVector &dir);
 
     tVector GetPerturbForce() const;
     tVector CalcPerturbPos() const;
+    tVector GetGoalPos() const;
     int mAffectedTriId; // triangle id
     int mAffectedVerticesId[3];
     tVertex *mAffectedVertices[3];
@@ -23,6 +24,6 @@ struct tPerturb
         mBarycentricCoords; // barycentric coordinates of raw raycast point on the affected triangle
 protected:
     tVector mPerturbForce;
-    tTriangle *mRectTri0, *mRectTri1; // tangent plane across the raycast point
-    tVertex *mRectVertices[4];
+    tVector mShiftPlaneEquation;
+    tVector mGoalPos;
 };

@@ -273,7 +273,7 @@ bool cLinctexScene::CreatePerturb(tRay *ray)
         TriangleBaryCoord bary;
         bary.coord = Vec3f(0.5, 0.5, 0.5);
         bary.index = mPerturb->mAffectedTriId;
-        tVector tar_pos = mPerturb->CalcPerturbPos() + mPerturb->GetPerturbForce() / 10;
+        tVector tar_pos = mPerturb->GetGoalPos();
         mDragPt = mCloth->AddDraggedPoint(bary, Float3(
                                                     tar_pos[0],
                                                     tar_pos[1],
@@ -300,7 +300,8 @@ void cLinctexScene::UpdatePerturb()
 {
     if (this->mDragPt != nullptr)
     {
-        tVector target_pos = mPerturb->CalcPerturbPos() + mPerturb->GetPerturbForce() / 10;
+        // tVector target_pos = mPerturb->CalcPerturbPos() + mPerturb->GetPerturbForce() / 10;
+        tVector target_pos = mPerturb->GetGoalPos();
 
         mDragPt->SetPositions(
             {Float3(

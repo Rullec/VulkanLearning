@@ -651,3 +651,13 @@ bool cFileUtil::DeleteLock(const std::string &path)
     // write_descriptor.erase(write_descriptor.find(path_lock));
     // return LOCK_SUCCESS;
 }
+
+std::vector<std::string> cFileUtil::ListDir(std::string dir)
+{
+    SIM_ASSERT(cFileUtil::ExistsDir(dir));
+    std::vector<std::string> paths;
+    for (const auto &entry : std::filesystem::directory_iterator(dir))
+        paths.push_back(entry.path().string());
+    // std::cout <<  << std::endl;
+    return paths;
+}

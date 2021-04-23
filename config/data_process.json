@@ -1,26 +1,28 @@
 {
     "scene_type": "data_process",
-    "pause_at_first": true,
-    
+    "pause_at_first": false,
+    "enable_draw": true,
+    "window_height": 400,
+    "window_width": 400,
     "camera": {
         "camera_pos": [
-            0.5,
-            0.5,
-            0.5
+            0.27,
+            0.12,
+            0
         ],
         "camera_focus": [
             0.0,
-            0.15,
+            0.12,
             0
         ],
         "fov": 45,
-        "near": 0.1,
+        "near": 0.01,
         "far": 100
     },
     "capture_camera_pos": [
         [
-            1,
-            0,
+            0.27,
+            0.12,
             0,
             1
         ],
@@ -44,8 +46,8 @@
         ]
     ],
     "capture_camera_center": [
-        0,
-        0,
+        0.0,
+        0.12,
         0,
         1
     ],
@@ -55,5 +57,7 @@
         0,
         0
     ],
-    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\16items"
+    "geometry_info": "./log/geo_info.json",
+    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\1296items",
+    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\1296items_gen"
 }

@@ -12,6 +12,8 @@
         0,
         0
     ],
+    "window_height": 600,
+    "window_width": 800,
     "enable_draw": true,
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",

@@ -20,6 +20,10 @@ public:
                              std::vector<tEdge *> &edges_array,
                              std::vector<tTriangle *> &triangles_array,
                              const std::string &path);
+    static void LoadGeometry(std::vector<tVertex *> &vertices_array,
+                             std::vector<tEdge *> &edges_array,
+                             std::vector<tTriangle *> &triangles_array,
+                             const std::string &path);
 
 protected:
     static void BuildGeometry_UniformSquare(double width, int subdivistion, std::vector<tVertex *> &vertices_array,
@@ -34,4 +38,10 @@ protected:
     static void BuildSquareVertices(
         double width, int subdivision,
         std::vector<tVertex *> &edges_array);
+
+    inline static const std::string
+        NUM_OF_VERTICES_KEY = "num_of_vertices",
+        EDGE_ARRAY_KEY = "edge_array",
+        TRIANGLE_ARRAY_KEY = "triangle_array";
+
 };

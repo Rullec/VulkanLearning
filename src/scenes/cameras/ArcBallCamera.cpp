@@ -1,7 +1,7 @@
 #include "ArcBallCamera.h"
 // #include "Utils/MathUtil.h"
 #include "utils/MathUtil.h"
-ArcBallCamera::ArcBallCamera() : CameraBase(eCameraType::ARCBALL_CAMERA)
+cArcBallCamera::cArcBallCamera() : CameraBase(eCameraType::ARCBALL_CAMERA)
 {
     pos = tVector3f(2, 2, 2);
     center = tVector3f(0, 0, 0);
@@ -16,7 +16,7 @@ ArcBallCamera::ArcBallCamera() : CameraBase(eCameraType::ARCBALL_CAMERA)
     // front = center - pos;
     // front.normalize();
 }
-ArcBallCamera::ArcBallCamera(const tVector3f &pos_, const tVector3f &center_,
+cArcBallCamera::cArcBallCamera(const tVector3f &pos_, const tVector3f &center_,
                              const tVector3f &up_) : CameraBase(eCameraType::ARCBALL_CAMERA)
 {
     pos = pos_;
@@ -33,33 +33,33 @@ ArcBallCamera::ArcBallCamera(const tVector3f &pos_, const tVector3f &center_,
     // front.normalize();
 }
 
-ArcBallCamera::~ArcBallCamera() {}
+cArcBallCamera::~cArcBallCamera() {}
 
-tMatrix4f ArcBallCamera::ViewMatrix() { return Eigen::lookAt(pos, center, up); }
+tMatrix4f cArcBallCamera::ViewMatrix() { return Eigen::lookAt(pos, center, up); }
 
-void ArcBallCamera::MoveForward()
+void cArcBallCamera::MoveForward()
 {
     // decrease the dist from center to pos
     pos = (pos - center) * (1 - key_acc * 1e2) + center;
 }
-void ArcBallCamera::MoveBackward()
+void cArcBallCamera::MoveBackward()
 {
     // increse the dist from center to pos
     pos = (pos - center) * (1 + key_acc * 1e2) + center;
 }
-void ArcBallCamera::MoveLeft()
+void cArcBallCamera::MoveLeft()
 {
     // no effect
 }
-void ArcBallCamera::MoveRight()
+void cArcBallCamera::MoveRight()
 {
     // no effect
 }
-void ArcBallCamera::MoveUp()
+void cArcBallCamera::MoveUp()
 {
     // no effect
 }
-void ArcBallCamera::MoveDown()
+void cArcBallCamera::MoveDown()
 {
     // no effect
 }
@@ -67,7 +67,7 @@ void ArcBallCamera::MoveDown()
 /**
  * \brief           Pinned the center and rotate this arcball camera when mouse moved
 */
-void ArcBallCamera::MouseMove(float mouse_x, float mouse_y)
+void cArcBallCamera::MouseMove(float mouse_x, float mouse_y)
 {
     if (first_mouse)
     {

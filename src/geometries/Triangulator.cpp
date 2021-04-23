@@ -559,6 +559,8 @@ void cTriangulator::ValidateGeometry(std::vector<tVertex *> &vertices_array,
 
 /**
  * \brief           Given the geometry info, save them to the given "path"
+ * 
+ *          Only save a basic info
 */
 void cTriangulator::SaveGeometry(std::vector<tVertex *> &vertices_array,
                                  std::vector<tEdge *> &edges_array,
@@ -567,11 +569,18 @@ void cTriangulator::SaveGeometry(std::vector<tVertex *> &vertices_array,
 {
     Json::Value root;
     // 1. the vertices info
-    root["num_of_vertices"] = vertices_array.size();
+    root[NUM_OF_VERTICES_KEY] = vertices_array.size();
 
     // 2. the edge info
+
+    root[EDGE_ARRAY_KEY] = Json::arrayValue;
+    for (auto &x : edges_array)
+    {
+        root[EDGE_ARRAY_KEY].append(x->mId0);
+        root[EDGE_ARRAY_KEY].append(x->mId1);
+    }
     // 3. the triangle info
-    root["triangle_array"] = Json::arrayValue;
+    root[TRIANGLE_ARRAY_KEY] = Json::arrayValue;
     for (auto &x : triangles_array)
     {
         Json::Value tri = Json::arrayValue;
@@ -579,8 +588,52 @@ void cTriangulator::SaveGeometry(std::vector<tVertex *> &vertices_array,
         tri.append(x->mId0);
         tri.append(x->mId1);
         tri.append(x->mId2);
-        root["triangle_array"].append(tri);
+        root[TRIANGLE_ARRAY_KEY].append(tri);
     }
     std::cout << "[debug] save geometry to " << path << std::endl;
     cJsonUtil::WriteJson(path, root, true);
+}
+
+void cTriangulator::LoadGeometry(std::vector<tVertex *> &vertices_array,
+                                 std::vector<tEdge *> &edges_array,
+                                 std::vector<tTriangle *> &triangles_array,
+                                 const std::string &path)
+{
+    vertices_array.clear();
+    edges_array.clear();
+    triangles_array.clear();
+    Json::Value root;
+    cJsonUtil::LoadJson(path, root);
+    int num_of_vertices = cJsonUtil::ParseAsInt(NUM_OF_VERTICES_KEY, root);
+    for (int i = 0; i < num_of_vertices; i++)
+    {
+        vertices_array.push_back(new tVertex());
+        vertices_array[vertices_array.size() - 1]->mColor = tVector(0, 196.0 / 255, 1, 0);
+    }
+
+    const tVectorXd &edge_info =
+        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue(EDGE_ARRAY_KEY, root));
+
+    for (int i = 0; i < edge_info.size() / 2; i++)
+    {
+        tEdge *edge = new tEdge();
+        edge->mId0 = edge_info[2 * i + 0];
+        edge->mId1 = edge_info[2 * i + 1];
+        edges_array.push_back(edge);
+    }
+
+    const Json::Value &tri_json = cJsonUtil::ParseAsValue(TRIANGLE_ARRAY_KEY, root);
+    for (int i = 0; i < tri_json.size(); i++)
+    {
+        tTriangle *tri = new tTriangle();
+        tri->mId0 = tri_json[i][0].asInt();
+        tri->mId1 = tri_json[i][1].asInt();
+        tri->mId2 = tri_json[i][2].asInt();
+        triangles_array.push_back(tri);
+    }
+    printf("[debug] Load Geometry from %s done, vertices %d, edges %d, triangles %d\n",
+           path.c_str(),
+           vertices_array.size(),
+           edges_array.size(),
+           triangles_array.size());
 }

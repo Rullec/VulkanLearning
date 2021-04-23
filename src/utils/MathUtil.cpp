@@ -1021,7 +1021,6 @@ tVector cMathUtil::CalcBarycentric(const tVector &p, const tVector &a,
     double v = (d11 * d20 - d01 * d21) / denom;
     double w = (d00 * d21 - d01 * d20) / denom;
     double u = 1.0f - v - w;
-
     return tVector(u, v, w, 0);
 }
 
@@ -1851,9 +1850,9 @@ tMatrix cMathUtil::EulerAngleRotmatdZ(double z)
     return output;
 }
 
-tVector cMathUtil::RayCast(const tVector &ori, const tVector &dir,
-                           const tVector &p1, const tVector &p2,
-                           const tVector &p3, double eps /* = 1e-5*/)
+tVector cMathUtil::RayCastTri(const tVector &ori, const tVector &dir,
+                              const tVector &p1, const tVector &p2,
+                              const tVector &p3, double eps /* = 1e-5*/)
 {
     Eigen::Matrix3d mat;
     mat.col(0) = (p1 - p2).segment(0, 3);
@@ -1875,6 +1874,22 @@ tVector cMathUtil::RayCast(const tVector &ori, const tVector &dir,
     return inter;
 }
 
+tVector cMathUtil::RayCastPlane(const tVector &ray_ori,
+                                const tVector &ray_dir, const tVector &plane_equation,
+                                double eps /*= 1e-10*/)
+{
+    double t =
+        -(plane_equation.segment(0, 3).dot(ray_ori.segment(0, 3)) + plane_equation[3]) /
+        (plane_equation.segment(0, 3).dot(ray_dir.segment(0, 3)));
+    if (t < eps)
+    {
+        return tVector::Ones() * std::nan("");
+    }
+    else
+    {
+        return ray_ori + ray_dir * t;
+    }
+}
 tMatrix cMathUtil::TransformMat(const tVector &translation, const tVector &euler_xyz_orientation)
 {
     tMatrix mat = cMathUtil::EulerAnglesToRotMat(euler_xyz_orientation, eRotationOrder::XYZ);

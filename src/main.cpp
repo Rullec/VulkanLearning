@@ -32,6 +32,7 @@ std::shared_ptr<cDrawScene> draw_scene = nullptr;
 std::shared_ptr<cScene> scene = nullptr;
 bool esc_pushed = false;
 bool gPause = true;
+int gWindowWidth, gWindowHeight;
 
 static void ResizeCallback(GLFWwindow *window, int w, int h)
 {
@@ -70,7 +71,7 @@ void InitGlfw()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(800, 600, "Cloth Simulator", nullptr, nullptr);
+    window = glfwCreateWindow(gWindowWidth, gWindowHeight, "Cloth Simulator", nullptr, nullptr);
     glfwSetFramebufferSizeCallback(window, ResizeCallback);
     glfwSetCursorPosCallback(window, CursorPositionCallback);
     glfwSetMouseButtonCallback(window, MouseButtonCallback);
@@ -166,5 +167,10 @@ void ParseConfig(std::string conf)
     cJsonUtil::LoadJson(conf, root);
     gPause = cJsonUtil::ParseAsBool("pause_at_first", root);
     gEnableDraw = cJsonUtil::ParseAsBool("enable_draw", root);
+    if (gEnableDraw == true)
+    {
+        gWindowWidth = cJsonUtil::ParseAsInt("window_width", root);
+        gWindowHeight = cJsonUtil::ParseAsInt("window_height", root);
+    }
     SIM_INFO("pause at first = {}", gPause);
 }

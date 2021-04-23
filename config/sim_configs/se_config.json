@@ -13,6 +13,8 @@
         0,
         0
     ],
+    "window_height": 600,
+    "window_width": 800,
     "enable_draw": true,
     "cloth_init_nodal_position": "",
     "geometry_type": "regular_triangle",
@@ -58,7 +60,7 @@
             0
         ],
         "fov": 45,
-        "near": 0.1,
+        "near": 0.01,
         "far": 100
     },
     "enable_profiling": true,
@@ -79,7 +81,7 @@
         ]
     },
     "enable_dump_geometry_info": true,
-    "dump_triangle_info_path": "cur_trinagle_info.json",
+    "dump_triangle_info_path": "./log/geo_info.json",
     "enable_network_inference_mode": false,
     "network_inference_convergence_threshold": 0.001,
     "network_inference_output_path": "output.json",

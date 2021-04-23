@@ -12,56 +12,56 @@ tPerturb::tPerturb()
         mAffectedVerticesId[i] = -1;
     }
     mBarycentricCoords.setZero();
-    mRectTri0 = mRectTri1 = nullptr;
-    for (int i = 0; i < 4; i++)
-        mRectVertices[i] = nullptr;
+    mShiftPlaneEquation.setZero();
 }
 
 void tPerturb::InitTangentRect(const tVector &plane_normal)
 {
     // 1. calculate center pos
     tVector center_pos = CalcPerturbPos();
+    mShiftPlaneEquation.segment(0, 3) = plane_normal.segment(0, 3);
+    mShiftPlaneEquation[3] = -plane_normal.segment(0, 3).dot(center_pos.segment(0, 3));
+    // std::cout << "[calc] center pos = " << center_pos.transpose() << std::endl;
+    // std::cout << "[calc] plane normal = " << plane_normal.transpose() << std::endl;
+    // std::cout << "[calc] shift plane equation = " << mShiftPlaneEquation.transpose() << std::endl;
     // std::cout << "center pos = " << center_pos.transpose() << std::endl;
     // 2. calculate rectangle vertices
     // each row is a vector
-    tMatrixXd four_vectors = cMathUtil::ExpandFrictionCone(4, plane_normal);
-    // std::cout << "four vecs = \n" << four_vectors << std::endl;
-    double plane_scale = 1e10;
-    four_vectors *= plane_scale;
-    for (int i = 0; i < 4; i++)
-    {
-        // std::cout << 1 << std::endl;
-        four_vectors.row(i) += center_pos;
-        // std::cout << 2 << std::endl;
-        mRectVertices[i] = new tVertex();
-        // std::cout << 3 << std::endl;
-        mRectVertices[i]->mPos = four_vectors.row(i);
-        // std::cout << 4 << std::endl;
-        // std::cout << "rect v" << i << " = "
-        //           << mRectVertices[i]->mPos.transpose() << std::endl;
-    }
+    // tMatrixXd four_vectors = cMathUtil::ExpandFrictionCone(4, plane_normal);
+    // // std::cout << "four vecs = \n" << four_vectors << std::endl;
+    // double plane_scale = 1e10;
+    // four_vectors *= plane_scale;
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     // std::cout << 1 << std::endl;
+    //     four_vectors.row(i) += center_pos;
+    //     // std::cout << 2 << std::endl;
+    //     mRectVertices[i] = new tVertex();
+    //     // std::cout << 3 << std::endl;
+    //     mRectVertices[i]->mPos = four_vectors.row(i);
+    //     // std::cout << 4 << std::endl;
+    //     // std::cout << "rect v" << i << " = "
+    //     //           << mRectVertices[i]->mPos.transpose() << std::endl;
+    // }
 }
 
 void tPerturb::UpdatePerturb(const tVector &cur_camera_pos, const tVector &dir)
 {
-    tVector goal_pos =
-        cMathUtil::RayCast(cur_camera_pos, dir, mRectVertices[0]->mPos,
-                           mRectVertices[1]->mPos, mRectVertices[2]->mPos);
-    if (goal_pos.hasNaN() == true)
+    mGoalPos =
+        cMathUtil::RayCastPlane(cur_camera_pos, dir, mShiftPlaneEquation);
+    // std::cout << "[perturb] shift plane equation = " << mShiftPlaneEquation.transpose() << std::endl;
+    // std::cout << "[perturb] ray ori = " << cur_camera_pos.transpose() << std::endl;
+    // std::cout << "[perturb] ray dir = " << dir.transpose() << std::endl;
+    // std::cout << "[perturb] inter pos = " << mGoalPos.transpose() << std::endl;
+    if (mGoalPos.hasNaN() == true)
     {
-        goal_pos.noalias() =
-            cMathUtil::RayCast(cur_camera_pos, dir, mRectVertices[0]->mPos,
-                               mRectVertices[2]->mPos, mRectVertices[3]->mPos);
-        if (goal_pos.hasNaN() == true)
-        {
-            SIM_ERROR("ray has no intersection with the rect range, please "
-                      "scale the plane");
-            exit(0);
-        }
+        SIM_ERROR("ray has no intersection with the rect range, please "
+                  "scale the plane");
+        exit(0);
     }
 
     tVector cur_perturb_pos = CalcPerturbPos();
-    mPerturbForce = (goal_pos - cur_perturb_pos) * 10;
+    mPerturbForce = (mGoalPos - cur_perturb_pos) * 10;
     // std::cout << "[update] cur perturb pos = " << cur_perturb_pos.transpose()
     //           << " goal pos = " << goal_pos.transpose() << std::endl;
 }
@@ -69,9 +69,10 @@ void tPerturb::UpdatePerturb(const tVector &cur_camera_pos, const tVector &dir)
 tVector tPerturb::CalcPerturbPos() const
 {
     tVector center_pos = tVector::Zero();
-
+    // std::cout << "[calc perurb pos] bary = " << mBarycentricCoords.transpose() << std::endl;
     for (int i = 0; i < 3; i++)
     {
+        // std::cout << "affected " << i << " = " << mAffectedVertices[i]->mPos.transpose() << std::endl;
         center_pos += mAffectedVertices[i]->mPos * mBarycentricCoords[i];
     }
     center_pos[3] = 1;
@@ -79,3 +80,8 @@ tVector tPerturb::CalcPerturbPos() const
 }
 
 tVector tPerturb::GetPerturbForce() const { return mPerturbForce; }
+
+tVector tPerturb::GetGoalPos() const
+{
+    return this->mGoalPos;
+}

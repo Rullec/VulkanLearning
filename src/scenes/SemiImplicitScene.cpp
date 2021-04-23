@@ -26,7 +26,7 @@ void cSemiImplicitScene::Init(const std::string &conf_path)
     InitGeometry(root);
     InitConstraint(root);
     InitDrawBuffer();
-    
+
     if (mEnableQBending)
         InitBendingHessian();
     // 3. set up the init pos

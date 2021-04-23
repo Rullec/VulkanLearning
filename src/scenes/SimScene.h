@@ -54,6 +54,9 @@ public:
     virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
                              int mods);
     virtual void Key(int key, int scancode, int action, int mods);
+    void RayCastScene(const tRay *ray, tTriangle **selected_triangle,
+                      int &selected_triangle_id,
+                      tVector &ray_cast_position) const;
 
 protected:
     double mClothWidth;

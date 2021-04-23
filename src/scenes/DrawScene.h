@@ -17,7 +17,7 @@ struct tVkVertex
  * \brief			Main Vulkan Draw Scene for cloth simulator
 */
 class cSimScene;
-class ArcBallCamera;
+class cArcBallCamera;
 class cDrawScene : public cScene
 {
 public:
@@ -129,7 +129,7 @@ private:
     std::vector<VkDeviceMemory> mMVPUniformBuffersMemory; // their memories
     VkDescriptorPool mDescriptorPool;
     std::vector<VkDescriptorSet> mDescriptorSets; // real descriptor
-    std::shared_ptr<ArcBallCamera> mCamera;
+    std::shared_ptr<cArcBallCamera> mCamera;
 
     // add ground texture image
     VkImage mTextureImage;

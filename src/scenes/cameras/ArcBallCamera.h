@@ -7,14 +7,14 @@
 /**
  * \brief           Arcball camera
 */
-class ArcBallCamera : public CameraBase
+class cArcBallCamera : public CameraBase
 {
 public:
-    ArcBallCamera();
-    ArcBallCamera(const tVector3f &pos, const tVector3f &centor,
+    cArcBallCamera();
+    cArcBallCamera(const tVector3f &pos, const tVector3f &centor,
                   const tVector3f &up);
 
-    virtual ~ArcBallCamera();
+    virtual ~cArcBallCamera();
     virtual tMatrix4f ViewMatrix() override;
 
     virtual void MoveForward() override;

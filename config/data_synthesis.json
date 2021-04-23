@@ -4,6 +4,8 @@
     "enable_data_aug": false,
     "pause_at_first": true,
     "convergence_threshold": 0.1,
+    "window_height": 600,
+    "window_width": 800,
     "camera": {
         "camera_pos": [
             0.5,
@@ -16,7 +18,7 @@
             0
         ],
         "fov": 45,
-        "near": 0.1,
+        "near": 0.01,
         "far": 100
     },
     "property_manager": {
