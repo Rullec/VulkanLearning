@@ -367,6 +367,7 @@ build*/
 ClothSimulator/main
 *spv
 main.exe
+main
 export_data/
 output*/
 

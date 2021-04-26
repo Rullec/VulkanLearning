@@ -52,6 +52,7 @@ typedef Eigen::Matrix3d tMatrix3d;
 typedef Eigen::Matrix3f tMatrix3f;
 typedef Eigen::MatrixXd tMatrixXd;
 typedef Eigen::Matrix4f tMatrix4f;
+typedef Eigen::MatrixXf tMatrixXf;
 typedef Eigen::Quaterniond tQuaternion;
 typedef Eigen::Affine3d aff3;
 typedef Eigen::Affine3f aff3f;

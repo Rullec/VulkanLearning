@@ -7,3 +7,4 @@ set(
 )
 
 add_library(sim_lib ${SIM_SRC})
+target_link_libraries(sim_lib utils_lib)

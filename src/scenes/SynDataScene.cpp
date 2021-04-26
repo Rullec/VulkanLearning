@@ -278,4 +278,4 @@ const tEigenArr<tMatrix> &cSynDataScene::tSyncDataAug::GetAugTransform() const
 {
     return mTrans;
 }
-#endif _WIN32
+#endif // _WIN32

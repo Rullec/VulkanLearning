@@ -5,8 +5,8 @@
 #include "glm/glm.hpp"
 #include "scenes/SimScene.h"
 #include "utils/JsonUtil.h"
-#include "utils/TimeUtil.hpp"
 #include "utils/LogUtil.h"
+#include "utils/TimeUtil.hpp"
 #include "vulkan/vulkan.h"
 #include <iostream>
 #include <optional>
@@ -106,6 +106,7 @@ tVkVertex::getAttributeDescriptions()
     2. color: vec3f \in [0, 1]
 */
 const float ground_scale = 1000.0;
+bool gEnableGround = true;
 std::vector<tVkVertex> ground_vertices = {
     {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
     {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
@@ -115,7 +116,6 @@ std::vector<tVkVertex> ground_vertices = {
     {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
     {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, ground_scale}},
 };
-
 tVector cDrawScene::GetCameraPos() const
 {
     tVector pos = tVector::Ones();
@@ -134,7 +134,8 @@ bool cDrawScene::IsRelease(int glfw_action)
 
 bool cDrawScene::IsPress(int glfw_action) { return GLFW_PRESS == glfw_action; }
 
-tVector CalcCursorPointWorldPos_tool(double xpos, double ypos, int height, int width, const tMatrix &view_mat_inv)
+tVector CalcCursorPointWorldPos_tool(double xpos, double ypos, int height,
+                                     int width, const tMatrix &view_mat_inv)
 {
     // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
 
@@ -164,7 +165,8 @@ tVector CalcCursorPointWorldPos_tool(double xpos, double ypos, int height, int w
     // pos = mat2 * pos;
     tMatrix mat3 = tMatrix::Identity();
     // mat3(0, 0) = std::tan(cMathUtil::Radians(mFov) / 2) * mNear;
-    mat3(0, 0) = width * 1.0 / height * std::tan(glm::radians(fov) / 2) * near_plane_dist;
+    mat3(0, 0) = width * 1.0 / height * std::tan(glm::radians(fov) / 2) *
+                 near_plane_dist;
     mat3(1, 1) = std::tan(glm::radians(fov) / 2) * near_plane_dist;
     mat3(2, 2) = 0, mat3(2, 3) = -near_plane_dist;
     // std::cout << "after 3, vec = "
@@ -196,7 +198,9 @@ tVector cDrawScene::CalcCursorPointWorldPos() const
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
     // return CalcCursorPointWorldPos_tool(xpos, ypos, mSwapChainExtent.height, mSwapChainExtent.width, mCamera->ViewMatrix().inverse().cast<double>());
-    return CalcCursorPointWorldPos_tool(xpos, ypos, gWindowHeight, gWindowWidth, mCamera->ViewMatrix().inverse().cast<double>());
+    return CalcCursorPointWorldPos_tool(
+        xpos, ypos, gWindowHeight, gWindowWidth,
+        mCamera->ViewMatrix().inverse().cast<double>());
 }
 
 // };
@@ -503,7 +507,7 @@ void cDrawScene::Init(const std::string &conf_path)
     }
 
     mCamera = std::make_shared<cArcBallCamera>(mCameraInitPos, mCameraInitFocus,
-                                              tVector3f(0, 1, 0));
+                                               tVector3f(0, 1, 0));
     mSimScene = cSceneBuilder::BuildSimScene(conf_path);
 
     mSimScene->Init(conf_path);
@@ -563,6 +567,12 @@ void cDrawScene::Key(int key, int scancode, int action, int mods)
     {
         Reset();
     }
+    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    {
+        std::string path = "data/export_data/screenshort.ppm";
+        ScreenShotDraw(path);
+        printf("[debug] take screenshot to %s\n", path.c_str());
+    }
     mSimScene->Key(key, scancode, action, mods);
 }
 
@@ -577,10 +587,7 @@ void cDrawScene::Scroll(double xoff, double yoff)
 /**
  * \brief           Reset the whole scene
 */
-void cDrawScene::Reset()
-{
-    mSimScene->Reset();
-}
+void cDrawScene::Reset() { mSimScene->Reset(); }
 
 /**
  * \brief           Do initialization for vulkan
@@ -740,7 +747,8 @@ void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
 void cDrawScene::CreateVertexBufferCloth()
 {
     const tVectorXf &draw_buffer = mSimScene->GetTriangleDrawBuffer();
-    std::cout << "[debug] get triangle draw buffer size = " << draw_buffer.size() << std::endl;
+    std::cout << "[debug] get triangle draw buffer size = "
+              << draw_buffer.size() << std::endl;
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1025,9 +1033,10 @@ void cDrawScene::UpdateMVPUniformValue(int image_idx)
     ubo.model = glm::mat4(1.0f);
     tMatrix4f eigen_view = mCamera->ViewMatrix();
     ubo.view = E2GLM(eigen_view);
-    ubo.proj = glm::perspective(
-        glm::radians(fov),
-        mSwapChainExtent.width / (float)mSwapChainExtent.height, near_plane_dist, far_plane_dist);
+    ubo.proj = glm::perspective(glm::radians(fov),
+                                mSwapChainExtent.width /
+                                    (float)mSwapChainExtent.height,
+                                near_plane_dist, far_plane_dist);
     ubo.proj[1][1] *= -1;
 
     void *data;
@@ -1239,18 +1248,23 @@ void cDrawScene::CreateCommandBuffers()
 
 void cDrawScene::CreateVertexBufferGround()
 {
-    VkDeviceSize buffer_size =
-        sizeof(ground_vertices[0]) * ground_vertices.size();
+    if (gEnableGround)
+    {
+        VkDeviceSize buffer_size =
+            sizeof(ground_vertices[0]) * ground_vertices.size();
 
-    // 5. copy the vertex data to the buffer
-    CreateBuffer(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 mVertexBufferGround, mVertexBufferMemoryGround);
+        // 5. copy the vertex data to the buffer
+        CreateBuffer(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     mVertexBufferGround, mVertexBufferMemoryGround);
+    }
 }
 
 void cDrawScene::UpdateVertexBufferGround(int idx)
 {
+    if (gEnableGround == false)
+        return;
     // update
     VkDeviceSize buffer_size =
         sizeof(ground_vertices[0]) * ground_vertices.size();
@@ -1271,6 +1285,7 @@ void cDrawScene::CreateTriangleCommandBuffers(int i)
 {
     vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                       mTriangleGraphicsPipeline);
+    if (gEnableGround == true)
     {
         VkBuffer vertexBuffers[] = {mVertexBufferGround};
         // VkBuffer vertexBuffers[] = {mVertexBufferGround, mVertexBufferCloth};

@@ -569,7 +569,7 @@ void cTriangulator::SaveGeometry(std::vector<tVertex *> &vertices_array,
 {
     Json::Value root;
     // 1. the vertices info
-    root[NUM_OF_VERTICES_KEY] = vertices_array.size();
+    root[NUM_OF_VERTICES_KEY] = static_cast<int>(vertices_array.size());
 
     // 2. the edge info
 

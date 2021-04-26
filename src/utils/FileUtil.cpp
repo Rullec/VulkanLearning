@@ -4,17 +4,21 @@
 #include <cstdarg>
 #ifdef __APPLE__
 #include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 #endif
 
 #ifdef __linux__
+#include <experimental/filesystem>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+namespace fs = std::experimental::filesystem;
 #endif
 
 #ifdef _WIN32
 #include <filesystem>
+namespace fs = std::filesystem;
 #endif
 
 #include <iostream>
@@ -72,45 +76,29 @@ void cFileUtil::DeleteFile(const char *file_name)
 
 void cFileUtil::DeleteDir(const char *dir_name)
 {
-#ifdef __APPLE__
-    std::cout << "delete a dir " << dir_name << " ";
-    if (cFileUtil::ExistsDir(dir_name) == true &&
-        std::experimental::filesystem::remove_all(dir_name))
+    if (cFileUtil::ExistsDir(dir_name) == true && fs::remove_all(dir_name))
     {
         std::cout << "succ\n";
     }
     else
         std::cout << "failed\n";
-#endif
 }
 
 void cFileUtil::ClearDir(const char *dir_name)
 {
-#ifdef __APPLE__
     SIM_INFO("Clear dir " + std::string(dir_name));
     if (cFileUtil::ExistsDir(dir_name))
     {
-        for (const auto &entry :
-             std::experimental::filesystem::directory_iterator(dir_name))
+        for (const auto &entry : fs::directory_iterator(dir_name))
         {
-            cFileUtil::DeleteFile(entry.path());
+            cFileUtil::DeleteFile(entry.path().string());
         }
     }
-#endif
 }
 
 void cFileUtil::CreateDir(const char *dir_name)
 {
-    // std::cout <<"create a dir " << dir_name << " ";
-#ifdef __APPLE__
-    if (cFileUtil::ExistsDir(dir_name) == false)
-    {
-        std::experimental::filesystem::create_directories(dir_name);
-    }
-#endif
-#ifdef _WIN32
-    std::filesystem::create_directories(dir_name);
-#endif
+    fs::create_directories(dir_name);
 }
 
 std::string cFileUtil::RemoveExtension(const std::string &filename)
@@ -168,30 +156,12 @@ void cFileUtil::CopyFile(const std::string &ori_name,
         exit(1);
     }
 
-#ifdef __APPLE__
-    if (false == std::experimental::filesystem::copy_file(ori_name, des_name))
+    if (false == fs::copy_file(ori_name, des_name))
     {
-        printf("[error] CopyFile: from %s to %s failed", ori_name.c_str(), des_name.c_str());
+        printf("[error] CopyFile: from %s to %s failed", ori_name.c_str(),
+               des_name.c_str());
         exit(1);
     }
-#endif
-
-#ifdef _WIN32
-#include <fstream>
-
-    std::ifstream src(ori_name);
-    std::ofstream dst(des_name);
-    if (src.fail() || dst.fail())
-    {
-        printf("[error] CopyFile: from %s to %s failed", ori_name.c_str(), des_name.c_str());
-        exit(1);
-    }
-    dst << src.rdbuf();
-#endif
-
-    //SIM_INFO("CopyFile: from {} to {} succ", __ORDER_BIG_ENDIAN__,
-    //           des_name);
-    SIM_ASSERT(false);
 }
 
 long int cFileUtil::GetFileSize(const std::string &filename)
@@ -326,14 +296,9 @@ std::string cFileUtil::ConcatFilename(const std::string &dir_,
                                       const std::string &file_)
 {
     std::string final_name = "";
-#ifdef __APPLE__
-    std::experimental::filesystem::path dir(dir_), file(file_);
-    std::experimental::filesystem::path full_path = dir / file;
+    fs::path dir(dir_), file(file_);
+    fs::path full_path = dir / file;
     final_name = full_path.string();
-#else
-    if (dir_[dir_.size() - 1] != '/')
-        final_name = dir_ + "/" + file_;
-#endif
 
     return final_name;
 }
@@ -656,7 +621,7 @@ std::vector<std::string> cFileUtil::ListDir(std::string dir)
 {
     SIM_ASSERT(cFileUtil::ExistsDir(dir));
     std::vector<std::string> paths;
-    for (const auto &entry : std::filesystem::directory_iterator(dir))
+    for (const auto &entry : fs::directory_iterator(dir))
         paths.push_back(entry.path().string());
     // std::cout <<  << std::endl;
     return paths;

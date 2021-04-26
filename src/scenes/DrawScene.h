@@ -43,6 +43,12 @@ protected:
 
     void DrawFrame();
     void CleanVulkan();
+    VkCommandBuffer CreateCommandBufferTool(VkCommandBufferLevel level,
+                                            VkCommandPool pool,
+                                            bool begin);
+    void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue,
+                            VkCommandPool pool, bool free = true);
+    void ScreenShotDraw(std::string path);
 
 private:
     void CreateInstance();

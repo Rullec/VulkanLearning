@@ -1,9 +1,9 @@
 #include "DrawScene.h"
+#include "scenes/SimScene.h"
 #include "utils/LogUtil.h"
 #include "utils/MathUtil.h"
 #include "vulkan/vulkan.h"
 #include <iostream>
-#include "scenes/SimScene.h"
 #include <optional>
 #include <set>
 #define GLM_FORCE_RADIANS
@@ -232,7 +232,8 @@ bool IsDeviceSuitable(VkPhysicalDevice &dev, VkSurfaceKHR surface)
     // std::cout << "extensions support " << extensionsSupported << std::endl;
     // std::cout << "swapChainAdequate " << swapChainAdequate << std::endl;
     // std::cout << "supportedFeatures.samplerAnisotropy " << supportedFeatures.samplerAnisotropy << std::endl;
-    return indices.IsComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+    return indices.IsComplete() && extensionsSupported && swapChainAdequate &&
+           supportedFeatures.samplerAnisotropy;
 }
 
 /**
@@ -306,7 +307,8 @@ void cDrawScene::CreateInstance()
         {
             total_extensions[i] = glfwExtensions[i];
         }
-        total_extensions[total_extension_count - 1] = "VK_KHR_get_physical_device_properties2";
+        total_extensions[total_extension_count - 1] =
+            "VK_KHR_get_physical_device_properties2";
         createInfo.enabledExtensionCount = total_extension_count;
         createInfo.ppEnabledExtensionNames = total_extensions;
         // for (int i = 0; i < total_extension_count; i++)
@@ -547,8 +549,12 @@ void cDrawScene::CreateSwapChain()
     create_info.imageColorSpace = format.colorSpace;
     create_info.imageExtent = extent;
     create_info.imageArrayLayers = 1; // always 1
+
+    // we also use the swapchan image as the source images when screenshoting
     create_info.imageUsage =
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // we use swap chain image for directly rendering, namely color attachment
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // we use swap chain image for directly rendering, namely color attachment
+
     create_info.presentMode = mode;
 
     /*
@@ -605,7 +611,8 @@ void cDrawScene::CreateSwapChain()
 /**
  * \brief           Create image view
 */
-VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format,
+                            VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -637,7 +644,9 @@ void cDrawScene::CreateImageViews()
     mSwapChainImageViews.resize(mSwapChainImages.size());
     for (int i = 0; i < mSwapChainImageViews.size(); i++)
     {
-        mSwapChainImageViews[i] = CreateImageView(mDevice, mSwapChainImages[i], mSwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        mSwapChainImageViews[i] =
+            CreateImageView(mDevice, mSwapChainImages[i], mSwapChainImageFormat,
+                            VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
@@ -656,7 +665,10 @@ VkShaderModule cDrawScene::CreateShaderModule(const std::vector<char> &code)
 /**
  * \brief           Given physical device and tiling/feature requirements, select the cnadidates VkFormat used for depth attachment.
 */
-VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice, const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice,
+                             const std::vector<VkFormat> &candidates,
+                             VkImageTiling tiling,
+                             VkFormatFeatureFlags features)
 {
     for (const auto &format : candidates)
     {
@@ -664,11 +676,13 @@ VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice, const std::vector<VkFo
         vkGetPhysicalDeviceFormatProperties(mPhyDevice, format, &props);
 
         // tiling feature
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+        if (tiling == VK_IMAGE_TILING_LINEAR &&
+            (props.linearTilingFeatures & features) == features)
         {
             return format;
         }
-        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+                 (props.optimalTilingFeatures & features) == features)
         {
             return format;
         }
@@ -684,7 +698,13 @@ VkFormat findDepthFormat(VkPhysicalDevice phy_device)
         VK_FORMAT_D32_SFLOAT_S8_UINT: both depth and stencil buffer
         VK_FORMAT_D24_UNORM_S8_UINT: both depth and stencil buffer
     */
-    return findSupportedFormat(phy_device, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+    // return findSupportedFormat(phy_device,
+    //                            {VK_FORMAT_D32_SFLOAT,
+    //                             VK_FORMAT_D32_SFLOAT_S8_UINT,
+    //                             VK_FORMAT_D24_UNORM_S8_UINT},
+    //                            VK_IMAGE_TILING_OPTIMAL,
+    //                            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    return findSupportedFormat(phy_device, {VK_FORMAT_D32_SFLOAT},
                                VK_IMAGE_TILING_OPTIMAL,
                                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
@@ -721,11 +741,13 @@ void cDrawScene::CreateRenderPass()
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depthAttachment.finalLayout =
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depthAttachmentRef.layout =
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // subpass
     VkSubpassDescription subpass{};
@@ -740,12 +762,16 @@ void cDrawScene::CreateRenderPass()
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
     // support color and depth attachment
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                              VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                              VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
     // render pass
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment,
+                                                          depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = attachments.size();
@@ -765,9 +791,8 @@ void cDrawScene::CreateFrameBuffers()
 
     for (int i = 0; i < mSwapChainImageViews.size(); i++)
     {
-        std::array<VkImageView, 2> attachments = {
-            mSwapChainImageViews[i],
-            mDepthImageView};
+        std::array<VkImageView, 2> attachments = {mSwapChainImageViews[i],
+                                                  mDepthImageView};
         // VkImageView attachments[] = {mSwapChainImageViews[i]};
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -866,33 +891,36 @@ std::vector<tVkVertex> axes_vertices = {
 
 void cDrawScene::CreateLineCommandBuffers(int i)
 {
-    vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mLinesGraphicsPipeline);
+    vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      mLinesGraphicsPipeline);
 
     // SIM_ERROR("VkBuffer mLineBuffer; vkDeviceMemory mLineBufferMemory; need to be inited");
     VkBuffer lineBuffers[] = {mLineBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, lineBuffers, offsets);
 
-    vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[i], 0, nullptr);
+    vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            mPipelineLayout, 0, 1, &mDescriptorSets[i], 0,
+                            nullptr);
 
     vkCmdDraw(mCommandBuffers[i], GetNumOfLineVertices(), 1, 0, 0);
 }
 
 void cDrawScene::CreateLineBuffer()
 {
-    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * GetNumOfLineVertices();
-    CreateBuffer(buffer_size,
-                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+    VkDeviceSize buffer_size =
+        sizeof(axes_vertices[0]) * GetNumOfLineVertices();
+    CreateBuffer(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 mLineBuffer,
-                 mLineBufferMemory);
+                 mLineBuffer, mLineBufferMemory);
 }
 
 void cDrawScene::UpdateLineBuffer(int idx)
 {
     // update
-    VkDeviceSize buffer_size = sizeof(axes_vertices[0]) * GetNumOfLineVertices();
+    VkDeviceSize buffer_size =
+        sizeof(axes_vertices[0]) * GetNumOfLineVertices();
 
     // 5. copy the vertex data to the buffer
     void *data = nullptr;
@@ -902,8 +930,11 @@ void cDrawScene::UpdateLineBuffer(int idx)
     // write the data
     const tVectorXf &cloth_edge_data = mSimScene->GetEdgesDrawBuffer();
     char *char_data = static_cast<char *>(data);
-    memcpy(char_data, axes_vertices.data(), sizeof(axes_vertices[0]) * axes_vertices.size());
-    memcpy(char_data + sizeof(axes_vertices[0]) * axes_vertices.size(), cloth_edge_data.data(), sizeof(cloth_edge_data[0]) * cloth_edge_data.size());
+    memcpy(char_data, axes_vertices.data(),
+           sizeof(axes_vertices[0]) * axes_vertices.size());
+    memcpy(char_data + sizeof(axes_vertices[0]) * axes_vertices.size(),
+           cloth_edge_data.data(),
+           sizeof(cloth_edge_data[0]) * cloth_edge_data.size());
 
     // unmap
     vkUnmapMemory(mDevice, mLineBufferMemory);
@@ -914,17 +945,21 @@ void cDrawScene::UpdateLineBuffer(int idx)
 */
 bool HasStencilComponent(VkFormat format)
 {
-    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+           format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
+                        VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
     {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        if ((typeFilter & (1 << i)) &&
+            (memProperties.memoryTypes[i].propertyFlags & properties) ==
+                properties)
         {
             return i;
         }
@@ -936,7 +971,10 @@ uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, Vk
 /**
  * \brief           create image
 */
-void CreateImage(VkDevice device, VkPhysicalDevice phy_device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory)
+void CreateImage(VkDevice device, VkPhysicalDevice phy_device, uint32_t width,
+                 uint32_t height, VkFormat format, VkImageTiling tiling,
+                 VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                 VkImage &image, VkDeviceMemory &imageMemory)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -964,9 +1002,11 @@ void CreateImage(VkDevice device, VkPhysicalDevice phy_device, uint32_t width, u
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(phy_device, memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex =
+        findMemoryType(phy_device, memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) !=
+        VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate image memory!");
     }
@@ -974,12 +1014,19 @@ void CreateImage(VkDevice device, VkPhysicalDevice phy_device, uint32_t width, u
     vkBindImageMemory(device, image, imageMemory, 0);
 }
 
-extern VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
-extern void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkCommandBuffer commandBuffer);
+extern VkCommandBuffer beginSingleTimeCommands(VkDevice device,
+                                               VkCommandPool commandPool);
+extern void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool,
+                                  VkQueue graphicsQueue,
+                                  VkCommandBuffer commandBuffer);
 
-void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void transitionImageLayout(VkDevice device, VkQueue graphicsQueue,
+                           VkCommandPool commandPool, VkImage image,
+                           VkFormat format, VkImageLayout oldLayout,
+                           VkImageLayout newLayout)
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+    VkCommandBuffer commandBuffer =
+        beginSingleTimeCommands(device, commandPool);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1007,7 +1054,8 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool
     }
 
     // set up the source and destination mask
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+        newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
     {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -1015,7 +1063,8 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     }
-    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+             newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -1023,10 +1072,12 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
-    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
     {
         barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
@@ -1036,13 +1087,8 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue, VkCommandPool
         throw std::invalid_argument("unsupported layout transition!");
     }
 
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
+    vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0,
+                         nullptr, 0, nullptr, 1, &barrier);
 
     endSingleTimeCommands(device, commandPool, graphicsQueue, commandBuffer);
 }
@@ -1054,27 +1100,39 @@ void cDrawScene::CreateDepthResources()
 {
     // 1. select a suitable depth format
     VkFormat depth_format = findDepthFormat(mPhysicalDevice);
-
+    // std::cout << "[good] depth format = " << depth_format << std::endl;
     // create depth image
-    CreateImage(mDevice, mPhysicalDevice, mSwapChainExtent.width, mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage, mDepthImageMemory);
+    CreateImage(mDevice, mPhysicalDevice, mSwapChainExtent.width,
+                mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL,
+                // mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_LINEAR,
+                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage,
+                mDepthImageMemory);
 
     // create image view
-    mDepthImageView = CreateImageView(mDevice, mDepthImage, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+    mDepthImageView = CreateImageView(mDevice, mDepthImage, depth_format,
+                                      VK_IMAGE_ASPECT_DEPTH_BIT);
 
     // cannot understand why we need to do transition
-    transitionImageLayout(mDevice, mGraphicsQueue, mCommandPool, mDepthImage, depth_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    transitionImageLayout(mDevice, mGraphicsQueue, mCommandPool, mDepthImage,
+                          depth_format, VK_IMAGE_LAYOUT_UNDEFINED,
+                          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 /**
  * \brief               Create Image texture
 */
 #define STB_IMAGE_IMPLEMENTATION
-#include "utils/stb_image.h"
 #include "utils/FileUtil.h"
+#include "utils/stb_image.h"
 
-void copyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void copyBufferToImage(VkDevice device, VkCommandPool commandPool,
+                       VkQueue graphicsQueue, VkBuffer buffer, VkImage image,
+                       uint32_t width, uint32_t height)
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+    VkCommandBuffer commandBuffer =
+        beginSingleTimeCommands(device, commandPool);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -1085,12 +1143,10 @@ void copyBufferToImage(VkDevice device, VkCommandPool commandPool, VkQueue graph
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
-    region.imageExtent = {
-        width,
-        height,
-        1};
+    region.imageExtent = {width, height, 1};
 
-    vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(commandBuffer, buffer, image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     endSingleTimeCommands(device, commandPool, graphicsQueue, commandBuffer);
 }
@@ -1101,7 +1157,8 @@ void cDrawScene::CreateTextureImage()
     int tex_width, tex_height, tex_channels;
     std::string ground_png_path = "data/grid0.png";
     SIM_ASSERT(cFileUtil::ExistsFile(ground_png_path));
-    stbi_uc *pixels = stbi_load(ground_png_path.c_str(), &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+    stbi_uc *pixels = stbi_load(ground_png_path.c_str(), &tex_width,
+                                &tex_height, &tex_channels, STBI_rgb_alpha);
     SIM_ASSERT(tex_channels == 4);
     VkDeviceSize image_size = tex_width * tex_height * tex_channels;
 
@@ -1113,7 +1170,10 @@ void cDrawScene::CreateTextureImage()
     // 2. create the staging buffer, write the image to the staging buffer
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    CreateBuffer(image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    CreateBuffer(image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 stagingBuffer, stagingBufferMemory);
 
     void *data = nullptr;
     vkMapMemory(mDevice, stagingBufferMemory, 0, image_size, 0, &data);
@@ -1123,13 +1183,23 @@ void cDrawScene::CreateTextureImage()
     stbi_image_free(pixels);
 
     // 3. create & allocate the texture image
-    CreateImage(mDevice, mPhysicalDevice,
-                tex_width, tex_height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mTextureImage, mTextureImageMemory);
+    CreateImage(mDevice, mPhysicalDevice, tex_width, tex_height,
+                VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mTextureImage,
+                mTextureImageMemory);
 
     // 4. send the staging buffer to the image? how to do that?
-    transitionImageLayout(mDevice, mGraphicsQueue, mCommandPool, mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    copyBufferToImage(mDevice, mCommandPool, mGraphicsQueue, stagingBuffer, mTextureImage, static_cast<uint32_t>(tex_width), static_cast<uint32_t>(tex_height));
-    transitionImageLayout(mDevice, mGraphicsQueue, mCommandPool, mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    transitionImageLayout(mDevice, mGraphicsQueue, mCommandPool, mTextureImage,
+                          VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    copyBufferToImage(mDevice, mCommandPool, mGraphicsQueue, stagingBuffer,
+                      mTextureImage, static_cast<uint32_t>(tex_width),
+                      static_cast<uint32_t>(tex_height));
+    transitionImageLayout(mDevice, mGraphicsQueue, mCommandPool, mTextureImage,
+                          VK_FORMAT_R8G8B8A8_SRGB,
+                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 
@@ -1141,7 +1211,9 @@ void cDrawScene::CreateTextureImage()
 */
 void cDrawScene::CreateTextureImageView()
 {
-    mTextureImageView = CreateImageView(mDevice, mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    mTextureImageView =
+        CreateImageView(mDevice, mTextureImage, VK_FORMAT_R8G8B8A8_SRGB,
+                        VK_IMAGE_ASPECT_COLOR_BIT);
     SIM_INFO("create texture image view succ");
 }
 
@@ -1170,7 +1242,8 @@ void cDrawScene::CreateTextureSampler()
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
 
-    if (vkCreateSampler(mDevice, &samplerInfo, nullptr, &mTextureSampler) != VK_SUCCESS)
+    if (vkCreateSampler(mDevice, &samplerInfo, nullptr, &mTextureSampler) !=
+        VK_SUCCESS)
     {
         throw std::runtime_error("failed to create texture sampler!");
     }

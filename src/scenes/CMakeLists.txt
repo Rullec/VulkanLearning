@@ -1,6 +1,7 @@
 add_library(scenes_lib 
 DrawScene.cpp 
 DrawSceneVk.cpp 
+DrawSceneShot.cpp 
 SceneBuilder.cpp
 Scene.cpp
 SimScene.cpp

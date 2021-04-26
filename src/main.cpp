@@ -25,7 +25,6 @@
 #include "utils/FileUtil.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
-#include <args/args.hxx>
 
 GLFWwindow *window = nullptr;
 std::shared_ptr<cDrawScene> draw_scene = nullptr;

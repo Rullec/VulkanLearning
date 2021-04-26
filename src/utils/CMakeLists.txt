@@ -13,3 +13,8 @@ TimeUtil.cpp
 ObjUtil.cpp
 )
 target_link_libraries(utils_lib spdlog JSON)
+
+# only for linux
+if(UNIX AND (NOT DEFINED APPLE))
+    target_link_libraries(utils_lib stdc++fs)
+endif()

@@ -1,24 +1,24 @@
 #include "SceneBuilder.h"
-#include "PDScene.h"
-#include "ImplicitScene.h"
-#include "SemiImplicitScene.h"
 #include "BaraffScene.h"
-#include "LinctexScene.h"
-#include "SynDataScene.h"
-#include "PBDScene.h"
-#include "SeScene.h"
 #include "DrawScene.h"
+#include "ImplicitScene.h"
+#include "LinctexScene.h"
+#include "PBDScene.h"
+#include "PDScene.h"
 #include "ProcessTrainDataScene.h"
+#include "SemiImplicitScene.h"
+#include "SynDataScene.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 
-std::shared_ptr<cScene>
-cSceneBuilder::BuildScene(const std::string type, bool enable_draw /*= true*/)
+std::shared_ptr<cScene> cSceneBuilder::BuildScene(const std::string type,
+                                                  bool enable_draw /*= true*/)
 {
     std::shared_ptr<cScene> scene = nullptr;
     if (enable_draw == true)
     {
-        scene = std::dynamic_pointer_cast<cScene>(std::make_shared<cDrawScene>());
+        scene =
+            std::dynamic_pointer_cast<cScene>(std::make_shared<cDrawScene>());
     }
     else
     {
@@ -51,12 +51,14 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
     case eSceneType::SCENE_BARAFF:
         scene = std::make_shared<cBaraffScene>();
         break;
+#ifdef _WIN32
     case eSceneType::SCENE_SE:
         scene = std::make_shared<cLinctexScene>();
         break;
     case eSceneType::SCENE_SYN_DATA:
         scene = std::make_shared<cSynDataScene>();
         break;
+#endif
     case eSceneType::SCENE_PROCESS_DATA:
         scene = std::make_shared<cProcessTrainDataScene>();
         break;
