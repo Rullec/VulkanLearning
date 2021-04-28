@@ -26,6 +26,7 @@ void cPDScene::Init(const std::string &conf_path)
     mEnableBending = cJsonUtil::ParseAsBool("enable_bending", root);
     mBendingStiffness = cJsonUtil::ParseAsDouble("bending_stiffness", root);
     InitGeometry(root);
+    InitRaycaster();
     InitConstraint(root);
     InitDrawBuffer();
 

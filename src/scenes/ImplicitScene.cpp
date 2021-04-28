@@ -13,6 +13,7 @@ void cImplicitScene::Init(const std::string &conf_path)
     mMaxNewtonIters = cJsonUtil::ParseAsInt("max_newton_iters", root);
     mStiffness = cJsonUtil::ParseAsInt("stiffness", root);
     InitGeometry(root);
+    InitRaycaster();
     InitConstraint(root);
     InitDrawBuffer();
 

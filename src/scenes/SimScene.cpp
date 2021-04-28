@@ -80,6 +80,15 @@ void cSimScene::InitDrawBuffer()
 
     UpdateRenderingResource();
 }
+
+/**
+ * \brief           Init the raycasting strucutre
+*/
+#include "geometries/Raycaster.h"
+void cSimScene::InitRaycaster()
+{
+    mRaycaster = std::make_shared<cRaycaster>(&mTriangleArray, &mVertexArray);
+}
 /**
  * \brief           Update the simulation procedure
 */
@@ -602,32 +611,6 @@ void cSimScene::RayCastScene(const tRay *ray, tTriangle **selected_tri,
                              int &selected_tri_id,
                              tVector &raycast_point) const
 {
-    // 1. init
-    *selected_tri = nullptr;
-    selected_tri_id = -1;
-    double min_depth = std::numeric_limits<double>::max();
-    raycast_point.noalias() = tVector::Ones() * std::nan("");
-
-    // 2. iterate on each triangle
-    for (int i = 0; i < mTriangleArray.size(); i++)
-    {
-        auto &tri = mTriangleArray[i];
-        tVector tmp = cMathUtil::RayCastTri(
-            ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
-            mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
-
-        // if there is an intersection, tmp will have no nan
-        if (tmp.hasNaN() == false)
-        {
-            // std::cout << tmp.transpose() << std::endl;
-            double cur_depth = (tmp - ray->mOrigin).segment(0, 3).norm();
-            if (cur_depth < min_depth)
-            {
-                *selected_tri = tri;
-                selected_tri_id = i;
-                min_depth = cur_depth;
-                raycast_point = tmp;
-            }
-        }
-    }
+    SIM_ASSERT(mRaycaster != nullptr);
+    mRaycaster->RayCast(ray, selected_tri, selected_tri_id, raycast_point);
 }

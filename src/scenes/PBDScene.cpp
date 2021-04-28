@@ -369,6 +369,7 @@ void cPBDScene::Init(const std::string &conf_path)
     printf("[pbd] enable bending %d, bendign stiffness %.4f\n", mEnableBendingPBD, mBendingStiffnessPBD);
 
     InitGeometry(root);
+    InitRaycaster();
     InitConstraint(root);
 
     // 3. set up the init pos

@@ -32,6 +32,7 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
 
     // 3. init geometry info
     cTriangulator::LoadGeometry(mVertexArray, mEdgeArray, mTriangleArray, mGeometryInfoPath);
+    InitRaycaster();
 
     // 4. load a data info, set the vertex pos, init rendering resources
     LoadRawData();

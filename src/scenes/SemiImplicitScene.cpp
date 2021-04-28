@@ -24,6 +24,7 @@ void cSemiImplicitScene::Init(const std::string &conf_path)
     mBendingStiffness = cJsonUtil::ParseAsDouble("bending_stiffness", root);
     // 2. create geometry, dot allocation
     InitGeometry(root);
+    InitRaycaster();
     InitConstraint(root);
     InitDrawBuffer();
 

@@ -121,6 +121,7 @@ void cLinctexScene::Init(const std::string &path)
     }
 
     InitGeometry(root);
+    InitRaycaster();
     InitConstraint(root);
     InitDrawBuffer();
     InitClothFeatureVector();

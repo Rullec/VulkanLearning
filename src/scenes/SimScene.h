@@ -29,6 +29,7 @@ struct tRay;
 struct tPerturb;
 class cDrawScene;
 SIM_DECLARE_CLASS_AND_PTR(cKinematicBody)
+SIM_DECLARE_CLASS_AND_PTR(cRaycaster)
 class cSimScene : public cScene
 {
 public:
@@ -68,6 +69,7 @@ protected:
     bool mEnableProfiling;
     bool mEnableObstacle;        // using obstacle?
     cKinematicBodyPtr mObstacle; // obstacle for cloth simulation
+    cRaycasterPtr mRaycaster;    // raycaster
     // double mClothWidth;           // a square cloth
     // double mClothMass;            // cloth mass
     // tVector mClothInitPos;        //
@@ -90,6 +92,7 @@ protected:
     // base methods
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     virtual void InitDrawBuffer();
+    virtual void InitRaycaster();
     virtual void InitGeometry(
         const Json::Value &conf); // discretazation from square cloth to
     void ClearForce();            // clear all forces
