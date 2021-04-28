@@ -7,6 +7,9 @@ cRaycaster::cRaycaster(const std::vector<tTriangle *> *triangles,
     SIM_ASSERT(triangles != nullptr);
 }
 
+/**
+ * \brief               Do raycast, calculate the intersection
+*/
 void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
                          int &selected_tri_id,
                          tVector &raycast_point) const
@@ -39,4 +42,12 @@ void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
             }
         }
     }
+}
+
+/**
+ * \brief           Calculate the depth image
+*/
+void cRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera)
+{
+    SIM_ASSERT("cRaycaster::CalcDepthMap hasn't been finished yet");
 }

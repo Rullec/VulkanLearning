@@ -1,0 +1,77 @@
+#ifdef USE_OPTIX
+#pragma once
+#include "Raycaster.h"
+#include "OptixCUDABuffer.h"
+#include "OptixLaunchParam.h"
+
+class cOptixRaycaster : public cRaycaster
+{
+public:
+    explicit cOptixRaycaster(const std::vector<tTriangle *> *triangles,
+                             const std::vector<tVertex *> *vertices);
+
+    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera) override final;
+
+protected:
+    // -----------methods------------
+    void InitOptix();
+    void CreateContext();
+    void CreateModule();
+    void CreateRaygenPrograms();
+    void CreateMissPrograms();
+    void CreateHitgroupPrograms();
+    void CreatePipeline();
+    void BuildSBT();
+    OptixTraversableHandle BuildAccel();
+    void BuildGeometryCudaHostBuffer();
+    void resize(const tVector2i &newSize);
+    void setCamera(const CameraBasePtr &camera);
+    void render();
+    void downloadPixels(uint32_t h_pixels[]);
+    // -----------vars-------------
+    int cur_width, cur_height;
+    CUcontext cudaContext;
+    CUstream stream;
+    cudaDeviceProp deviceProps;
+    CameraBasePtr lastSetCamera;
+
+    //! the optix context that our pipeline will run in.
+    OptixDeviceContext optixContext;
+
+    OptixPipeline pipeline;
+    OptixPipelineCompileOptions pipelineCompileOptions = {};
+    OptixPipelineLinkOptions pipelineLinkOptions = {};
+
+    OptixModule module;
+    OptixModuleCompileOptions moduleCompileOptions = {};
+
+    std::vector<OptixProgramGroup> raygenPGs;
+    CUDABuffer raygenRecordsBuffer;
+    std::vector<OptixProgramGroup> missPGs;
+    CUDABuffer missRecordsBuffer;
+    std::vector<OptixProgramGroup> hitgroupPGs;
+    CUDABuffer hitgroupRecordsBuffer;
+    OptixShaderBindingTable sbt = {};
+
+    LaunchParams launchParams;
+    CUDABuffer launchParamsBuffer;
+
+    CUDABuffer colorBuffer;
+    CUDABuffer vertexBuffer;
+    CUDABuffer indexBuffer;
+    //! buffer that keeps the (final, compacted) accel structure
+    CUDABuffer asBuffer;
+
+    std::vector<tVector3f> cuda_host_vertices_buffer;
+    std::vector<tVector3i> cuda_host_index_buffer;
+};
+
+#define GDT_TERMINAL_RED "\033[1;31m"
+#define GDT_TERMINAL_GREEN "\033[1;32m"
+#define GDT_TERMINAL_YELLOW "\033[1;33m"
+#define GDT_TERMINAL_BLUE "\033[1;34m"
+#define GDT_TERMINAL_RESET "\033[0m"
+#define GDT_TERMINAL_DEFAULT GDT_TERMINAL_RESET
+#define GDT_TERMINAL_BOLD "\033[1;1m"
+
+#endif // USE_OPTIX

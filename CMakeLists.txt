@@ -3,6 +3,8 @@ project(ClothSim VERSION 0.1.0)
 
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(./cmake/configure_movecmd.cmake)
+
 if(WIN32)
     include_directories(./includes)
     link_directories(./lib)
@@ -25,6 +27,8 @@ if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4061 /wd4244 /wd4246 /wd4305 /wd4267 /wd4711 /wd4710 /wd4514 /wd4477")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+    set(USE_OPTIX ON)
+    add_definitions(-D USE_OPTIX)
 else()
     add_definitions(-std=c++17)
     # message(FATAL_ERROR add unix c++17 definitions)
@@ -42,6 +46,10 @@ else()
     message(STATUS "we dont use openmp")
 endif()
 
+# -------------------enable optix-----------------
+if(USE_OPTIX)
+    include(./cmake/configure_optix.cmake)
+endif()
 
 # ---------------------add address sanitzer---------------------
 # set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")

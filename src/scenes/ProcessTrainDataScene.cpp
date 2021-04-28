@@ -3,6 +3,7 @@
 #include "utils/FileUtil.h"
 #include "geometries/Triangulator.h"
 #include "cameras/ArcBallCamera.h"
+#include "geometries/Raycaster.h"
 #include <iostream>
 cProcessTrainDataScene::cProcessTrainDataScene()
 {
@@ -32,12 +33,12 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
 
     // 3. init geometry info
     cTriangulator::LoadGeometry(mVertexArray, mEdgeArray, mTriangleArray, mGeometryInfoPath);
-    InitRaycaster();
-
-    // 4. load a data info, set the vertex pos, init rendering resources
     LoadRawData();
     InitDrawBuffer();
     UpdateRenderingResource();
+
+    // 4. load a data info, set the vertex pos, init rendering resources
+    InitRaycaster();
 
     for (int i = 0; i < 1; i++)
     {
@@ -48,7 +49,12 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
             camera_pos,
             camera_center,
             camera_up);
-        tMatrixXd res = CalcDepthImage();
+        // tMatrixXd res = CalcDepthImage();
+        int height = 800, width = 800;
+        std::cout << "begin to calc depth map\n";
+        mRaycaster->CalcDepthMap(height, width, mCamera);
+        std::cout << "done\n";
+        // exit(0);
     }
 }
 
@@ -103,7 +109,7 @@ void cProcessTrainDataScene::LoadRawData()
     Json::Value root;
     cJsonUtil::LoadJson(path, root);
     tVectorXd input = cJsonUtil::ReadVectorJson(root["input"]);
-    std::cout << "input size = " << input.size();
+    std::cout << "input size = " << input.size() << std::endl;
     SIM_ASSERT(input.size() == mVertexArray.size() * 3);
     UpdateCurNodalPosition(input);
 }

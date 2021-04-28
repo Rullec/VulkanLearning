@@ -25,6 +25,7 @@
 #include "utils/FileUtil.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
+#include <cmath>
 
 GLFWwindow *window = nullptr;
 std::shared_ptr<cDrawScene> draw_scene = nullptr;
@@ -123,7 +124,7 @@ void SimDraw(const std::string &conf)
         double limit = 1.0 / 30;
         // double limit = 1e-4;
 #ifdef _WIN32
-        delta_time = min(delta_time, limit);
+        delta_time = std::min(delta_time, limit);
 #else
         delta_time = std::min(delta_time, limit);
 #endif

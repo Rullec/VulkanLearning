@@ -85,9 +85,14 @@ void cSimScene::InitDrawBuffer()
  * \brief           Init the raycasting strucutre
 */
 #include "geometries/Raycaster.h"
+#include "geometries/OptixRaycaster.h"
 void cSimScene::InitRaycaster()
 {
+#ifdef USE_OPTIX
+    mRaycaster = std::make_shared<cOptixRaycaster>(&mTriangleArray, &mVertexArray);
+#else
     mRaycaster = std::make_shared<cRaycaster>(&mTriangleArray, &mVertexArray);
+#endif
 }
 /**
  * \brief           Update the simulation procedure
