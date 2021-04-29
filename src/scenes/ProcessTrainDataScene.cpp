@@ -94,7 +94,7 @@ void cProcessTrainDataScene::CalcDepthMap(const std::string raw_data_path, const
     // InitRaycaster();
 
     // tMatrixXd res = CalcDepthImage();
-    int height = 800, width = 800;
+    int height = 512, width = 512;
     // std::cout << "begin to calc depth map\n";
     mRaycaster->CalcDepthMap(height, width, camera, save_png_path);
     {

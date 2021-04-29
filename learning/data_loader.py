@@ -2,78 +2,6 @@ from operator import itemgetter
 import numpy as np
 import os
 import json
-import torch
-# from torch.utils.data.dataset import Dataset as DatasetTorch
-# from torch.utils.data.dataloader import DataLoader as DataLoaderTorch
-
-# class DataSet():
-#     def __init__(self, root_dir, files, input_mean, input_std, output_mean,
-#                  output_std) -> None:
-#         '''
-#         DataSet, mimic torch's dataset
-#         :param root_dir: The path of root directory of data
-#         :param files: a list of filenames of data samples
-#         :param input_mean/input_std/output_mean/output_std: The statistic variables of input data, optional
-#         '''
-#         # super().__init__()
-#         self.root_dir = root_dir
-#         self.files = files
-#         self.input_mean = input_mean
-#         self.input_std = input_std
-#         self.output_mean = output_mean
-#         self.output_std = output_std
-#         self.data_lst = []
-#         self.__validate()
-#         self.__load_all()
-
-#     def __load_all(self):
-#         from multiprocessing import Pool
-#         pool = Pool(10)
-
-#         def handle(filename, input_mean, input_std, output_mean, output_std):
-#             with open(filename) as f:
-#                 cont = json.load(f)
-#             for i in range(len(cont["output"])):
-#                 cont["output"][i] = np.log(cont["output"][i])
-
-#             if (input_mean is not None) and (input_std is not None):
-#                 cont["input"] = (cont["input"] - input_mean) / input_std
-#             if (output_mean is not None) and (output_std is not None):
-#                 cont["output"] = (cont["output"] - output_mean) / output_std
-#             return cont
-
-#         params = [(os.path.join(self.root_dir, i), self.input_mean,
-#                    self.input_std, self.output_mean, self.output_std)
-#                   for i in self.files]
-#         self.data_lst = pool.map(handle, params)
-#         # from tqdm import tqdm
-#         # for idx in tqdm(range(len(self.files)), "Loading dataset..."):
-
-#             # self.data_lst.append(cont)
-
-#     def __validate(self):
-#         '''
-#         Validate whether the loaded files exist in the given directory
-#         '''
-#         assert type(self.files) == list
-#         for i in self.files:
-#             assert True == os.path.exists(os.path.join(self.root_dir, i))
-
-#     def __len__(self):
-#         return len(self.files)
-
-#     def __normalize(self, data, mean, std):
-#         '''
-#         normalize the given data
-#         '''
-#         return list((np.array(data) - mean) / std)
-
-#     def __getitem__(self, idx):
-#         '''
-#         load "idx" data from the file
-#         '''
-#         return self.data_lst[idx]
-
 
 class DataLoader():
     PKL_FILE_NAME = "train_data.pkl"
@@ -100,8 +28,8 @@ class DataLoader():
         self.train_perc = train_perc / (train_perc + test_perc)
         self.test_perc = test_perc / (train_perc + test_perc)
         self.enable_log_predction = enable_log_prediction
-        self.__init_vars()
-        self.__load_data()
+        self._init_vars()
+        self._load_data()
         # self.__split_data()
 
     def get_input_size(self):
@@ -110,11 +38,11 @@ class DataLoader():
     def get_output_size(self):
         return self.output_size
 
-    def __init_vars(self):
+    def _init_vars(self):
         assert os.path.exists(self.data_dir), f"{self.data_dir}"
         self.num_of_data = len(os.listdir(self.data_dir))
         tmp_name = os.listdir(self.data_dir)[0]
-        X, Y = DataLoader.__load_single_data(
+        X, Y = DataLoader._load_single_data(
             os.path.join(self.data_dir, tmp_name), self.enable_log_predction)
         self.input_size = len(X)
 
@@ -133,7 +61,7 @@ class DataLoader():
         return self.output_std
 
     @staticmethod
-    def __load_single_data(file_path, enable_log_pred):
+    def _load_single_data(file_path, enable_log_pred):
         assert os.path.exists(file_path), f"{file_path}"
 
         with open(file_path) as f:
@@ -148,9 +76,9 @@ class DataLoader():
             else:
                 return None
 
-    def __load_data(self):
+    def _load_data(self):
         '''
-        deprecated API without the usage of torch generator
+        load the data and compress to a pkl file
         '''
         pkl_file = os.path.join(self.data_dir, DataLoader.PKL_FILE_NAME)
         if os.path.exists(pkl_file) == True:
@@ -171,7 +99,7 @@ class DataLoader():
                               f"Loading data from {self.data_dir}"):
                     # if f[-4:] == "json":
                     tar_f = os.path.join(self.data_dir, f)
-                    X, Y = DataLoader.__load_single_data(
+                    X, Y = DataLoader._load_single_data(
                         tar_f, self.enable_log_predction)
                     X_lst.append(X)
                     Y_lst.append(Y)
@@ -241,56 +169,3 @@ class DataLoader():
 
     def shuffle(self):
         self.__shuffle_train_data()
-        # print(f"X lst shape {X_lst.shape}")
-        # print(f"Y lst shape {Y_lst.shape}")
-        # assert len(X_lst.shape) == 2
-        # assert len(Y_lst.shape) == 2
-        # assert X_lst.shape[0] == Y_lst.shape[0]
-        # return X_lst, Y_lst
-
-    # def get_torch_dataloader(self):
-    #     '''
-    #     return the train & test generator, which can be used to train
-    #     '''
-    #     # 1. check whether the split info is supplied
-    #     train_names, test_names = self._get_split_info()
-
-    #     # 2. calculate the mean and standard
-    #     if True:
-    #         print(
-    #             "[debug] begin to calculate mean & std of input & out features..."
-    #         )
-    #         all_set = DataSet(self.data_dir, train_names + test_names, None,
-    #                           None, None, None)
-    #         loader = DataLoaderTorch(all_set,
-    #                                  batch_size=len(all_set),
-    #                                  num_workers=1)
-    #         data = next(iter(loader))
-    #         input = torch.vstack(data["input"]).transpose(0, 1)
-    #         output = torch.vstack(data["output"]).transpose(0, 1)
-
-    #         min_std = 1e-3
-    #         self.input_std = torch.maximum(
-    #             self.input_std,
-    #             torch.ones_like(self.input_std) * min_std).numpy()
-    #         self.output_std = torch.maximum(
-    #             self.output_std,
-    #             torch.ones_like(self.output_std) * min_std).numpy()
-
-    #     # create the train dataset loader
-    #     self.train_loader = DataLoaderTorch(DataSet(self.data_dir, train_names,
-    #                                                 self.input_mean,
-    #                                                 self.input_std,
-    #                                                 self.output_mean,
-    #                                                 self.output_std),
-    #                                         batch_size=self.batch_size,
-    #                                         shuffle=True,
-    #                                         num_workers=0)
-    #     # create the validation dataset loader
-    #     self.validation_loader = DataLoaderTorch(DataSet(
-    #         self.data_dir, test_names, self.input_mean, self.input_std,
-    #         self.output_mean, self.output_std),
-    #                                              batch_size=self.batch_size,
-    #                                              shuffle=True,
-    #                                              num_workers=0)
-    #     return self.train_loader, self.validation_loader

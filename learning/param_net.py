@@ -12,15 +12,15 @@ from torch.utils.tensorboard import SummaryWriter
 
 from datetime import datetime
 
-now = datetime.now()
-writer = SummaryWriter("../log/tensorboard_log" +
-                       now.strftime("%Y%m%d-%H%M%S") + "/")
 
 
 class ParamNet:
     '''
-    Neural Network object to inference the simulation parameters
+    FC Neural Network object to inference the simulation parameters
+    receiving coordinate concated-vector train data
     '''
+    NAME = "ParamNet"
+    NAME_KEY = "name"
     LEANING_RATE_KEY = "lr"
     MIN_LEANING_RATE_KEY = "min_lr"
     LEANING_RATE_DECAY_KEY = "lr_decay"
@@ -103,6 +103,9 @@ class ParamNet:
             assert type(i) == int, f"layers = {i}"
         self.net = fc_net(self.input_size, self.layers, self.output_size,
                           self.device).to(self.device)
+        total = 0
+        for i in self.net.parameters():
+            total += i.numel()
         self.criterion = torch.nn.MSELoss()
 
     def _build_dataloader(self):
@@ -137,6 +140,11 @@ class ParamNet:
             self.load_model_path = None
         if self.load_model_path is not None:
             self.load_model(self.load_model_path)
+        
+        now = datetime.now()
+        self.writer = SummaryWriter("../log/tensorboard_log" +
+                       now.strftime("%Y%m%d-%H%M%S") + "/")
+
 
     def _get_lr(self):
         for g in self.optimizer.param_groups:
@@ -162,40 +170,41 @@ class ParamNet:
         # print(f"[infer] pred {pred.detach().numpy()}")
         # print(f"[infer] output std {self.data_loader.output_std}")
         # print(f"[infer] output mean {self.data_loader.output_mean}")
-        return np.exp(pred.detach().numpy() * self.data_loader.output_std + self.data_loader.output_mean)
+        return np.exp(pred.detach().numpy() * self.data_loader.output_std +
+                      self.data_loader.output_mean)
 
-    def train(self):
+    # def train(self):
 
-        X, Y = self.data_loader.load_data()
-        X = torch.from_numpy(X).float().to(self.device)
-        Y = torch.from_numpy(Y).float().to(self.device)
-        iters = int(1e6)
-        st_time = time.time()
-        for i in range(iters):
-            self.optimizer.zero_grad()
-            pred = self.net(X)
-            # print(pred)
-            loss = self.criterion(pred, Y).to(self.device)
-            loss.backward()
-            self.optimizer.step()
+    #     X, Y = self.data_loader.load_data()
+    #     X = torch.from_numpy(X).float().to(self.device)
+    #     Y = torch.from_numpy(Y).float().to(self.device)
+    #     iters = int(1e6)
+    #     st_time = time.time()
+    #     for i in range(iters):
+    #         self.optimizer.zero_grad()
+    #         pred = self.net(X)
+    #         # print(pred)
+    #         loss = self.criterion(pred, Y).to(self.device)
+    #         loss.backward()
+    #         self.optimizer.step()
 
-            # logging
-            if i % self.iters_logging == 0:
-                print(
-                    f"iter {i} loss {loss}, avg cost {(time.time() - st_time)/(i + 1)}, device {self.device}"
-                )
-                writer.add_scalar("loss", loss, i / 100)
-                print(f"pred = {pred.cpu()[0]}")
-                print(f"ground_truth = {Y.cpu()[0]}")
-                if loss < self.covg_threshold:
-                    break
+    #         # logging
+    #         if i % self.iters_logging == 0:
+    #             print(
+    #                 f"iter {i} loss {loss}, avg cost {(time.time() - st_time)/(i + 1)}, device {self.device}"
+    #             )
+    #             writer.add_scalar("loss", loss, i / 100)
+    #             print(f"pred = {pred.cpu()[0]}")
+    #             print(f"ground_truth = {Y.cpu()[0]}")
+    #             if loss < self.covg_threshold:
+    #                 break
 
-            # saving model
-            if i % self.iters_save_model == 0:
-                name = self._get_model_save_name(loss.item())
-                self.save_model(name)
-                # print(f"name {name}")
-        print("finished training")
+    #         # saving model
+    #         if i % self.iters_save_model == 0:
+    #             name = self._get_model_save_name(loss.item())
+    #             self.save_model(name)
+    #             # print(f"name {name}")
+    #     print("finished training")
 
     def _calc_validation_error(self):
         # print("-----begin validation---")
@@ -207,6 +216,9 @@ class ParamNet:
             inputs = np.array(inputs)
             outputs = np.array(outputs)
             num = inputs.shape[0]
+            if num == 1:
+                # print("validation, num = 1, ignore")
+                continue
             # print(f"outut shape {outputs.shape}")
             inputs = torch.from_numpy(inputs).to(self.device)
             Y = torch.from_numpy(outputs).to(self.device)
@@ -230,7 +242,7 @@ class ParamNet:
         # print("-----end validation---")
         return valdation_err
 
-    def train_generator(self):
+    def train(self):
         # self.train_loader, self.validation_loader = self.data_loader.get_torch_dataloader(
         # )
         max_epochs = 10000
@@ -268,6 +280,8 @@ class ParamNet:
                 loss = self.criterion(pred, Y).to(self.device)
                 loss.backward()
                 self.optimizer.step()
+                
+                print(f"batch {i_batch} loss {loss}")
                 # print(f"[train] single mse {loss} num {inputs.shape[0]}")
                 cur_epoch_train_loss += loss * num
                 iters += 1
@@ -286,10 +300,10 @@ class ParamNet:
                 print(
                     f"iter {epoch} train loss {mean_train_loss} validation loss {validation_err}, avg cost {(time.time() - st_time)/(epoch + 1)}, device {self.device}"
                 )
-                writer.add_scalar("train_loss", mean_train_loss, step)
-                writer.add_scalar("validation_error",
+                self.writer.add_scalar("train_loss", mean_train_loss, step)
+                self.writer.add_scalar("validation_error",
                                   self._calc_validation_error(), step)
-                writer.add_scalar("lr", self._get_lr(), step)
+                self.writer.add_scalar("lr", self._get_lr(), step)
                 # if validation_err < self.covg_threshold:
                 #     break
 
