@@ -3,7 +3,7 @@
 cRaycaster::cRaycaster(const std::vector<tTriangle *> *triangles,
                        const std::vector<tVertex *> *vertices) : mTriangleArray(triangles), mVertexArray(vertices)
 {
-    SIM_INFO("Build raycaster succ");
+    // SIM_INFO("Build raycaster succ");
     SIM_ASSERT(triangles != nullptr);
 }
 
@@ -47,7 +47,7 @@ void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
 /**
  * \brief           Calculate the depth image
 */
-void cRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera)
+void cRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera, std::string)
 {
     SIM_ASSERT("cRaycaster::CalcDepthMap hasn't been finished yet");
 }

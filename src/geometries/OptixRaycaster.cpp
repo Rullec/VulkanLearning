@@ -4,6 +4,9 @@
 #include <iostream>
 #include "optix_function_table_definition.h"
 #include "scenes/cameras/CameraBase.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "utils/stb_image_write.h"
+
 extern "C" char embedded_ptx_code[];
 
 /*! SBT record for a raygen program */
@@ -38,40 +41,56 @@ cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> *triangles,
 {
     InitOptix();
 
-    std::cout << "creating optix context ..." << std::endl;
+    // std::cout << "creating optix context ..." << std::endl;
     CreateContext();
 
-    std::cout << "setting up module ..." << std::endl;
+    // std::cout << "setting up module ..." << std::endl;
     CreateModule();
 
-    std::cout << "creating raygen programs ..." << std::endl;
+    // std::cout << "creating raygen programs ..." << std::endl;
     CreateRaygenPrograms();
-    std::cout << "creating miss programs ..." << std::endl;
+    // std::cout << "creating miss programs ..." << std::endl;
     CreateMissPrograms();
-    std::cout << "creating hitgroup programs ..." << std::endl;
+    // std::cout << "creating hitgroup programs ..." << std::endl;
     CreateHitgroupPrograms();
 
     launchParams.traversable = BuildAccel();
+    // auto a = <=>(1, 2);
+    // std::cout << a <<std::endl;
+    // exit(1);
 
-    std::cout << "setting up optix pipeline ..." << std::endl;
+    // std::cout << "setting up optix pipeline ..." << std::endl;
     CreatePipeline();
 
-    std::cout << "building SBT ..." << std::endl;
+    // std::cout << "building SBT ..." << std::endl;
     BuildSBT();
 
     launchParamsBuffer.alloc(sizeof(launchParams));
-    // std::cout << "sizeof launchparam = " << sizeof(launchParams) << std::endl;
+    // // std::cout << "sizeof launchparam = " << sizeof(launchParams) << std::endl;
     // exit(0);
-    std::cout << "context, module, pipeline, etc, all set up ..." << std::endl;
+    // std::cout << "context, module, pipeline, etc, all set up ..." << std::endl;
 
-    std::cout << GDT_TERMINAL_GREEN;
-    std::cout << "Optix 7 Sample fully set up" << std::endl;
-    std::cout << GDT_TERMINAL_DEFAULT;
+    // std::cout << GDT_TERMINAL_GREEN;
+    // std::cout << "Optix 7 Sample fully set up" << std::endl;
+    // std::cout << GDT_TERMINAL_DEFAULT;
+}
+
+void cOptixRaycaster::Rebuild()
+{
+    launchParams.traversable = BuildAccel();
+
+    // std::cout << "setting up optix pipeline ..." << std::endl;
+    // CreatePipeline();
+
+    // std::cout << "building SBT ..." << std::endl;
+    // BuildSBT();
+
+    launchParamsBuffer.alloc(sizeof(launchParams));
 }
 
 void cOptixRaycaster::InitOptix()
 {
-    std::cout << "initializing optix..." << std::endl;
+    // std::cout << "initializing optix..." << std::endl;
 
     // -------------------------------------------------------
     // check for available optix7 capable devices
@@ -81,15 +100,15 @@ void cOptixRaycaster::InitOptix()
     cudaGetDeviceCount(&numDevices);
     if (numDevices == 0)
         throw std::runtime_error("no CUDA capable devices found!");
-    std::cout << "found " << numDevices << " CUDA devices" << std::endl;
+    // std::cout << "found " << numDevices << " CUDA devices" << std::endl;
 
     // -------------------------------------------------------
     // initialize optix
     // -------------------------------------------------------
     OPTIX_CHECK(optixInit());
-    std::cout << GDT_TERMINAL_GREEN
-              << "successfully initialized optix... yay!"
-              << GDT_TERMINAL_DEFAULT << std::endl;
+    // std::cout << GDT_TERMINAL_GREEN
+    //           << "successfully initialized optix... yay!"
+    //           << GDT_TERMINAL_DEFAULT << std::endl;
 }
 
 static void context_log_cb(unsigned int level,
@@ -110,14 +129,14 @@ void cOptixRaycaster::CreateContext()
     CUDA_CHECK(StreamCreate(&stream));
 
     cudaGetDeviceProperties(&deviceProps, deviceID);
-    std::cout << "running on device: " << deviceProps.name << std::endl;
+    // std::cout << "running on device: " << deviceProps.name << std::endl;
 
     CUresult cuRes = cuCtxGetCurrent(&cudaContext);
     if (cuRes != CUDA_SUCCESS)
         printf("Error querying current context: error code %d\n", cuRes);
 
     OPTIX_CHECK(optixDeviceContextCreate(cudaContext, 0, &optixContext));
-    OPTIX_CHECK(optixDeviceContextSetLogCallback(optixContext, context_log_cb, nullptr, 4));
+    OPTIX_CHECK(optixDeviceContextSetLogCallback(optixContext, context_log_cb, nullptr, 3));
 }
 
 /*! creates the module that contains all the programs we are going
@@ -250,8 +269,8 @@ void cOptixRaycaster::CreatePipeline()
                                     (int)programGroups.size(),
                                     log, &sizeof_log,
                                     &pipeline));
-    if (sizeof_log > 1)
-        std::cout << log;
+    // if (sizeof_log > 1)
+    //     std::cout << log;
 
     OPTIX_CHECK(optixPipelineSetStackSize(/* [in] The pipeline to configure the stack size for */
                                           pipeline,
@@ -266,8 +285,8 @@ void cOptixRaycaster::CreatePipeline()
                                           /* [in] The maximum depth of a traversable graph
                     passed to trace. */
                                           1));
-    if (sizeof_log > 1)
-        std::cout << log;
+    // if (sizeof_log > 1)
+    //     std::cout << log;
 }
 
 /*! constructs the shader binding table */
@@ -276,7 +295,7 @@ void cOptixRaycaster::BuildSBT()
     // ------------------------------------------------------------------
     // build raygen records
     // ------------------------------------------------------------------
-    std::vector<RaygenRecord> raygenRecords;
+    std::vector<RaygenRecord> raygenRecords(0);
     for (int i = 0; i < raygenPGs.size(); i++)
     {
         RaygenRecord rec;
@@ -290,7 +309,7 @@ void cOptixRaycaster::BuildSBT()
     // ------------------------------------------------------------------
     // build miss records
     // ------------------------------------------------------------------
-    std::vector<MissRecord> missRecords;
+    std::vector<MissRecord> missRecords(0);
     for (int i = 0; i < missPGs.size(); i++)
     {
         MissRecord rec;
@@ -311,7 +330,7 @@ void cOptixRaycaster::BuildSBT()
     // create a dummy one so the SBT doesn't have any null pointers
     // (which the sanity checks in compilation would complain about)
     int numObjects = 1;
-    std::vector<HitgroupRecord> hitgroupRecords;
+    std::vector<HitgroupRecord> hitgroupRecords(0);
     for (int i = 0; i < numObjects; i++)
     {
         int objectType = 0;
@@ -326,6 +345,11 @@ void cOptixRaycaster::BuildSBT()
     sbt.hitgroupRecordCount = (int)hitgroupRecords.size();
 }
 
+void cOptixRaycaster::UpdateVertexBufferToCuda()
+{
+    BuildAccel();
+    std::cout << "upload the verteix buffer to cuda\n";
+}
 /**
  * \brief           Build the acceleration strucutre
 */
@@ -334,7 +358,6 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
     BuildGeometryCudaHostBuffer();
     vertexBuffer.alloc_and_upload(cuda_host_vertices_buffer);
     indexBuffer.alloc_and_upload(cuda_host_index_buffer);
-
     OptixTraversableHandle asHandle{0};
 
     // ==================================================================
@@ -452,9 +475,12 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
 */
 void cOptixRaycaster::BuildGeometryCudaHostBuffer()
 {
-    cuda_host_vertices_buffer.resize(mVertexArray->size(), tVector3f::Zero());
-    cuda_host_index_buffer.resize(
-        this->mTriangleArray->size(), tVector3i::Zero());
+    // std::cout << "[debug] recalculate the cuda buffer\n";
+    if (cuda_host_vertices_buffer.size() != mVertexArray->size())
+        cuda_host_vertices_buffer.resize(mVertexArray->size(), tVector3f::Zero());
+    if (cuda_host_index_buffer.size() != mTriangleArray->size())
+        cuda_host_index_buffer.resize(
+            this->mTriangleArray->size(), tVector3i::Zero());
 
     for (int i = 0; i < mTriangleArray->size(); i++)
     {
@@ -473,36 +499,47 @@ void cOptixRaycaster::BuildGeometryCudaHostBuffer()
                 mVertexArray->at(i)->mPos[1],
                 mVertexArray->at(i)->mPos[2]);
     }
-    std::cout << "triangle size = " << mTriangleArray->size() << std::endl;
-    std::cout << "vertices size = " << mVertexArray->size() << std::endl;
+    // std::cout << "triangle size = " << mTriangleArray->size() << std::endl;
+    // std::cout << "vertices size = " << mVertexArray->size() << std::endl;
 }
 
+void save(const std::string fileName, int width, int height, uint32_t h_pixels[])
+{
+    stbi_write_png(fileName.c_str(), width, height, 4,
+                   h_pixels, width * sizeof(uint32_t));
+}
 /**
  * \brief           Calculate the depth image
 */
-void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera)
+void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera, std::string path)
 {
+    Rebuild();
+
     this->cur_width = width;
     this->cur_height = height;
 
     // 1. if the size is changed, we need to resize the buffer
-    lastSetCamera = camera;
+    setCamera(camera);
     if (launchParams.frame.size.x() != width || launchParams.frame.size.y() != height)
     {
         tVector2i size = tVector2i(width, height);
         resize(size);
     }
-    std::cout << "resize done\n";
+    // std::cout << "resize done\n";
+
+    // UpdateVertexBufferToCuda();
     // 2. reupload all values in launch param
     render();
     // 3. launch the optix program
-    std::cout << "render done\n";
+    // std::cout << "render done\n";
     std::vector<uint32_t> pixels(width * height, 0);
     this->downloadPixels(pixels.data());
-    std::cout << "download pixels done\n";
+    // std::cout << "download pixels done\n";
+    save(path, width, height, pixels.data());
     // exit(0);
     // 4. download the result and save it to .ppm image
 }
+
 extern float fov;
 tMatrix4f get_discrete_mat(int height,
                            int width, const tMatrix4f &view_mat_inv, bool is_vulkan)
@@ -626,25 +663,10 @@ void cOptixRaycaster::render()
  * \brief       download the color pixels (gray scale rgb channels)
 */
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "utils/stb_image_write.h"
-
-#include <bitset>
 void cOptixRaycaster::downloadPixels(uint32_t h_pixels[])
 {
     colorBuffer.download(h_pixels,
                          launchParams.frame.size.x() * launchParams.frame.size.y());
-    const std::string fileName = "cur_draw.png";
-    stbi_write_png(fileName.c_str(), cur_width, cur_height, 4,
-                   h_pixels, cur_width * sizeof(uint32_t));
-    // for (int i = 0; i < cur_height; i++)
-    //     for (int j = 0; j < cur_width; j++)
-    //     {
-    //         int idx = i * cur_width + j;
-    //         std::cout << h_pixels[idx] << std::endl;
-    //         std::bitset<32> res(h_pixels[idx]);
-    //         std::cout << res << std::endl;
-    //     }
-    std::cout << "save to " << fileName << std::endl;
 }
+
 #endif

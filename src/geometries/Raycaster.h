@@ -16,7 +16,7 @@ public:
     void RayCast(const tRay *ray, tTriangle **selected_tri,
                  int &selected_tri_id,
                  tVector &raycast_point) const;
-    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera);
+    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera, std::string path);
 
 protected:
     const std::vector<tTriangle *> *mTriangleArray;

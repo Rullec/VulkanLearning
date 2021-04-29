@@ -24,11 +24,13 @@ protected:
     std::string mRawDataDir;       // raw simulation data dir
     std::string mGenDataDir;       // gen new data dir
 
-    tVector mCameraCenter, mCameraUp; // camera center point and up direction
-    tEigenArr<tVector> mCameraPos;    // a list of camera position
-    CameraBasePtr mCamera;            // camera pos
+    tVector mCameraCenter, mCameraUp;        // camera center point and up direction
+    tEigenArr<tVector> mCameraPos;           // a list of camera position
+    std::vector<CameraBasePtr> mCameraViews; // camera pos
     void InitCameraInfo(const Json::Value &conf);
     virtual void UpdateSubstep() override final;
-    void LoadRawData();
-    tMatrixXd CalcDepthImage();
+    bool LoadRawData(std::string path, tVectorXd & feature_vec);
+    tMatrixXd CalcDepthImageLegacy(const CameraBasePtr camera);
+    void CalcDepthMap(const std::string raw_data_path, const std::string &save_png_path, const std::string & json_path, CameraBasePtr camera);
+    void InitCameraViews();
 };

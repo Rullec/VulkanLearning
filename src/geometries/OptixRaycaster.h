@@ -10,7 +10,7 @@ public:
     explicit cOptixRaycaster(const std::vector<tTriangle *> *triangles,
                              const std::vector<tVertex *> *vertices);
 
-    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera) override final;
+    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera, std::string path) override final;
 
 protected:
     // -----------methods------------
@@ -20,6 +20,7 @@ protected:
     void CreateRaygenPrograms();
     void CreateMissPrograms();
     void CreateHitgroupPrograms();
+    void Rebuild();
     void CreatePipeline();
     void BuildSBT();
     OptixTraversableHandle BuildAccel();
@@ -28,6 +29,7 @@ protected:
     void setCamera(const CameraBasePtr &camera);
     void render();
     void downloadPixels(uint32_t h_pixels[]);
+    void UpdateVertexBufferToCuda();
     // -----------vars-------------
     int cur_width, cur_height;
     CUcontext cudaContext;

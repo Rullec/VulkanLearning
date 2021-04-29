@@ -1,6 +1,7 @@
 #include "ProcessTrainDataScene.h"
 #include "utils/JsonUtil.h"
 #include "utils/FileUtil.h"
+#include "utils/TimeUtil.hpp"
 #include "geometries/Triangulator.h"
 #include "cameras/ArcBallCamera.h"
 #include "geometries/Raycaster.h"
@@ -20,41 +21,104 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
     mGenDataDir = cJsonUtil::ParseAsString(GEN_DATA_DIR_KEY, root);
 
     // 1. validate the input/output dir
-    SIM_ASSERT(cFileUtil::ExistsDir(mRawDataDir) == true);
-    if (cFileUtil::ExistsDir(mGenDataDir))
+    // SIM_ASSERT(cFileUtil::ExistsDir(mRawDataDir) == true);
+    if (cFileUtil::ExistsDir(mGenDataDir) == false)
     {
-        cFileUtil::DeleteDir(mGenDataDir.c_str());
-        printf("[warn] the generated data dir %s is deleted\n", mGenDataDir.c_str());
+        cFileUtil::CreateDir(mGenDataDir.c_str());
+        // cFileUtil::DeleteDir(mGenDataDir.c_str());
+        // printf("[warn] the generated data dir %s is deleted\n", mGenDataDir.c_str());
     }
-    cFileUtil::CreateDir(mGenDataDir.c_str());
 
     // 2. Init camera info
     InitCameraInfo(root);
 
     // 3. init geometry info
     cTriangulator::LoadGeometry(mVertexArray, mEdgeArray, mTriangleArray, mGeometryInfoPath);
-    LoadRawData();
-    InitDrawBuffer();
-    UpdateRenderingResource();
 
     // 4. load a data info, set the vertex pos, init rendering resources
+    InitCameraViews();
     InitRaycaster();
-
-    for (int i = 0; i < 1; i++)
+    std::vector<std::string> paths = cFileUtil::ListDir(this->mRawDataDir);
+    SIM_ASSERT(paths.size() > 0);
+    cTimeUtil::Begin("process");
+    int total_samples = 0;
+    for (int i = 0; i < paths.size(); i++)
     {
-        const tVector3f &camera_pos = this->mCameraPos[0].segment(0, 3).cast<float>(),
+        std::string raw_data = paths[i];
+        for (int camera_id = 0; camera_id < this->mCameraViews.size(); camera_id++)
+        {
+            std::string new_image_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) + "_" + std::to_string(camera_id) + ".png";
+            std::string new_feature_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) + "_" + std::to_string(camera_id) + ".json";
+            std::string new_full_image_name = cFileUtil::ConcatFilename(mGenDataDir, new_image_name);
+            std::string new_full_feature_name = cFileUtil::ConcatFilename(mGenDataDir, new_feature_name);
+            if(cFileUtil::ExistsFile(new_full_image_name) == true)
+            {
+                printf("[warn] file %s exist, ignore\n", new_image_name.c_str());
+                continue;
+            }
+            CalcDepthMap(raw_data, new_full_image_name, new_full_feature_name, mCameraViews[camera_id]);
+            printf("[log] raw data %s saved to %s\n", cFileUtil::GetFilename(raw_data).c_str(), new_image_name.c_str());
+            total_samples++;
+            // exit(0);
+        }
+        // if (total_samples > 10)
+        //     break;
+    }
+    cTimeUtil::End("process");
+    std::cout << "[log] total samples = " << total_samples << std::endl;
+    // {
+    //     // CalcDepthMap(raw_data, "tmp1.png", mCameraViews[1]);
+    //     // CalcDepthMap(raw_data, "tmp2.png", mCameraViews[2]);
+    //     // CalcDepthMap(raw_data, "tmp3.png", mCameraViews[3]);
+    // }
+    exit(0);
+    InitDrawBuffer();
+    UpdateRenderingResource();
+}
+
+/**
+ * \brief           calculate the depth image and do export
+*/
+void cProcessTrainDataScene::CalcDepthMap(const std::string raw_data_path, const std::string &save_png_path, const std::string &save_feature_path, CameraBasePtr camera)
+{
+    // 1. load data to vertex buffer
+    tVectorXd feature_vec;
+    // 2. create depth map
+    if (false == LoadRawData(raw_data_path, feature_vec))
+    {
+        std::cout << "[warn] path " << raw_data_path << "invalid, ignore\n";
+        return;
+    }
+    // std::cout << "feature vec = " << feature_vec.transpose() << std::endl;
+
+    // InitRaycaster();
+
+    // tMatrixXd res = CalcDepthImage();
+    int height = 800, width = 800;
+    // std::cout << "begin to calc depth map\n";
+    mRaycaster->CalcDepthMap(height, width, camera, save_png_path);
+    {
+        Json::Value value;
+        value["feature"] = cJsonUtil::BuildVectorJson(feature_vec);
+        cJsonUtil::WriteJson(save_feature_path, value);
+    }
+    // exit(0);
+    // std::cout << "done\n";
+    // std::cout << "[log] save png to " << save_png_path << std::endl;
+}
+
+void cProcessTrainDataScene::InitCameraViews()
+{
+    mCameraViews.resize(mCameraPos.size(), nullptr);
+    for (int i = 0; i < mCameraPos.size(); i++)
+    {
+        const tVector3f &camera_pos = this->mCameraPos[i].segment(0, 3).cast<float>(),
                         &camera_center = this->mCameraCenter.segment(0, 3).cast<float>(),
                         &camera_up = this->mCameraUp.segment(0, 3).cast<float>();
-        mCamera = std::make_shared<cArcBallCamera>(
+        mCameraViews[i] = std::make_shared<cArcBallCamera>(
             camera_pos,
             camera_center,
             camera_up);
-        // tMatrixXd res = CalcDepthImage();
-        int height = 800, width = 800;
-        std::cout << "begin to calc depth map\n";
-        mRaycaster->CalcDepthMap(height, width, mCamera);
-        std::cout << "done\n";
-        // exit(0);
     }
 }
 
@@ -101,15 +165,15 @@ void cProcessTrainDataScene::UpdateSubstep()
 /**
  * \brief           Load raw data
 */
-void cProcessTrainDataScene::LoadRawData()
+bool cProcessTrainDataScene::LoadRawData(std::string path, tVectorXd &feature_vec)
 {
-    std::vector<std::string> paths = cFileUtil::ListDir(this->mRawDataDir);
-    SIM_ASSERT(paths.size() > 0);
-    std::string path = paths[0];
     Json::Value root;
     cJsonUtil::LoadJson(path, root);
     tVectorXd input = cJsonUtil::ReadVectorJson(root["input"]);
-    std::cout << "input size = " << input.size() << std::endl;
+    if (input.size() == 0)
+        return false;
+    feature_vec.noalias() = cJsonUtil::ReadVectorJson(root["output"]);
+    // std::cout << "input size = " << input.size() << std::endl;
     SIM_ASSERT(input.size() == mVertexArray.size() * 3);
     UpdateCurNodalPosition(input);
 }
@@ -151,12 +215,13 @@ void write_bmp(const std::string path, const int width, const int height, const 
     file.close();
     delete[] img;
 }
+
 #include "omp.h"
-tMatrixXd cProcessTrainDataScene::CalcDepthImage()
+tMatrixXd cProcessTrainDataScene::CalcDepthImageLegacy(const CameraBasePtr camera)
 {
     tMatrixXd res = tMatrixXd::Zero(gWindowHeight, gWindowWidth);
     std::cout << "calc depth image, height " << gWindowHeight << " width " << gWindowWidth << std::endl;
-    tVector camera_pos = cMathUtil::Expand(this->mCamera->pos.cast<double>(), 1);
+    tVector camera_pos = cMathUtil::Expand(camera->pos.cast<double>(), 1);
     // tRay *ray = new tRay(camera_pos, camera_pos + tVector(0, 1, 0, 0));
     tVector intersection_pos;
     int max = -1;
@@ -166,7 +231,7 @@ tMatrixXd cProcessTrainDataScene::CalcDepthImage()
         std::cout << "processing row " << i_row << std::endl;
         for (int i_col = 0; i_col < gWindowHeight; i_col++)
         {
-            tVector cursor_point = CalcCursorPointWorldPos_tool(i_row, i_col, gWindowHeight, gWindowWidth, mCamera->ViewMatrix().inverse().cast<double>());
+            tVector cursor_point = CalcCursorPointWorldPos_tool(i_row, i_col, gWindowHeight, gWindowWidth, camera->ViewMatrix().inverse().cast<double>());
             tRay *ray = new tRay(camera_pos, cursor_point);
             // ray->mDir = (cursor_point - camera_pos).normalized();
 

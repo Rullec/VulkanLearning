@@ -76,12 +76,10 @@ void cFileUtil::DeleteFile(const char *file_name)
 
 void cFileUtil::DeleteDir(const char *dir_name)
 {
-    if (cFileUtil::ExistsDir(dir_name) == true && fs::remove_all(dir_name))
+    if (cFileUtil::ExistsDir(dir_name))
     {
-        std::cout << "succ\n";
+        fs::remove_all(dir_name);
     }
-    else
-        std::cout << "failed\n";
 }
 
 void cFileUtil::ClearDir(const char *dir_name)
