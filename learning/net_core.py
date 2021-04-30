@@ -203,12 +203,12 @@ from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1, conv3x3
 #         return x
 
 
-class res_net(nn.Module):
+class res_net_old(nn.Module):
     '''
         common CNN implemention for depth image(c=1)
     '''
     def __init__(self, fc_layers, output_size):
-        super(res_net, self).__init__()
+        super(res_net_old, self).__init__()
 
         plane_lst = [16, 128, 256, 512, 1024, 512]
         pool_size = (1, 1)
@@ -254,6 +254,52 @@ class res_net(nn.Module):
         for fc_layer in self.fc_layer_lst:
             x = fc_layer(x)
             x = F.relu(x)
-        
+
         x = self.output(x)
+        return x
+
+
+import torchvision
+
+
+class res_net(nn.Module):
+    '''
+        common CNN implemention for depth image(c=1)
+    '''
+    def __init__(self, fc_layers, output_size):
+        super(res_net, self).__init__()
+        # if backbone_name == 'resnet_18':
+
+        # use a fixed resnet18 backbone
+        resnet_net = torchvision.models.resnet18(pretrained=True)
+        # resnet_net = torchvision.models.resnet50(pretrained=True)
+        modules = list(resnet_net.children())[:-1]
+        self.backbone = nn.Sequential(*modules)
+        self.backbone.out_channels = fc_layers[0]
+        for i in self.backbone.parameters():
+            i.requires_grad = False
+
+        # add fc head
+        self.fc_layer_lst = []
+        for j in range(len(fc_layers) - 1):
+            self.fc_layer_lst.append(nn.Linear(fc_layers[j], fc_layers[j + 1]))
+
+        self.fc_layer_lst = torch.nn.ModuleList(self.fc_layer_lst)
+
+        self.output = nn.Linear(fc_layers[-1], output_size)
+
+    def forward(self, x):
+        x = x.repeat(1, 3, 1, 1)
+        # print(f"input {x.shape}")
+        x = torch.squeeze(self.backbone(x))
+        # print(f"resnet {x.shape}")
+
+        for fc_layer in self.fc_layer_lst:
+            x = fc_layer(x)
+            x = F.relu(x)
+
+        x = self.output(x)
+        # print(f"output {x.shape}")
+        # exit(0)
+
         return x

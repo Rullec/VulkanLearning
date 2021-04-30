@@ -8,6 +8,8 @@
 #include <iostream>
 cProcessTrainDataScene::cProcessTrainDataScene()
 {
+    mWidth = 0;
+    mHeight = 0;
 }
 cProcessTrainDataScene::~cProcessTrainDataScene()
 {
@@ -19,7 +21,8 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
     mGeometryInfoPath = cJsonUtil::ParseAsString(GEOMETRY_INFO_KEY, root);
     mRawDataDir = cJsonUtil::ParseAsString(RAW_DATA_DIR_KEY, root);
     mGenDataDir = cJsonUtil::ParseAsString(GEN_DATA_DIR_KEY, root);
-
+    mWidth = cJsonUtil::ParseAsInt(DEPTH_IMAGE_WIDTH_KEY, root);
+    mHeight = cJsonUtil::ParseAsInt(DEPTH_IMAGE_HEIGHT_KEY, root);
     // 1. validate the input/output dir
     // SIM_ASSERT(cFileUtil::ExistsDir(mRawDataDir) == true);
     if (cFileUtil::ExistsDir(mGenDataDir) == false)
@@ -51,7 +54,7 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
             std::string new_feature_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) + "_" + std::to_string(camera_id) + ".json";
             std::string new_full_image_name = cFileUtil::ConcatFilename(mGenDataDir, new_image_name);
             std::string new_full_feature_name = cFileUtil::ConcatFilename(mGenDataDir, new_feature_name);
-            if(cFileUtil::ExistsFile(new_full_image_name) == true)
+            if (cFileUtil::ExistsFile(new_full_image_name) == true)
             {
                 printf("[warn] file %s exist, ignore\n", new_image_name.c_str());
                 continue;
@@ -94,9 +97,8 @@ void cProcessTrainDataScene::CalcDepthMap(const std::string raw_data_path, const
     // InitRaycaster();
 
     // tMatrixXd res = CalcDepthImage();
-    int height = 512, width = 512;
     // std::cout << "begin to calc depth map\n";
-    mRaycaster->CalcDepthMap(height, width, camera, save_png_path);
+    mRaycaster->CalcDepthMap(mHeight, mWidth, camera, save_png_path);
     {
         Json::Value value;
         value["feature"] = cJsonUtil::BuildVectorJson(feature_vec);
