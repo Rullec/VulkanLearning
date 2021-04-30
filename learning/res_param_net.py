@@ -32,10 +32,10 @@ class ResParamNet(ParamNet):
         # exit(0)
 
     def _build_net(self):
-        layers = [16]
+        
         # print(self.output_size)
         # exit(0)
-        self.net = res_net(layers, self.output_size).to(self.device)
+        self.net = res_net(self.layers, self.output_size).to(self.device)
         self.criterion = torch.nn.MSELoss()
         total = 0
         for i in self.net.parameters():
@@ -59,6 +59,7 @@ class ResParamNet(ParamNet):
                     self.data_loader.get_train_data()):
                 # st1 = time.time()
                 # print(i_batch)
+                self.net.train()
                 inputs, outputs = sampled_batched
                 inputs = np.array(inputs)
                 outputs = np.array(outputs)
@@ -109,8 +110,8 @@ class ResParamNet(ParamNet):
                     f"iter {epoch} train loss {mean_train_loss} validation loss {validation_err}, avg cost {(time.time() - st_time)/(epoch + 1)}, device {self.device}"
                 )
                 self.writer.add_scalar("train_loss", mean_train_loss, step)
-                self.writer.add_scalar("validation_error",
-                                       self._calc_validation_error(), step)
+                self.writer.add_scalar("validation_error", validation_err,
+                                       step)
                 self.writer.add_scalar("lr", self._get_lr(), step)
                 # if validation_err < self.covg_threshold:
                 #     break

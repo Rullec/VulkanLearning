@@ -12,7 +12,7 @@ class ImageDataLoader(DataLoader):
     '''
     def __init__(self, data_dir: str, train_perc: float, test_perc: float,
                  batch_size: int, enable_log_prediction: bool) -> None:
-        print("[log] image dataloader begin")
+        # print("[log] image dataloader begin")
 
         super().__init__(data_dir, train_perc, test_perc, batch_size,
                          enable_log_prediction)
@@ -94,6 +94,7 @@ class ImageDataLoader(DataLoader):
     def _load_data(self):
         pkl_file = os.path.join(self.data_dir, DataLoader.PKL_FILE_NAME)
         if os.path.exists(pkl_file) == True:
+            print(f"[debug] loading pkl from {pkl_file}")
             import pickle
             with open(pkl_file, 'rb') as f:
                 # print(f"begin to load pkl from {pkl_file}")
@@ -107,7 +108,7 @@ class ImageDataLoader(DataLoader):
 
                 # print(f"done to load pkl from {pkl_file}")
         else:
-
+            print(f"[debug] pkl not found, load pngs from {self.data_dir}")
             X_lst, Y_lst = [], []
             if os.path.exists(self.data_dir) == True:
                 png_files, feature_files = ImageDataLoader.__get_pngs_and_features(
@@ -142,7 +143,7 @@ class ImageDataLoader(DataLoader):
             with open(pkl_file, 'wb') as f:
                 pickle.dump(cont, f, protocol=4)
             # print(f"save pkl to {pkl_file} succ")
-        
+
         np.clip(self.input_std, 1e-2, None, self.input_std)
         np.clip(self.output_std, 1e-2, None, self.output_std)
         # print(
@@ -165,6 +166,7 @@ class ImageDataLoader(DataLoader):
         # print(f"output mean {self.output_mean}")
         # print(f"output std {self.output_std}")
         # exit(0)
+        print("begin to normalize data")
         for i in tqdm(range(X_lst.shape[0])):
             size = X_lst.shape[1]
             # before = X_lst[i, size/2, size/2]
@@ -208,7 +210,8 @@ class ImageDataLoader(DataLoader):
         # print(f"train X shape {len(self.train_X)}")
         # print(f"train Y shape {len(self.train_Y)}")
         # print(f"new res = \n{X_lst[0]}")
-        
+
         # print(f"mean = \n{self.input_mean}")
         # print(f"std = \n{self.input_std}")
         # exit(0)
+        print("[debug] dataloader done")

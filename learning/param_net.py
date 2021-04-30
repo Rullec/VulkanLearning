@@ -13,7 +13,6 @@ from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 
 
-
 class ParamNet:
     '''
     FC Neural Network object to inference the simulation parameters
@@ -60,6 +59,7 @@ class ParamNet:
         self.min_lr = float(self.conf[ParamNet.MIN_LEANING_RATE_KEY])
         self.lr_decay = float(self.conf[ParamNet.LEANING_RATE_DECAY_KEY])
         self.weight_decay = float(self.conf[ParamNet.WEIGHT_DECAY_KEY])
+        self.layers = list(self.conf[ParamNet.LAYERS_KEY])
         self.covg_threshold = float(
             self.conf[ParamNet.CONVERGENCE_THRESHOLD_KEY])
         self.data_dir = str(self.conf[ParamNet.DATA_DIR_KEY])
@@ -98,7 +98,7 @@ class ParamNet:
         '''
         Build my network strucutre from given "layers"
         '''
-        self.layers = list(self.conf[ParamNet.LAYERS_KEY])
+        
         for i in self.layers:
             assert type(i) == int, f"layers = {i}"
         self.net = fc_net(self.input_size, self.layers, self.output_size,
@@ -140,11 +140,10 @@ class ParamNet:
             self.load_model_path = None
         if self.load_model_path is not None:
             self.load_model(self.load_model_path)
-        
+
         now = datetime.now()
         self.writer = SummaryWriter("../log/tensorboard_log" +
-                       now.strftime("%Y%m%d-%H%M%S") + "/")
-
+                                    now.strftime("%Y%m%d-%H%M%S") + "/")
 
     def _get_lr(self):
         for g in self.optimizer.param_groups:
@@ -207,36 +206,41 @@ class ParamNet:
     #     print("finished training")
 
     def _calc_validation_error(self):
-        # print("-----begin validation---")
-        iters = 0
-        total_validation_err = 0
-        total_num = 0
-        for sampled_batched in self.data_loader.get_validation_data():
-            inputs, outputs = sampled_batched
-            inputs = np.array(inputs)
-            outputs = np.array(outputs)
-            num = inputs.shape[0]
-            if num == 1:
-                # print("validation, num = 1, ignore")
-                continue
-            # print(f"outut shape {outputs.shape}")
-            inputs = torch.from_numpy(inputs).to(self.device)
-            Y = torch.from_numpy(outputs).to(self.device)
-            # self.optimizer.zero_grad()
-            pred = self.net(inputs)
-            single_mse = self.criterion(pred, Y)
-            total_validation_err += single_mse * num
-            # print(f"[valid] single mse {single_mse} num {num}")
-            iters += 1
-            total_num += num
-        output_mean = self.data_loader.get_output_mean()
-        output_std = self.data_loader.get_output_std()
-        # print(f"output mean {output_mean}")
-        # print(f"output std {output_std}")
-        np_pred = pred.cpu()[0].detach().numpy()
-        np_gt = Y.cpu()[0].detach().numpy()
+        # begin to do evaluation
+        self.net.eval()
 
-        # print(f"[valid] diff = {(np_pred - np_gt) * output_std}")
+        with torch.no_grad():
+            # print("-----begin validation---")
+            iters = 0
+            total_validation_err = 0
+            total_num = 0
+            for sampled_batched in self.data_loader.get_validation_data():
+
+                inputs, outputs = sampled_batched
+                inputs = np.array(inputs)
+                outputs = np.array(outputs)
+                num = inputs.shape[0]
+                if num == 1:
+                    # print("validation, num = 1, ignore")
+                    continue
+                # print(f"outut shape {outputs.shape}")
+                inputs = torch.from_numpy(inputs).to(self.device)
+                Y = torch.from_numpy(outputs).to(self.device)
+                # self.optimizer.zero_grad()
+                pred = self.net(inputs)
+                single_mse = self.criterion(pred, Y)
+                total_validation_err += single_mse * num
+                # print(f"[valid] single mse {single_mse} num {num}")
+                iters += 1
+                total_num += num
+            output_mean = self.data_loader.get_output_mean()
+            output_std = self.data_loader.get_output_std()
+            # print(f"output mean {output_mean}")
+            # print(f"output std {output_std}")
+            np_pred = pred.cpu()[0].detach().numpy()
+            np_gt = Y.cpu()[0].detach().numpy()
+
+            # print(f"[valid] diff = {(np_pred - np_gt) * output_std}")
         valdation_err = total_validation_err / total_num
         # print(f"[valid] total err {total_validation_err} num {total_num}, val err = {valdation_err}")
         # print("-----end validation---")
@@ -258,6 +262,7 @@ class ParamNet:
             self.data_loader.shuffle()
             for i_batch, sampled_batched in enumerate(
                     self.data_loader.get_train_data()):
+                self.net.train()
                 # st1 = time.time()
                 # print(i_batch)
                 inputs, outputs = sampled_batched
@@ -280,7 +285,7 @@ class ParamNet:
                 loss = self.criterion(pred, Y).to(self.device)
                 loss.backward()
                 self.optimizer.step()
-                
+
                 print(f"batch {i_batch} loss {loss}")
                 # print(f"[train] single mse {loss} num {inputs.shape[0]}")
                 cur_epoch_train_loss += loss * num
@@ -302,7 +307,7 @@ class ParamNet:
                 )
                 self.writer.add_scalar("train_loss", mean_train_loss, step)
                 self.writer.add_scalar("validation_error",
-                                  self._calc_validation_error(), step)
+                                       self._calc_validation_error(), step)
                 self.writer.add_scalar("lr", self._get_lr(), step)
                 # if validation_err < self.covg_threshold:
                 #     break
@@ -333,73 +338,75 @@ class ParamNet:
         return list(diff_perc)
 
     def test(self):
-        iters = 0
-        total_validation_err = 0
-        total_num = 0
-        diff_perc_lst = []
-        output_mean = self.data_loader.get_output_mean()
-        output_std = self.data_loader.get_output_std()
-        for i_batch, sampled_batched in enumerate(
-                self.data_loader.get_validation_data()):
-            # st1 = time.time()
-            # print(i_batch)
-            inputs, outputs = sampled_batched
-            inputs = np.array(inputs)
-            outputs = np.array(outputs)
-            # print(f"outut shape {outputs.shape}")
-            inputs = torch.from_numpy(inputs).to(self.device)
-            Y = torch.from_numpy(outputs).to(self.device)
-            num = inputs.shape[0]
-            # self.optimizer.zero_grad()
-            pred = self.net(inputs)
-            single_mse = self.criterion(pred, Y)
-            total_validation_err += single_mse * num
-            diff_perc_lst += self._calc_validation_error_percentage(
-                Y.cpu().detach(),
-                pred.cpu().detach(), output_mean, output_std)
-            # print(f"[valid] single mse {single_mse} num {num}")
+        self.net.eval()
+        with torch.no_grad():
+            iters = 0
+            total_validation_err = 0
+            total_num = 0
+            diff_perc_lst = []
+            output_mean = self.data_loader.get_output_mean()
+            output_std = self.data_loader.get_output_std()
+            for i_batch, sampled_batched in enumerate(
+                    self.data_loader.get_validation_data()):
+                # st1 = time.time()
+                # print(i_batch)
+                inputs, outputs = sampled_batched
+                inputs = np.array(inputs)
+                outputs = np.array(outputs)
+                # print(f"outut shape {outputs.shape}")
+                inputs = torch.from_numpy(inputs).to(self.device)
+                Y = torch.from_numpy(outputs).to(self.device)
+                num = inputs.shape[0]
+                # self.optimizer.zero_grad()
+                pred = self.net(inputs)
+                single_mse = self.criterion(pred, Y)
+                total_validation_err += single_mse * num
+                diff_perc_lst += self._calc_validation_error_percentage(
+                    Y.cpu().detach(),
+                    pred.cpu().detach(), output_mean, output_std)
+                # print(f"[valid] single mse {single_mse} num {num}")
+                # print(diff_perc_lst)
+                # exit(0)
+                iters += 1
+                total_num += num
+
+            # print(f"output mean {output_mean}")
+            # print(f"output std {output_std}")
+            np_pred = pred.cpu().detach().numpy()
+            np_gt = Y.cpu().detach().numpy()
+            diff = np_pred - np_gt
+            print_samples = 100
+            idx = np.random.permutation(np_pred.shape[0])[:print_samples]
+            assert self.enable_log_prediction == True
+
+            for i in idx:
+                # print(f"pred {np_pred[i, :]}, gt {np_gt[i, :]}, diff {diff[i, :]}")
+                pred = np_pred[i, :] * output_std + output_mean
+                gt = np_gt[i, :] * output_std + output_mean
+                # print(f"raw gt = {np_gt[i, :]}")
+                # print(f"output std = {output_std}")
+                # print(f"output mean = {output_mean}")
+                # print(f"later gt = {gt}")
+                exp_pred = np.exp(pred)
+                exp_gt = np.exp(gt)
+                exp_diff = np.abs(exp_pred - exp_gt)
+                diff_perc = exp_diff / exp_gt * 100
+                print(
+                    f"pred {exp_pred}\ngt {exp_gt}\ndiff {exp_diff}\nperc {diff_perc}\n"
+                )
+                for i in list(diff_perc):
+                    diff_perc_lst.append(i)
+                # print(f"diff {diff[i, :]}")
+            import matplotlib.pyplot as plt
+            sorted_lst = sorted(diff_perc_lst)
+            print(f"50% {sorted_lst[int(0.5 * len(sorted_lst))]}")
+            print(f"80% {sorted_lst[int(0.8 * len(sorted_lst))]}")
+            print(f"90% {sorted_lst[int(0.9 * len(sorted_lst))]}")
+            print(f"99% {sorted_lst[int(0.99 * len(sorted_lst))]}")
+            print(f"99.9% {sorted_lst[int(0.999 * len(sorted_lst))]}")
+            print(sorted_lst)
+            plt.hist(diff_perc_lst)
             # print(diff_perc_lst)
-            # exit(0)
-            iters += 1
-            total_num += num
+            plt.show()
 
-        # print(f"output mean {output_mean}")
-        # print(f"output std {output_std}")
-        np_pred = pred.cpu().detach().numpy()
-        np_gt = Y.cpu().detach().numpy()
-        diff = np_pred - np_gt
-        print_samples = 100
-        idx = np.random.permutation(np_pred.shape[0])[:print_samples]
-        assert self.enable_log_prediction == True
-
-        for i in idx:
-            # print(f"pred {np_pred[i, :]}, gt {np_gt[i, :]}, diff {diff[i, :]}")
-            pred = np_pred[i, :] * output_std + output_mean
-            gt = np_gt[i, :] * output_std + output_mean
-            # print(f"raw gt = {np_gt[i, :]}")
             # print(f"output std = {output_std}")
-            # print(f"output mean = {output_mean}")
-            # print(f"later gt = {gt}")
-            exp_pred = np.exp(pred)
-            exp_gt = np.exp(gt)
-            exp_diff = np.abs(exp_pred - exp_gt)
-            diff_perc = exp_diff / exp_gt * 100
-            print(
-                f"pred {exp_pred}\ngt {exp_gt}\ndiff {exp_diff}\nperc {diff_perc}\n"
-            )
-            for i in list(diff_perc):
-                diff_perc_lst.append(i)
-            # print(f"diff {diff[i, :]}")
-        import matplotlib.pyplot as plt
-        sorted_lst = sorted(diff_perc_lst)
-        print(f"50% {sorted_lst[int(0.5 * len(sorted_lst))]}")
-        print(f"80% {sorted_lst[int(0.8 * len(sorted_lst))]}")
-        print(f"90% {sorted_lst[int(0.9 * len(sorted_lst))]}")
-        print(f"99% {sorted_lst[int(0.99 * len(sorted_lst))]}")
-        print(f"99.9% {sorted_lst[int(0.999 * len(sorted_lst))]}")
-        print(sorted_lst)
-        plt.hist(diff_perc_lst)
-        # print(diff_perc_lst)
-        plt.show()
-
-        # print(f"output std = {output_std}")
