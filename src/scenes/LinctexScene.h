@@ -13,6 +13,7 @@ namespace StyleEngine
     class SeDraggedPoints;
 };
 SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
+
 class cLinctexScene : public cSimScene
 {
 public:
@@ -25,15 +26,16 @@ public:
     virtual void Reset() override final;
     // external cloth property settings
     virtual void SetSimProperty(const tPhyPropertyPtr &prop);
-    virtual void ApplyTransform(const tMatrix &trans);
+    // virtual void ApplyTransform(const tMatrix &trans);
+    virtual void ApplyNoise(bool enable_y_random_rotation, double &rotation_angle, bool enable_y_random_pos, const double random_ypos_std);
     virtual tPhyPropertyPtr GetSimProperty() const;
     virtual const tVectorXd &GetClothFeatureVector() const;
     virtual int GetClothFeatureSize() const;
     static void DumpSimulationData(
         const tVectorXd &simualtion_result,
         const tVectorXd &simulation_property,
-        const tVector &init_rot_qua,
-        const tVector &init_translation,
+        // const tVector &init_rot_qua,
+        // const tVector &init_translation,
         const std::string &filename);
     virtual void Key(int key, int scancode, int action, int mods);
 
@@ -63,7 +65,7 @@ protected:
     int mNetworkInfer_CurIter;            // used in network inference mode, cur iterations
     tVectorXd mPreviosFeature;            // used in network inference mode, previous nodal position vector
 
-    bool mEnableDumpGeometryInfo;     // if true, we save the geometry information after the initialization
+    bool mEnableDumpGeometryInfo;      // if true, we save the geometry information after the initialization
     std::string mDumpGeometryInfoPath; // save path for initial geometry
 };
 #endif

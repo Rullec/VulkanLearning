@@ -11,12 +11,13 @@ class tPhyPropertyManager
 public:
     explicit tPhyPropertyManager(const Json::Value &conf);
     tPhyPropertyPtr GetNextProperty();
+    int GetNumOfProperties() const;
     bool IsEnd() const;
     void PrintIndices();
 
 protected:
     tVectorXd mPropMin, mPropMax, mPropDefault;
-    int mSamples;
+    int mSamplePerProperty;
     std::vector<int> mNextSampleIndices; // the indices for next property
     enum eSampleMode
     {

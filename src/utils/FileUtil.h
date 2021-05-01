@@ -16,7 +16,7 @@ public:
     static void DeleteFile(const char *file_name);
     static void ClearDir(const char *dir_name);
     static void DeleteDir(const char *dir_name);
-    static void CreateDir(const char *dir_name);
+    static bool CreateDir(const char *dir_name);
     static std::vector<std::string> ListDir(std::string);
     static std::string RemoveExtension(const std::string &filename);
     static void DeleteFile(const std::string &filename);

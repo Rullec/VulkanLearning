@@ -587,7 +587,20 @@ void cDrawScene::Scroll(double xoff, double yoff)
 /**
  * \brief           Reset the whole scene
 */
-void cDrawScene::Reset() { mSimScene->Reset(); }
+#include "scenes/LinctexScene.h"
+void cDrawScene::Reset()
+{
+    mSimScene->Reset();
+    auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
+    if (lin_scene != nullptr)
+    {
+        double angle = 0;
+        double std = 0.02;
+        // lin_scene->ApplyNoise(true, angle, false, 0);
+        lin_scene->ApplyNoise(true, angle, true, std);
+        std::cout << "apply noise in draw scene, std = " << std << std::endl;
+    }
+}
 
 /**
  * \brief           Do initialization for vulkan

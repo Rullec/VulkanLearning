@@ -1,9 +1,10 @@
 {
+    "enable_draw": false,
     "scene_type": "data_synthesis",
-    "default_config_wpath": "config/se_config.json",
+    "default_config_path": "config/sim_configs/se_config.json",
     "enable_data_aug": false,
     "pause_at_first": true,
-    "convergence_threshold": 0.1,
+    "convergence_threshold": 0.05,
     "window_height": 600,
     "window_width": 800,
     "camera": {
@@ -45,6 +46,13 @@
             ]
         },
         "mode": "linear",
-        "sample": 6
+        "sample_per_property": 8
+    },
+    "enable_noise": true,
+    "noise": {
+        "noised_samples": 4,
+        "enable_init_rotation": true,
+        "enable_gaussian_pos_noise": true,
+        "gaussian_std": 0.02
     }
 }

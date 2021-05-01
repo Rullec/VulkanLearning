@@ -94,9 +94,14 @@ void cFileUtil::ClearDir(const char *dir_name)
     }
 }
 
-void cFileUtil::CreateDir(const char *dir_name)
+bool cFileUtil::CreateDir(const char *dir_name)
 {
-    fs::create_directories(dir_name);
+    bool succ = fs::create_directories(dir_name);
+    if (succ == false)
+    {
+        SIM_WARN("create {} directory failed", dir_name);
+    }
+    return succ;
 }
 
 std::string cFileUtil::RemoveExtension(const std::string &filename)

@@ -176,8 +176,8 @@ void cLinctexScene::NetworkInferenceFunction()
         cLinctexScene::DumpSimulationData(
             mClothFeature,
             mClothProp->BuildFeatureVector(),
-            tVector::Zero(),
-            tVector::Zero(),
+            // tVector::Zero(),
+            // tVector::Zero(),
             mNetworkInfer_OutputPath);
         exit(0);
     }
@@ -423,21 +423,21 @@ int cLinctexScene::GetClothFeatureSize() const
 void cLinctexScene::DumpSimulationData(
     const tVectorXd &simualtion_result,
     const tVectorXd &simulation_property,
-    const tVector &init_rot_qua,
-    const tVector &init_translation,
+    // const tVector &init_rot_qua,
+    // const tVector &init_translation,
     const std::string &filename)
 {
     Json::Value export_json;
     export_json["input"] = cJsonUtil::BuildVectorJson(simualtion_result);
     export_json["output"] = cJsonUtil::BuildVectorJson(simulation_property);
-    Json::Value extra_info;
+    // Json::Value extra_info;
     // std::cout << "feature = " << props->BuildFeatureVector().transpose() << std::endl;
     // std::cout << "trans = \n"
     //           << init_trans << std::endl;
 
-    extra_info["init_rot"] = cJsonUtil::BuildVectorJson(init_rot_qua);
-    extra_info["init_pos"] = cJsonUtil::BuildVectorJson(init_translation);
-    export_json["extra_info"] = extra_info;
+    // extra_info["init_rot"] = cJsonUtil::BuildVectorJson(init_rot_qua);
+    // extra_info["init_pos"] = cJsonUtil::BuildVectorJson(init_translation);
+    // export_json["extra_info"] = extra_info;
     cJsonUtil::WriteJson(filename, export_json);
     std::cout << "[debug] save data to " << filename << std::endl;
 }
@@ -532,17 +532,17 @@ void cLinctexScene::InitGeometry(const Json::Value &conf)
 /**
  * \brief           apply the transform to the cloth
 */
-void cLinctexScene::ApplyTransform(const tMatrix &trans)
-{
-    for (int i = 0; i < mVertexArray.size(); i++)
-    {
+// void cLinctexScene::ApplyTransform(const tMatrix &trans)
+// {
+//     for (int i = 0; i < mVertexArray.size(); i++)
+//     {
 
-        tVector cur_pos = tVector::Ones();
-        cur_pos.segment(0, 3).noalias() = mXcur.segment(i * 3, 3);
-        mXcur.segment(i * 3, 3).noalias() = (trans * cur_pos).segment(0, 3);
-    }
-    UpdateCurNodalPosition(mXcur);
-}
+//         tVector cur_pos = tVector::Ones();
+//         cur_pos.segment(0, 3).noalias() = mXcur.segment(i * 3, 3);
+//         mXcur.segment(i * 3, 3).noalias() = (trans * cur_pos).segment(0, 3);
+//     }
+//     UpdateCurNodalPosition(mXcur);
+// }
 #include "GLFW/glfw3.h"
 void cLinctexScene::Key(int key, int scancode, int action, int mods)
 {
@@ -552,9 +552,47 @@ void cLinctexScene::Key(int key, int scancode, int action, int mods)
         cLinctexScene::DumpSimulationData(
             GetClothFeatureVector(),
             mClothProp->BuildFeatureVector(),
-            tVector::Zero(),
-            tVector::Zero(),
+            // tVector::Zero(),
+            // tVector::Zero(),
             "tmp.json");
     }
 }
+
+#include <math.h>
+#include <cmath>
+void cLinctexScene::ApplyNoise(bool enable_y_random_rotation, double &rotation_angle, bool enable_y_random_pos, const double random_ypos_std)
+{
+    rotation_angle = 0;
+    if (enable_y_random_rotation == true)
+    {
+        rotation_angle = cMathUtil::RandDouble(0, 2 * M_PI);
+        // std::cout << "rotation angle = " << rotation_angle << std::endl;
+    }
+
+    tMatrix mat = cMathUtil::EulerAnglesToRotMat(
+        tVector(0, rotation_angle, 0, 0),
+        eRotationOrder::XYZ);
+    for (int i = 0; i < mVertexArray.size(); i++)
+    {
+        // 1. apply rotation
+        tVector cur_pos = tVector::Ones();
+        cur_pos.segment(0, 3).noalias() = mXcur.segment(i * 3, 3);
+        mXcur.segment(i * 3, 3).noalias() = (mat * cur_pos).segment(0, 3);
+
+        // 2. apply noise translation
+        if (enable_y_random_pos == true)
+        {
+            mXcur[i * 3 + 1] += cMathUtil::RandDoubleNorm(0, random_ypos_std);
+        }
+
+        // if (enable_y_random_pos)
+        // {
+        // }
+        // exit(0);
+    }
+
+    // 3. final update
+    UpdateCurNodalPosition(mXcur);
+}
+
 #endif

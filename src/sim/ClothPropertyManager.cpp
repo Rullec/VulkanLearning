@@ -25,11 +25,11 @@ tPhyPropertyManager::tPhyPropertyManager(
 
     InitPropRange(range_json);
 
-    mSamples = cJsonUtil::ParseAsInt("sample", conf);
-    SIM_ASSERT(mSamples > 0);
+    mSamplePerProperty = cJsonUtil::ParseAsInt("sample_per_property", conf);
+    SIM_ASSERT(mSamplePerProperty > 0);
     mNextSampleIndices.resize(tPhyProperty::mNumOfProperties, 0);
     mFirstSample = true;
-    // std::cout << "sample " << mSamples << std::endl;
+    // std::cout << "sample " << mSamplePerProperty << std::endl;
 }
 
 tPhyPropertyPtr tPhyPropertyManager::GetNextProperty()
@@ -65,7 +65,7 @@ bool tPhyPropertyManager::IsEnd() const
         for (int i = 0; i < tPhyProperty::mNumOfProperties; i++)
         {
             SIM_ASSERT((mNextSampleIndices[i] >= 0) &&
-                       (mNextSampleIndices[i] < mSamples));
+                       (mNextSampleIndices[i] < mSamplePerProperty));
             if (mNextSampleIndices[i] != 0)
             {
                 is_end = false;
@@ -105,9 +105,9 @@ void tPhyPropertyManager::AddIndices()
         // division
         if (idx >= 1)
         {
-            mNextSampleIndices[idx - 1] += std::floor(mNextSampleIndices[idx] / mSamples);
+            mNextSampleIndices[idx - 1] += std::floor(mNextSampleIndices[idx] / mSamplePerProperty);
         }
-        mNextSampleIndices[idx] %= mSamples;
+        mNextSampleIndices[idx] %= mSamplePerProperty;
     }
 }
 
@@ -121,7 +121,7 @@ tVectorXd tPhyPropertyManager::CalcPropertyFromIndices(const std::vector<int> &i
     for (int i = 0; i < tPhyProperty::mNumOfProperties; i++)
     {
         int id = indices[i];
-        int gap = mSamples - 1;
+        int gap = mSamplePerProperty - 1;
         switch (this->mSampleMode)
         {
         case eSampleMode::LOG:
@@ -154,5 +154,10 @@ void tPhyPropertyManager::PrintIndices()
     for (auto &x : mNextSampleIndices)
         std::cout << x;
     std::cout << std::endl;
+}
+
+int tPhyPropertyManager::GetNumOfProperties() const
+{
+    return int(std::pow(mSamplePerProperty, tPhyProperty::mNumOfProperties));
 }
 #endif
