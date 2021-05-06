@@ -54,7 +54,7 @@ extern "C" __global__ void __closesthit__radiance()
     int r = unsigned(primID) * 13 * 17 + 0x234235;
     int g = unsigned(primID) * 7 * 3 * 5 + 0x773477;
     int b = unsigned(primID) * 11 * 19 + 0x223766;
-    int t = optixGetRayTmax() * 100;
+    int t = optixGetRayTmax() * 400;
     optixSetPayload_0(r);
     optixSetPayload_1(g);
     optixSetPayload_2(b);

@@ -44,6 +44,10 @@ void cKinematicBody::Init(const Json::Value &value)
     default:
         SIM_ERROR("Unsupported kinematic shape {}", type);
     }
+    tVector min, max;
+    CalcAABB(min, max);
+    std::cout << "[debug] obstacle aabb min = " << min.transpose() << std::endl;
+    std::cout << "[debug] obstacle aabb max = " << max.transpose() << std::endl;
 }
 
 eKinematicBodyShape cKinematicBody::BuildKinematicBodyShape(std::string type_str)

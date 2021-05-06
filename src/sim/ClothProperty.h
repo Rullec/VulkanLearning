@@ -11,15 +11,28 @@ struct tPhyProperty
     double mStretchWeft;
     double mBendingWarp;
     double mBendingWeft;
+
     inline static const int mNumOfProperties = 4;
     inline static const std::string mPropertiesName[tPhyProperty::mNumOfProperties] = {
         "stretch_warp",
         "stretch_weft",
         "bending_warp",
         "bending_weft"};
-    void Init(const Json::Value &conf);
-    tVectorXd BuildFeatureVector() const;
-    void ReadFeatureVector(const tVectorXd &vec);
+    virtual void Init(const Json::Value &conf); // normal init
+    virtual tVectorXd BuildFullFeatureVector() const;
+    virtual tVectorXd BuildVisibleFeatureVector() const;
+    virtual void ReadFeatureVector(const tVectorXd &vec);
+    static int GetFeatureIdx(std::string name);
+    double GetFeature(std::string name) const;
+};
 
+struct tBatchProperty : public tPhyProperty
+{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    bool mVisibility[mNumOfProperties] = {};
+    tVectorXi mVisibleFeatureIndex;
+    int mNumOfVisibleFeature;
+    void SetVisilibities(std::vector<bool> visibilities, const tVectorXi &visible_faeture_index);
+    virtual tVectorXd BuildVisibleFeatureVector() const override;
 };
 #endif

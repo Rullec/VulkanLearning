@@ -414,11 +414,13 @@ public:
         return mat;
     }
     static tVector RayCastTri(const tVector &ori, const tVector &dir,
-                           const tVector &p1, const tVector &p2,
-                           const tVector &p3, double eps = 1e-10);
+                              const tVector &p1, const tVector &p2,
+                              const tVector &p3, double eps = 1e-10);
     static tVector RayCastPlane(const tVector &ray_ori,
                                 const tVector &ray_dir, const tVector &plane_eqaution,
                                 double eps = 1e-10);
+    static tMatrixXd CartesianProduct(const std::vector<std::vector<double>> &lists);
+    static std::vector<std::vector<double>> CartesianProductVec(const std::vector<std::vector<double>> &lists);
 
 private:
     static cRand gRand;

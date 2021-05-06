@@ -602,6 +602,7 @@ void cSimScene::CreateObstacle(const Json::Value &conf)
     mObstacle = std::make_shared<cKinematicBody>();
     mObstacle->Init(conf);
     std::cout << "[debug] create obstacle done, now begin to exit\n";
+    
     // exit(0);
 }
 

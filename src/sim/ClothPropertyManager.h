@@ -1,6 +1,7 @@
 #ifdef _WIN32
 #include "utils/DefUtil.h"
 #include "utils/MathUtil.h"
+#include <utility>
 namespace Json
 {
     class Value;
@@ -10,24 +11,25 @@ class tPhyPropertyManager
 {
 public:
     explicit tPhyPropertyManager(const Json::Value &conf);
-    tPhyPropertyPtr GetNextProperty();
+    tPhyPropertyPtr GetProperty(int idx);
     int GetNumOfProperties() const;
-    bool IsEnd() const;
-    void PrintIndices();
 
 protected:
-    tVectorXd mPropMin, mPropMax, mPropDefault;
-    int mSamplePerProperty;
-    std::vector<int> mNextSampleIndices; // the indices for next property
+    tVectorXd mPropMin, mPropMax;
+    tVectorXi mSamples;
+    std::vector<bool> mVisibilities;
+    tVectorXi mVisibleIndex;
     enum eSampleMode
     {
         LINEAR = 0,
         LOG
     };
-    bool mFirstSample;
     eSampleMode mSampleMode;
-    void InitPropRange(const Json::Value &feature_range_json);
-    void AddIndices();
-    tVectorXd CalcPropertyFromIndices(const std::vector<int> &indices) const;
+    tMatrixXd mAllPropertyFeatures;
+    std::vector<std::pair<int , int >> mExchangeablePairs;
+    void InitExchangeablePairs(const Json::Value & conf);
+    void InitFeatures();
+    std::vector<double> CalcPropertyDiscreteRange(int idx) const;
+
 };
 #endif

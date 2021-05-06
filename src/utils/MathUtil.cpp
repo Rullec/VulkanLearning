@@ -1896,3 +1896,50 @@ tMatrix cMathUtil::TransformMat(const tVector &translation, const tVector &euler
     mat.block(0, 3, 3, 1) = translation.segment(0, 3);
     return mat;
 }
+
+/**
+ * \brief               cartesian product for sets
+*/
+tMatrixXd cMathUtil::CartesianProduct(const std::vector<std::vector<double>> &lists)
+{
+    std::vector<std::vector<double>> result = CartesianProductVec(lists);
+
+    tMatrixXd eigen_res = tMatrixXd::Zero(result.size(), result[0].size());
+    for (int i = 0; i < result.size(); i++)
+    {
+        for (int j = 0; j < result[i].size(); j++)
+        {
+            eigen_res(i, j) = result[i][j];
+        }
+    }
+    return eigen_res;
+}
+
+std::vector<std::vector<double>> cMathUtil::CartesianProductVec(const std::vector<std::vector<double>> &lists)
+{
+    std::vector<std::vector<double>> result(0);
+    if (std::find_if(std::begin(lists), std::end(lists),
+                     [](auto e) -> bool { return e.size() == 0; }) != std::end(lists))
+    {
+        return result;
+    }
+    for (auto &e : lists[0])
+    {
+        result.push_back({e});
+    }
+    for (size_t i = 1; i < lists.size(); ++i)
+    {
+        std::vector<std::vector<double>> temp;
+        for (auto &e : result)
+        {
+            for (auto f : lists[i])
+            {
+                auto e_tmp = e;
+                e_tmp.push_back(f);
+                temp.push_back(e_tmp);
+            }
+        }
+        result = temp;
+    }
+    return result;
+}

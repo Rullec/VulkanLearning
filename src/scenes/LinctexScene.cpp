@@ -175,7 +175,7 @@ void cLinctexScene::NetworkInferenceFunction()
         std::cout << "exit, save current result to " << mNetworkInfer_OutputPath << std::endl;
         cLinctexScene::DumpSimulationData(
             mClothFeature,
-            mClothProp->BuildFeatureVector(),
+            mClothProp->BuildFullFeatureVector(),
             // tVector::Zero(),
             // tVector::Zero(),
             mNetworkInfer_OutputPath);
@@ -431,7 +431,7 @@ void cLinctexScene::DumpSimulationData(
     export_json["input"] = cJsonUtil::BuildVectorJson(simualtion_result);
     export_json["output"] = cJsonUtil::BuildVectorJson(simulation_property);
     // Json::Value extra_info;
-    // std::cout << "feature = " << props->BuildFeatureVector().transpose() << std::endl;
+    // std::cout << "feature = " << props->BuildFullFeatureVector().transpose() << std::endl;
     // std::cout << "trans = \n"
     //           << init_trans << std::endl;
 
@@ -551,7 +551,7 @@ void cLinctexScene::Key(int key, int scancode, int action, int mods)
     {
         cLinctexScene::DumpSimulationData(
             GetClothFeatureVector(),
-            mClothProp->BuildFeatureVector(),
+            mClothProp->BuildFullFeatureVector(),
             // tVector::Zero(),
             // tVector::Zero(),
             "tmp.json");

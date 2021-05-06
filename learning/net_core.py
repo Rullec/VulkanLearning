@@ -271,8 +271,8 @@ class res_net(nn.Module):
         # if backbone_name == 'resnet_18':
 
         # use a fixed resnet18 backbone
-        # resnet_net = torchvision.models.resnet18(pretrained=True)
-        resnet_net = torchvision.models.resnet50(pretrained=True)
+        resnet_net = torchvision.models.resnet18(pretrained=True)
+        # resnet_net = torchvision.models.resnet50(pretrained=True)
         modules = list(resnet_net.children())[:-1]
         self.backbone = nn.Sequential(*modules)
         self.backbone.out_channels = fc_layers[0]

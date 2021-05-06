@@ -4,7 +4,7 @@
     "default_config_path": "config/sim_configs/se_config.json",
     "enable_data_aug": false,
     "pause_at_first": true,
-    "convergence_threshold": 0.05,
+    "convergence_threshold": 0.01,
     "window_height": 600,
     "window_width": 800,
     "camera": {
@@ -23,32 +23,55 @@
         "far": 100
     },
     "property_manager": {
-        "prop_range": {
-            "stretch_warp": [
-                1e5,
-                5e5,
-                1e6
-            ],
-            "stretch_weft": [
-                1e5,
-                5e5,
-                1e6
-            ],
-            "bending_warp": [
-                1e3,
-                5e3,
-                1e4
-            ],
-            "bending_weft": [
-                1e3,
-                5e3,
-                1e4
-            ]
+        "properties": {
+            "stretch_warp": {
+                "range": [
+                    1e5,
+                    1e5
+                ],
+                "num_of_samples": 1,
+                "visible": false
+            },
+            "stretch_weft": {
+                "range": [
+                    1e5,
+                    1e5
+                ],
+                "num_of_samples": 1,
+                "visible": false
+            },
+            "bending_warp": {
+                "range": [
+                    1e3,
+                    1e4
+                ],
+                "num_of_samples": 5,
+                "visible": true,
+                "index": 0
+            },
+            "bending_weft": {
+                "range": [
+                    1e3,
+                    1e4
+                ],
+                "num_of_samples": 5,
+                "visible": true,
+                "index": 1
+            }
         },
         "mode": "linear",
-        "sample_per_property": 8
+        "exchangeable_pairs": [
+            [
+                "bending_warp",
+                "bending_weft"
+            ],
+            [
+                "stretch_warp",
+                "stretch_weft"
+            ]
+        ]
     },
-    "enable_noise": true,
+    "enable_noise": false,
     "noise": {
         "noised_samples": 4,
         "enable_init_rotation": true,

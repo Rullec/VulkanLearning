@@ -68,6 +68,6 @@
         0
     ],
     "geometry_info": "./log/geo_info.json",
-    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\4096items",
-    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\4096items_gen6"
+    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\15items",
+    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\15items_gen6"
 }

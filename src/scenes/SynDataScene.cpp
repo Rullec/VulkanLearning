@@ -34,6 +34,7 @@ void cSynDataScene::Init(const std::string &conf_path)
     mEnableDataAug = cJsonUtil::ParseAsBool("enable_noise", conf_json);
     mConvergenceThreshold = cJsonUtil::ParseAsDouble("convergence_threshold", conf_json);
     mPropManager = std::make_shared<tPhyPropertyManager>(cJsonUtil::ParseAsValue("property_manager", conf_json));
+
     // std::cout << "enable noise = " << mEnableDataAug << std::endl;
     if (mEnableDataAug == true)
     {
@@ -62,7 +63,7 @@ int mTotalSamples = 0;
 void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
 {
     // std::cout << "run sim for feature = " < < < < std::endl;
-    // std::cout << "feature size = " << props->BuildFeatureVector().size() << std::endl;
+    // std::cout << "feature size = " << props->BuildFullFeatureVector().size() << std::endl;
     Reset();
 
     if (mEnableDataAug == true)
@@ -88,7 +89,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             (diff_norm < threshold && is_first_frame == false && cur_iters > min_iters))
         {
             printf("[debug] RunSimulation: iters %d, diff norm %.6f < %.6f, converge for feature ", cur_iters, diff_norm, threshold);
-            std::cout << props->BuildFeatureVector().transpose() << std::endl;
+            std::cout << props->BuildVisibleFeatureVector().transpose() << std::endl;
             break;
         }
         if (is_first_frame == true && diff_norm > threshold)
@@ -106,7 +107,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
         // 2. "input" & output
         cLinctexScene::DumpSimulationData(
             mLinScene->GetClothFeatureVector(),
-            props->BuildFeatureVector(),
+            props->BuildVisibleFeatureVector(),
             // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
             // init_trans.block(0, 3, 4, 1),
             full_name);
@@ -119,22 +120,22 @@ void cSynDataScene::Update(double dt)
 {
     // 1. fetch all settings
     int total_sample = 0;
-    int num_of_samples = mPropManager->GetNumOfProperties();
+    int num_of_properties = mPropManager->GetNumOfProperties();
+    int num_of_samples = num_of_properties;
     if (mEnableDataAug == true)
         num_of_samples *= this->mSynDataNoise->mNumOfNoisedSamples;
     printf("[log] we will have %d samples\n", num_of_samples);
-    while (true)
+    for (int i = 0; i < num_of_properties; i++)
     {
         // 1. reset the internal linctex scene,
         mLinScene->Reset();
         // 2. get the simulation parameter
-        if (mPropManager->IsEnd() == true)
-        {
-            printf("total sampleds %d, exit\n", total_sample);
-            break;
-        }
-        auto prop = mPropManager->GetNextProperty();
 
+        auto prop = mPropManager->GetProperty(i);
+
+        // std::cout << "full feature = " << prop->BuildFullFeatureVector().transpose() << std::endl;
+        // std::cout << "output feature = " << prop->BuildVisibleFeatureVector().transpose() << std::endl;
+        // continue;
         if (mEnableDataAug == true)
         {
             // SIM_ERROR("hasn't finished yet ");
@@ -158,6 +159,7 @@ void cSynDataScene::Update(double dt)
             total_sample++;
         }
     }
+    printf("total sampleds %d, exit\n", total_sample);
     exit(0);
 }
 void cSynDataScene::Reset()
