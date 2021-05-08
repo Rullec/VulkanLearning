@@ -1,21 +1,21 @@
 {
     "name": "ResParamNet",
-    "lr": 1e-3,
-    "min_lr": 1e-4,
+    "lr": 1e-4,
+    "min_lr": 1e-6,
     "lr_decay": 0.999,
     "weight_decay": 1e-3,
     "covg_threshold": 1e-2,
     "optimizer": "adam",
     "data_dir.test": "D:\\SimpleClothSimulator\\data\\export_data\\test_dtype_data",
-    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\15items_gen6",
+    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\reduced_13items_rotaug_gen48",
     "layers": [
-        512,
-        16
+        12
     ],
     "model_output_dir": "../output/",
     "model_path": "",
-    "batch_size": 256,
-    "save_model_iters": 5,
-    "logging_iters": 1,
-    "enable_log_prediction": true
+    "batch_size": 512,
+    "save_model_iters": 50,
+    "logging_iters": 5,
+    "enable_log_prediction": false,
+    "dropout" : 0
 }

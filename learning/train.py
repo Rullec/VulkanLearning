@@ -45,5 +45,5 @@ if __name__ == "__main__":
     # conf_path = "..\config\\train_configs\\fc_conf.json"
     net_type = build_net(conf_path)
     net = net_type(conf_path, device)
-    net.train()
+    net.train(max_epochs=10000)
     # net.test()

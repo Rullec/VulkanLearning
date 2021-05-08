@@ -27,6 +27,9 @@ class DataLoader():
         self.data_dir = data_dir
         self.train_perc = train_perc / (train_perc + test_perc)
         self.test_perc = test_perc / (train_perc + test_perc)
+        # print(self.train_perc)
+        # print(self.test_perc)
+        # exit()
         self.enable_log_predction = enable_log_prediction
         self._init_vars()
         self._load_data()
@@ -136,6 +139,9 @@ class DataLoader():
         perm = np.random.permutation(size)
         train_id = perm[:train_size]
         test_id = perm[train_size:]
+        # print(f"train id {train_id}")
+        # print(f"test id {test_id}")
+        # exit()
         from operator import itemgetter
 
         self.train_X = list(itemgetter(*train_id)(X_lst))

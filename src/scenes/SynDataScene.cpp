@@ -33,6 +33,8 @@ void cSynDataScene::Init(const std::string &conf_path)
     mDefaultConfigPath = cJsonUtil::ParseAsString("default_config_path", conf_json);
     mEnableDataAug = cJsonUtil::ParseAsBool("enable_noise", conf_json);
     mConvergenceThreshold = cJsonUtil::ParseAsDouble("convergence_threshold", conf_json);
+    mEnableDataCleaner = cJsonUtil::ParseAsBool("enable_data_cleaner", conf_json);
+    mDataCleanerThreshold = cJsonUtil::ParseAsDouble("data_cleaner_threshold", conf_json);
     mPropManager = std::make_shared<tPhyPropertyManager>(cJsonUtil::ParseAsValue("property_manager", conf_json));
 
     // std::cout << "enable noise = " << mEnableDataAug << std::endl;
@@ -98,9 +100,10 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
         }
         buffer0 = buffer1;
     }
-    mTotalSamples++;
     // export data
+    if (mEnableDataCleaner == false)
     {
+        // old behavior
         // 1. form the export data path (along with the directory)
         std::string single_name = std::to_string(mTotalSamples) + ".json";
         std::string full_name = cFileUtil::ConcatFilename(mExportDataDir, single_name);
@@ -111,7 +114,61 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
             // init_trans.block(0, 3, 4, 1),
             full_name);
+        mTotalSamples++;
     }
+    else
+    {
+        if (false == CheckDuplicateWithDataSet())
+        {
+            std::string single_name = std::to_string(mTotalSamples) + ".json";
+            std::string full_name = cFileUtil::ConcatFilename(mExportDataDir, single_name);
+            // 2. "input" & output
+            cLinctexScene::DumpSimulationData(
+                mLinScene->GetClothFeatureVector(),
+                props->BuildVisibleFeatureVector(),
+                // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
+                // init_trans.block(0, 3, 4, 1),
+                full_name);
+            mTotalSamples++;
+        }
+    }
+}
+
+double calc_dist(const tVectorXd &v0, const tVectorXd &v1)
+{
+    double cur_dist = -1;
+    SIM_ASSERT(v0.size() == v1.size());
+    for (int i = 0; i < v1.size(); i += 3)
+    {
+        double dist = (v0.segment(i, 3) - v1.segment(i, 3)).norm();
+        if (dist > cur_dist)
+            cur_dist = dist;
+    }
+    return cur_dist;
+}
+/**
+ * \brief       
+*/
+bool cSynDataScene::CheckDuplicateWithDataSet() const
+{
+    tVectorXd old_res, old_prop;
+    tVectorXd cur_res = mLinScene->GetClothFeatureVector();
+    for (int i = mTotalSamples - 1; i >= 0; i--)
+    {
+        std::string single_name = std::to_string(i) + ".json";
+        std::string full_name = cFileUtil::ConcatFilename(mExportDataDir, single_name);
+        cLinctexScene::LoadSimulationData(old_res, old_prop, full_name);
+
+        // 1. calc distance
+        double cur_dist = calc_dist(old_res, cur_res);
+        if (cur_dist < mDataCleanerThreshold)
+        {
+            printf("[debug] compared with %s, the dist = %.4f < %.4f, duplicate!\n", single_name.c_str(),
+                   cur_dist, mDataCleanerThreshold);
+            return true;
+        }
+    }
+    return false;
 }
 /**
  * \brief       ultimate run method
@@ -159,7 +216,8 @@ void cSynDataScene::Update(double dt)
             total_sample++;
         }
     }
-    printf("total sampleds %d, exit\n", total_sample);
+
+    printf("[log] total samples = %d, real unduplicate samples = %d\n", total_sample, mTotalSamples);
     exit(0);
 }
 void cSynDataScene::Reset()

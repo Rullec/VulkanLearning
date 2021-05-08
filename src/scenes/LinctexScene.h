@@ -34,8 +34,10 @@ public:
     static void DumpSimulationData(
         const tVectorXd &simualtion_result,
         const tVectorXd &simulation_property,
-        // const tVector &init_rot_qua,
-        // const tVector &init_translation,
+        const std::string &filename);
+    static void LoadSimulationData(
+        tVectorXd &simualtion_result,
+        tVectorXd &simulation_property,
         const std::string &filename);
     virtual void Key(int key, int scancode, int action, int mods);
 

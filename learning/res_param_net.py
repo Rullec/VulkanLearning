@@ -32,10 +32,11 @@ class ResParamNet(ParamNet):
         # exit(0)
 
     def _build_net(self):
-        
+
         # print(self.output_size)
         # exit(0)
-        self.net = res_net(self.layers, self.output_size).to(self.device)
+        self.net = res_net(self.layers, self.output_size,
+                           self.dropout).to(self.device)
         self.criterion = torch.nn.MSELoss()
         total = 0
         for i in self.net.parameters():
@@ -43,10 +44,9 @@ class ResParamNet(ParamNet):
         print(f"[debug] build resnet succ, total param {total}")
         # exit()
 
-    def train(self):
-        max_epochs = 10000
+    def train(self, max_epochs=1000):
         st_time = time.time()
-        print("[debug] begin training epoch")
+        # print("[debug] begin training epoch")
         for epoch in range(max_epochs):
 
             # have an iteration
@@ -124,3 +124,4 @@ class ResParamNet(ParamNet):
 
             # update hyper parameters
             self._set_lr(max(self.lr_decay * self._get_lr(), self.min_lr))
+        return validation_err

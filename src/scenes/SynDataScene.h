@@ -45,10 +45,14 @@ protected:
     tPhyPropertyManagerPtr mPropManager; // physical property manager
     double mConvergenceThreshold;
     std::string mExportDataDir;
+
+    bool mEnableDataCleaner;
+    double mDataCleanerThreshold;
     virtual void UpdateSubstep() override final;
     void RunSimulation(tPhyPropertyPtr props);
     void ApplyNoiseIfPossible();
     void InitExportDataDir();
+    bool CheckDuplicateWithDataSet() const;
     tVectorXd buffer0, buffer1;
 };
 #endif

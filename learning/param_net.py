@@ -34,6 +34,7 @@ class ParamNet:
     BATCH_SIZE_KEY = "batch_size"
     OPTIMIZER_TYPE_KEY = "optimizer"
     ENABLE_LOG_PREDICTION_KEY = "enable_log_prediction"
+    DROPOUT_KEY = "dropout"
 
     def __init__(self, config_path, device):
         '''
@@ -74,6 +75,7 @@ class ParamNet:
         self.optimizer_type = self.conf[ParamNet.OPTIMIZER_TYPE_KEY]
         self.enable_log_prediction = self.conf[
             ParamNet.ENABLE_LOG_PREDICTION_KEY]
+        self.dropout = self.conf[ParamNet.DROPOUT_KEY]
 
     def save_model(self, name):
         '''
@@ -98,11 +100,11 @@ class ParamNet:
         '''
         Build my network strucutre from given "layers"
         '''
-        
+
         for i in self.layers:
             assert type(i) == int, f"layers = {i}"
         self.net = fc_net(self.input_size, self.layers, self.output_size,
-                          self.device).to(self.device)
+                          self.device, self.dropout).to(self.device)
         total = 0
         for i in self.net.parameters():
             total += i.numel()
@@ -246,12 +248,12 @@ class ParamNet:
         # print("-----end validation---")
         return valdation_err
 
-    def train(self):
+    def train(self, max_epochs=10000):
         # self.train_loader, self.validation_loader = self.data_loader.get_torch_dataloader(
         # )
-        max_epochs = 10000
+
         st_time = time.time()
-        print("[debug] begin training epoch")
+        # print("[debug] begin training epoch")
         for epoch in range(max_epochs):
 
             # have an iteration
@@ -286,7 +288,7 @@ class ParamNet:
                 loss.backward()
                 self.optimizer.step()
 
-                print(f"batch {i_batch} loss {loss}")
+                # print(f"batch {i_batch} loss {loss}")
                 # print(f"[train] single mse {loss} num {inputs.shape[0]}")
                 cur_epoch_train_loss += loss * num
                 iters += 1
@@ -314,7 +316,8 @@ class ParamNet:
 
             # saving model
             if epoch % self.iters_save_model == 0:
-                name = self._get_model_save_name(loss.item())
+                validation_err = float(self._calc_validation_error())
+                name = self._get_model_save_name(validation_err)
                 self.save_model(name)
                 # print(f"name {name}")
 
@@ -328,10 +331,11 @@ class ParamNet:
         # print(f"res {prediction * output_std}")
         pred = prediction * output_std + output_mean
         gt = gt * output_std + output_mean
-        exp_pred = np.exp(pred)
-        exp_gt = np.exp(gt)
-        exp_diff = np.abs(exp_pred - exp_gt)
-        diff_perc = np.array(exp_diff / exp_gt * 100)
+        if self.enable_log_prediction == True:
+            pred = np.exp(pred)
+            gt = np.exp(gt)
+        diff = np.abs(pred - gt)
+        diff_perc = np.array(diff / gt * 100)
         diff_perc = diff_perc.reshape(-1, )
         # print(f"diff perc {diff_perc}")
         # exit(0)
@@ -377,34 +381,43 @@ class ParamNet:
             diff = np_pred - np_gt
             print_samples = 100
             idx = np.random.permutation(np_pred.shape[0])[:print_samples]
-            assert self.enable_log_prediction == True
+            # assert self.enable_log_prediction == True
 
             for i in idx:
                 # print(f"pred {np_pred[i, :]}, gt {np_gt[i, :]}, diff {diff[i, :]}")
                 pred = np_pred[i, :] * output_std + output_mean
                 gt = np_gt[i, :] * output_std + output_mean
+                
                 # print(f"raw gt = {np_gt[i, :]}")
                 # print(f"output std = {output_std}")
                 # print(f"output mean = {output_mean}")
                 # print(f"later gt = {gt}")
-                exp_pred = np.exp(pred)
-                exp_gt = np.exp(gt)
-                exp_diff = np.abs(exp_pred - exp_gt)
-                diff_perc = exp_diff / exp_gt * 100
-                print(
-                    f"pred {exp_pred}\ngt {exp_gt}\ndiff {exp_diff}\nperc {diff_perc}\n"
-                )
+                if self.enable_log_prediction == True:
+                    pred = np.exp(pred)
+                    gt = np.exp(gt)
+                    diff = np.abs(pred - gt)
+                else:
+                    diff = np.abs(pred - gt)
+                diff_perc = diff / gt * 100
+                # print(f"pred {pred}")
+                # print(f"gt {gt}")
+                # print(f"diff {gt}")
+                # print(f"diff perc {diff_perc}")
+                # exit()
+                print(f"pred {pred}\ngt {gt}\ndiff {diff}\nperc {diff_perc}\n")
                 for i in list(diff_perc):
                     diff_perc_lst.append(i)
                 # print(f"diff {diff[i, :]}")
             import matplotlib.pyplot as plt
+            # print(f"diff perc lst {diff_perc_lst}")
+            # exit()
             sorted_lst = sorted(diff_perc_lst)
             print(f"50% {sorted_lst[int(0.5 * len(sorted_lst))]}")
             print(f"80% {sorted_lst[int(0.8 * len(sorted_lst))]}")
             print(f"90% {sorted_lst[int(0.9 * len(sorted_lst))]}")
             print(f"99% {sorted_lst[int(0.99 * len(sorted_lst))]}")
             print(f"99.9% {sorted_lst[int(0.999 * len(sorted_lst))]}")
-            print(sorted_lst)
+            # print(sorted_lst)
             plt.hist(diff_perc_lst)
             # print(diff_perc_lst)
             plt.show()

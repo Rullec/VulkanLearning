@@ -441,6 +441,17 @@ void cLinctexScene::DumpSimulationData(
     cJsonUtil::WriteJson(filename, export_json);
     std::cout << "[debug] save data to " << filename << std::endl;
 }
+
+void cLinctexScene::LoadSimulationData(
+    tVectorXd &simualtion_result,
+    tVectorXd &simulation_property,
+    const std::string &filename)
+{
+    Json::Value root;
+    cJsonUtil::LoadJson(filename, root);
+    simualtion_result = cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("input", root));
+    simulation_property = cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("output", root));
+}
 /**
  * \brief               Init the feature vector
 */

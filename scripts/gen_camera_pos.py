@@ -1,7 +1,7 @@
 import numpy as np
 
 dist = 0.3
-num_of_views = 12
+num_of_views = 48
 gap = 2 * np.pi / num_of_views
 
 cont = []
