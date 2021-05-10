@@ -7,7 +7,7 @@ class cTimeUtil
 public:
     // calculate a continuous segment of time
     static void Begin(const std::string &name);
-    static void End(const std::string &name);
+    static double End(const std::string &name, bool silent = false);
 
     // calculate a discrete segment of time, lazy calculation until the final
     static void BeginLazy(const std::string &name);

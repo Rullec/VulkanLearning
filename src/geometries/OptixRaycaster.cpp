@@ -669,4 +669,38 @@ void cOptixRaycaster::downloadPixels(uint32_t h_pixels[])
                          launchParams.frame.size.x() * launchParams.frame.size.y());
 }
 
+/**
+ * \brief           calculate depth image for multiple camera views
+*/
+void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width, std::vector<CameraBasePtr> camera_array, std::vector<std::string> path_array)
+{
+    Rebuild();
+
+    this->cur_width = width;
+    this->cur_height = height;
+
+    int size = camera_array.size();
+    SIM_ASSERT(size == path_array.size());
+    for (int i = 0; i < size; i++)
+    {
+        // 1. if the size is changed, we need to resize the buffer
+        setCamera(camera_array[i]);
+        if (launchParams.frame.size.x() != width || launchParams.frame.size.y() != height)
+        {
+            tVector2i size = tVector2i(width, height);
+            resize(size);
+        }
+        // std::cout << "resize done\n";
+
+        // UpdateVertexBufferToCuda();
+        // 2. reupload all values in launch param
+        render();
+        // 3. launch the optix program
+        // std::cout << "render done\n";
+        std::vector<uint32_t> pixels(width * height, 0);
+        this->downloadPixels(pixels.data());
+        // std::cout << "download pixels done\n";
+        save(path_array[i], width, height, pixels.data());
+    }
+}
 #endif

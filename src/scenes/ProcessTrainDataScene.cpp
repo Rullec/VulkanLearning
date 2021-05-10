@@ -43,11 +43,13 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
     InitRaycaster();
     std::vector<std::string> paths = cFileUtil::ListDir(this->mRawDataDir);
     SIM_ASSERT(paths.size() > 0);
-    cTimeUtil::Begin("process");
-    int total_samples = 0;
+    cTimeUtil::Begin("total");
     for (int i = 0; i < paths.size(); i++)
     {
         std::string raw_data = paths[i];
+        std::vector<std::string> image_name_array(0);
+        std::vector<std::string> feature_name_array(0);
+        auto my_camera_views = mCameraViews;
         for (int camera_id = 0; camera_id < this->mCameraViews.size(); camera_id++)
         {
             std::string new_image_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) + "_" + std::to_string(camera_id) + ".png";
@@ -57,23 +59,20 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
             if (cFileUtil::ExistsFile(new_full_image_name) == true)
             {
                 printf("[warn] file %s exist, ignore\n", new_image_name.c_str());
-                continue;
+                my_camera_views.erase(my_camera_views.begin());
             }
-            CalcDepthMap(raw_data, new_full_image_name, new_full_feature_name, mCameraViews[camera_id]);
-            printf("[log] raw data %s saved to %s\n", cFileUtil::GetFilename(raw_data).c_str(), new_image_name.c_str());
-            total_samples++;
-            // exit(0);
+            else
+            {
+                image_name_array.push_back(new_full_image_name);
+                feature_name_array.push_back(new_full_feature_name);
+            }
         }
-        // if (total_samples > 10)
-        //     break;
+
+        cTimeUtil::Begin("handle_image");
+        CalcDepthMapMultiViews(raw_data, image_name_array, feature_name_array, my_camera_views);
+        printf("[log] handle image %d/%d, cost %.4f ms\n", i + 1, paths.size() + 1, cTimeUtil::End("handle_image", true));
     }
-    cTimeUtil::End("process");
-    std::cout << "[log] total samples = " << total_samples << std::endl;
-    // {
-    //     // CalcDepthMap(raw_data, "tmp1.png", mCameraViews[1]);
-    //     // CalcDepthMap(raw_data, "tmp2.png", mCameraViews[2]);
-    //     // CalcDepthMap(raw_data, "tmp3.png", mCameraViews[3]);
-    // }
+    cTimeUtil::End("total");
     exit(0);
     InitDrawBuffer();
     UpdateRenderingResource();
@@ -108,7 +107,27 @@ void cProcessTrainDataScene::CalcDepthMap(const std::string raw_data_path, const
     // std::cout << "done\n";
     // std::cout << "[log] save png to " << save_png_path << std::endl;
 }
+#include "geometries/OptixRaycaster.h"
+void cProcessTrainDataScene::CalcDepthMapMultiViews(const std::string raw_data_path, const std::vector<std::string> &save_png_path_array, const std::vector<std::string> &save_feature_path_array, const std::vector<CameraBasePtr> &camera_array)
+{
+    tVectorXd feature_vec;
+    // 2. create depth map
+    if (false == LoadRawData(raw_data_path, feature_vec))
+    {
+        std::cout << "[warn] path " << raw_data_path << "invalid, ignore\n";
+        return;
+    }
 
+    auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
+    ptr->CalcDepthMapMultiCamera(
+        mHeight, mWidth, camera_array, save_png_path_array);
+    for (auto &tmp : save_feature_path_array)
+    {
+        Json::Value value;
+        value["feature"] = cJsonUtil::BuildVectorJson(feature_vec);
+        cJsonUtil::WriteJson(tmp, value);
+    }
+}
 void cProcessTrainDataScene::InitCameraViews()
 {
     mCameraViews.resize(mCameraPos.size(), nullptr);
@@ -154,7 +173,9 @@ void cProcessTrainDataScene::InitCameraInfo(const Json::Value &conf)
     mCameraPos.clear();
     for (int i = 0; i < pos_lst.size(); i++)
     {
-        tVector tmp = cJsonUtil::ReadVectorJson(pos_lst[i]).segment(0, 4);
+        // std::cout << "pos list " << i << " = " << pos_lst[i] << std::endl;
+        tVector tmp = tVector::Zero();
+        tmp.segment(0, 3) = cJsonUtil::ReadVectorJson(pos_lst[i]).segment(0, 3);
         // std::cout << "pos " << i << " = " << tmp.transpose() << std::endl;
         mCameraPos.push_back(tmp);
     }

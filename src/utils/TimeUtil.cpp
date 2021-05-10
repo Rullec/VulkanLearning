@@ -10,7 +10,7 @@ void cTimeUtil::Begin(const std::string &name)
     mTimeTable[name] = high_resolution_clock::now();
 }
 
-void cTimeUtil::End(const std::string &name)
+double cTimeUtil::End(const std::string &name, bool silent /* = false*/)
 {
     time_it = mTimeTable.find(name);
     if (time_it == mTimeTable.end())
@@ -20,10 +20,13 @@ void cTimeUtil::End(const std::string &name)
         exit(1);
     }
 
-    std::cout << "[log] " << name << " cost time = "
-              << (high_resolution_clock::now() - time_it->second).count() * 1e-6
-              << " ms\n";
+    double cost = (high_resolution_clock::now() - time_it->second).count() * 1e-6;
+    if (silent == false)
+        std::cout << "[log] " << name << " cost time = "
+                  << cost
+                  << " ms\n";
     mTimeTable.erase(time_it);
+    return cost;
 }
 
 std::string cTimeUtil::GetSystemTime()

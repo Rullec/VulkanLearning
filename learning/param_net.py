@@ -335,8 +335,12 @@ class ParamNet:
             pred = np.exp(pred)
             gt = np.exp(gt)
         diff = np.abs(pred - gt)
-        diff_perc = np.array(diff / gt * 100)
-        diff_perc = diff_perc.reshape(-1, )
+        diff_perc = np.linalg.norm(diff / gt, axis=1) * 100
+        assert len(
+            diff_perc) == pred.shape[0], f"{len(diff_perc)} == {pred.shape[0]}"
+        # print(f"diff perc {diff_perc}")
+        # print(f"pred {pred}")
+        # print(f"gt {gt}")
         # print(f"diff perc {diff_perc}")
         # exit(0)
         return list(diff_perc)
@@ -379,15 +383,18 @@ class ParamNet:
             np_pred = pred.cpu().detach().numpy()
             np_gt = Y.cpu().detach().numpy()
             diff = np_pred - np_gt
-            print_samples = 100
-            idx = np.random.permutation(np_pred.shape[0])[:print_samples]
+            # assert len(diff_perc_lst) == np_pred.shape[
+            #     0], f"{len(diff_perc_lst)} {np_pred.shape[0]}"
+            print_samples = np_pred.shape[0]
+            # idx = np.random.permutation(np_pred.shape[0])[:print_samples]
             # assert self.enable_log_prediction == True
 
-            for i in idx:
+            diff_perc_lst = []
+            for i in range(print_samples):
                 # print(f"pred {np_pred[i, :]}, gt {np_gt[i, :]}, diff {diff[i, :]}")
                 pred = np_pred[i, :] * output_std + output_mean
                 gt = np_gt[i, :] * output_std + output_mean
-                
+
                 # print(f"raw gt = {np_gt[i, :]}")
                 # print(f"output std = {output_std}")
                 # print(f"output mean = {output_mean}")
@@ -404,20 +411,40 @@ class ParamNet:
                 # print(f"diff {gt}")
                 # print(f"diff perc {diff_perc}")
                 # exit()
-                print(f"pred {pred}\ngt {gt}\ndiff {diff}\nperc {diff_perc}\n")
-                for i in list(diff_perc):
-                    diff_perc_lst.append(i)
+                if i < 10:
+                    print(
+                        f"pred {pred}\ngt {gt}\ndiff {diff}\nperc {diff_perc}\n"
+                    )
+                # for i in list(diff_perc):
+                # diff_perc_lst.append(i)
+                diff_perc_lst.append(np.linalg.norm(diff_perc))
+                # diff_perc_lst.append(i)
                 # print(f"diff {diff[i, :]}")
             import matplotlib.pyplot as plt
-            # print(f"diff perc lst {diff_perc_lst}")
+            print(f"diff perc lst {diff_perc_lst}")
             # exit()
-            sorted_lst = sorted(diff_perc_lst)
-            print(f"50% {sorted_lst[int(0.5 * len(sorted_lst))]}")
-            print(f"80% {sorted_lst[int(0.8 * len(sorted_lst))]}")
-            print(f"90% {sorted_lst[int(0.9 * len(sorted_lst))]}")
-            print(f"99% {sorted_lst[int(0.99 * len(sorted_lst))]}")
-            print(f"99.9% {sorted_lst[int(0.999 * len(sorted_lst))]}")
-            # print(sorted_lst)
+            idx = np.argsort(diff_perc_lst)
+
+            print(f"50% {diff_perc_lst[idx[int(0.5 * len(diff_perc_lst))]]}")
+            print(f"80% {diff_perc_lst[idx[int(0.8 * len(diff_perc_lst))]]}")
+            print(f"90% {diff_perc_lst[idx[int(0.9 * len(diff_perc_lst))]]}")
+            print(f"99% {diff_perc_lst[idx[int(0.99 * len(diff_perc_lst))]]}")
+            print(
+                f"99.9% {diff_perc_lst[idx[int(0.999 * len(diff_perc_lst))]]}")
+            # print(f"len diff perc lst {len(diff_perc_lst)}")
+
+            # print(f"pred shape {np_pred.shape}")
+
+            # for i in range(1, min(20, len(idx))):
+            #     hot_idx = idx[-1 * i]
+            #     assert hot_idx < np_pred.shape[0]
+            #     pred = np_pred[hot_idx, :] * output_std + output_mean
+            #     gt = np_gt[hot_idx, :] * output_std + output_mean
+            #     diff = np.abs(pred - gt)
+            #     diff_perc = np.linalg.norm(diff / gt * 100)
+            #     print(
+            #         f"pred {pred}\ngt {gt}\ndiff {diff} diff perc {diff_perc}\n"
+            #     )
             plt.hist(diff_perc_lst)
             # print(diff_perc_lst)
             plt.show()

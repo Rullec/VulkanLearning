@@ -1,20 +1,23 @@
 {
     "name": "ParamNet",
-    "lr": 1e-4,
+    "lr": 1e-5,
     "min_lr": 1e-6,
-    "lr_decay": 1,
+    "lr_decay": 0.999,
     "weight_decay": 1e-3,
     "covg_threshold": 1e-2,
-    "optimizer": "SGD",
-    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\reduced_13items_rotaug",
+    "optimizer": "adam",
+    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\reduced_noised_rotaug",
     "dropout": 0,
     "layers": [
+        256,
+        64,
+        32,
         16
     ],
     "model_output_dir": "../output/",
-    "model_path": "../output/05-08-11_24_54-2.214.pkl",
-    "batch_size": 32,
-    "save_model_iters": 20,
-    "logging_iters": 20,
+    "model_path": "../output/05-08-17_52_06-0.000.pkl",
+    "batch_size": 256,
+    "save_model_iters": 10,
+    "logging_iters": 1,
     "enable_log_prediction": false
 }

@@ -186,15 +186,16 @@ class ImageDataLoader(DataLoader):
         test_id = perm[train_size:]
         from operator import itemgetter
 
-        self.train_X = list(itemgetter(*train_id)(X_lst))
-        self.train_Y = list(itemgetter(*train_id)(Y_lst))
-        self.test_X = list(itemgetter(*test_id)(X_lst))
+        self.test_X = np.expand_dims(list(itemgetter(*test_id)(X_lst)), axis=1)
         self.test_Y = list(itemgetter(*test_id)(Y_lst))
+        self.train_Y = list(itemgetter(*train_id)(Y_lst))
+        self.train_X = np.expand_dims(list(itemgetter(*train_id)(X_lst)),
+                                      axis=1)
 
         # add another dim
-        self.train_X = np.expand_dims(self.train_X, axis=1)
+        # self.train_X = self.train_X, axis=1)
         # self.train_Y = np.expand_dims(self.train_Y, axis=1)
-        self.test_X = np.expand_dims(self.test_X, axis=1)
+        # self.test_X = self.test_X, axis=1)
         # print(f"test Y {Y_lst}")
         # exit(0)
         # self.test_Y = np.expand_dims(self.test_Y, axis=1)

@@ -1,14 +1,14 @@
 import numpy as np
 
 dist = 0.3
-num_of_views = 48
+num_of_views = 360
 gap = 2 * np.pi / num_of_views
 
 cont = []
 
 
 def reduce(num):
-    return float("{:.2f}".format(num))
+    return float("{:.5f}".format(num))
 
 
 for i in range(num_of_views):

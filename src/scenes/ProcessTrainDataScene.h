@@ -34,5 +34,7 @@ protected:
     bool LoadRawData(std::string path, tVectorXd &feature_vec);
     tMatrixXd CalcDepthImageLegacy(const CameraBasePtr camera);
     void CalcDepthMap(const std::string raw_data_path, const std::string &save_png_path, const std::string &json_path, CameraBasePtr camera);
+    void CalcDepthMapMultiViews(const std::string raw_data_path, const std::vector<std::string> &save_png_path_array, const std::vector<std::string> &json_path_array, const std::vector<CameraBasePtr> &camera_array);
+    void MultiViewTest();
     void InitCameraViews();
 };

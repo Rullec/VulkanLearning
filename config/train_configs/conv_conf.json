@@ -2,20 +2,22 @@
     "name": "ResParamNet",
     "lr": 1e-4,
     "min_lr": 1e-6,
-    "lr_decay": 0.999,
+    "lr_decay": 0.995,
     "weight_decay": 1e-3,
     "covg_threshold": 1e-2,
     "optimizer": "adam",
     "data_dir.test": "D:\\SimpleClothSimulator\\data\\export_data\\test_dtype_data",
-    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\reduced_13items_rotaug_gen48",
+    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\reduced_noised_gen360",
     "layers": [
-        12
+        2048,
+        128,
+        16
     ],
     "model_output_dir": "../output/",
-    "model_path": "",
-    "batch_size": 512,
-    "save_model_iters": 50,
-    "logging_iters": 5,
+    "model_path": "../output/05-10-20_48_01-0.003.pkl",
+    "batch_size": 2048,
+    "save_model_iters": 10,
+    "logging_iters": 1,
     "enable_log_prediction": false,
-    "dropout" : 0
+    "dropout": 0
 }

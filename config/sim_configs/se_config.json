@@ -13,8 +13,8 @@
         0,
         0
     ],
-    "window_height": 600,
-    "window_width": 800,
+    "window_height": 512,
+    "window_width": 512,
     "enable_draw": true,
     "cloth_init_nodal_position": "",
     "geometry_type": "regular_triangle",
@@ -22,8 +22,8 @@
     "damping": 1e-3,
     "default_timestep": 1e-3,
     "cloth_property": {
-        "stretch_warp": 1e5,
-        "stretch_weft": 1e5,
+        "stretch_warp": 1e4,
+        "stretch_weft": 1e4,
         "bending_warp": 1e3,
         "bending_weft": 1e3
     },
@@ -50,16 +50,16 @@
     "pause_at_first": false,
     "camera": {
         "camera_pos": [
-            0.5,
-            0.5,
-            0.5
+            0.3,
+            0.12,
+            -0.0
         ],
         "camera_focus": [
             0.0,
             0.12,
             0
         ],
-        "fov": 45,
+        "fov": 69,
         "near": 0.01,
         "far": 100
     },

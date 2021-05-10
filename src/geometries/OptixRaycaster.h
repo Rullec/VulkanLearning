@@ -11,6 +11,7 @@ public:
                              const std::vector<tVertex *> *vertices);
 
     virtual void CalcDepthMap(int height, int width, CameraBasePtr camera, std::string path) override final;
+    virtual void CalcDepthMapMultiCamera(int height, int width, std::vector<CameraBasePtr> camera_array, std::vector<std::string> path_array);
 
 protected:
     // -----------methods------------
