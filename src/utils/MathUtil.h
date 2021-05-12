@@ -381,6 +381,7 @@ public:
     static tVector SkewMatToVector(const tMatrix &);
     static bool IsSame(const tVector &v1, const tVector &v2, const double eps);
     static void ThresholdOp(tVectorXd &v, double threshold = 1e-6);
+    static tVector CalcAxisAngleFromOneVectorToAnother(const tVector & v0, const tVector & v1);
     template <typename T>
     static const std::string EigenToString(const T &mat)
     {
@@ -422,6 +423,9 @@ public:
     static tMatrixXd CartesianProduct(const std::vector<std::vector<double>> &lists);
     static std::vector<std::vector<double>> CartesianProductVec(const std::vector<std::vector<double>> &lists);
     static double CalcDistanceFromPointToLine(const tVector3d &point, const tVector3d &line_origin, const tVector3d &line_end);
+    static tVector CalcNormalFromPlane(const tVector &plane_equation);
+    static double EvaluatePlane(const tVector &plane, const tVector &point);
+    static tVector SampleFromPlane(const tVector &plane_equation);
 
 private:
     static cRand gRand;

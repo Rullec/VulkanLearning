@@ -1,10 +1,20 @@
 #include "Raycaster.h"
 #include "utils/LogUtil.h"
-cRaycaster::cRaycaster(const std::vector<tTriangle *> *triangles,
-                       const std::vector<tVertex *> *vertices) : mTriangleArray(triangles), mVertexArray(vertices)
+// cRaycaster::cRaycaster(const std::vector<tTriangle *> triangles,
+//                        const std::vector<tVertex *> vertices) : mTriangleArray(triangles), mVertexArray(vertices)
+cRaycaster::cRaycaster()
 {
+    mTriangleArray_lst.clear();
+    mVertexArray_lst.clear();
     // SIM_INFO("Build raycaster succ");
-    SIM_ASSERT(triangles != nullptr);
+    // SIM_ASSERT(triangles != nullptr);
+}
+
+void cRaycaster::AddResources(const std::vector<tTriangle *> triangles,
+                              const std::vector<tVertex *> vertices)
+{
+    mTriangleArray_lst.push_back(triangles);
+    mVertexArray_lst.push_back(vertices);
 }
 
 /**
@@ -21,24 +31,29 @@ void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
     raycast_point.noalias() = tVector::Ones() * std::nan("");
 
     // 2. iterate on each triangle
-    for (int i = 0; i < mTriangleArray->size(); i++)
+    for (int obj_id = 0; obj_id < mTriangleArray_lst.size(); obj_id++)
     {
-        auto &tri = mTriangleArray->at(i);
-        tVector tmp = cMathUtil::RayCastTri(
-            ray->mOrigin, ray->mDir, mVertexArray->at(tri->mId0)->mPos,
-            mVertexArray->at(tri->mId1)->mPos, mVertexArray->at(tri->mId2)->mPos);
-
-        // if there is an intersection, tmp will have no nan
-        if (tmp.hasNaN() == false)
+        auto mTriangleArray = mTriangleArray_lst[obj_id];
+        auto mVertexArray = mVertexArray_lst[obj_id];
+        for (int i = 0; i < mTriangleArray.size(); i++)
         {
-            // std::cout << tmp.transpose() << std::endl;
-            double cur_depth = (tmp - ray->mOrigin).segment(0, 3).norm();
-            if (cur_depth < min_depth)
+            auto &tri = mTriangleArray[i];
+            tVector tmp = cMathUtil::RayCastTri(
+                ray->mOrigin, ray->mDir, mVertexArray[tri->mId0]->mPos,
+                mVertexArray[tri->mId1]->mPos, mVertexArray[tri->mId2]->mPos);
+
+            // if there is an intersection, tmp will have no nan
+            if (tmp.hasNaN() == false)
             {
-                *selected_tri = tri;
-                selected_tri_id = i;
-                min_depth = cur_depth;
-                raycast_point = tmp;
+                // std::cout << tmp.transpose() << std::endl;
+                double cur_depth = (tmp - ray->mOrigin).segment(0, 3).norm();
+                if (cur_depth < min_depth)
+                {
+                    *selected_tri = tri;
+                    selected_tri_id = i;
+                    min_depth = cur_depth;
+                    raycast_point = tmp;
+                }
             }
         }
     }

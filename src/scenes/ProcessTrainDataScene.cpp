@@ -31,7 +31,19 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
         // cFileUtil::DeleteDir(mGenDataDir.c_str());
         // printf("[warn] the generated data dir %s is deleted\n", mGenDataDir.c_str());
     }
+    {
+        Json::Value sim_conf;
+        cJsonUtil::LoadJson(cJsonUtil::ParseAsString(
+                                SIMULATION_CONF_KEY, root),
+                            sim_conf);
 
+        mEnableObstacle = cJsonUtil::ParseAsBool(
+            ENABLE_OBSTACLE_KEY, sim_conf);
+        if (mEnableObstacle == true)
+        {
+            CreateObstacle(cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, sim_conf));
+        }
+    }
     // 2. Init camera info
     InitCameraInfo(root);
 

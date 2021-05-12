@@ -2,7 +2,7 @@ import os
 from PIL import Image
 from tqdm import tqdm
 
-new_dir = "./3feature_gen360/"
+new_dir = "./goodcamera_data0_gen360/"
 # dest_dir = "./test_small_data/"
 
 png_files = [i for i in os.listdir(new_dir) if i.find("png") != -1]
@@ -23,6 +23,9 @@ for png in tqdm(png_files):
     # print(image.format)
     # print(image.mode)
     image = image.convert('L')
+    height, width = image.size
+    image = image.crop((height / 4, width / 4, 3 * height / 4, 3 * width / 4))
+    # print(image.size)
     image = image.resize((128, 128))
     image.save(file)
     # print(f"save {file} done")

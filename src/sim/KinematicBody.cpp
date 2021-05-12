@@ -15,6 +15,7 @@ cKinematicBody::cKinematicBody() : cBaseObject(eObjectType::KINEMATICBODY_TYPE)
     mBodyShape = eKinematicBodyShape::KINEMATIC_INVALID;
     mCustomMeshPath = "";
     mTargetAABB = tVector::Zero();
+    mPlaneEquation.setZero();
 }
 
 cKinematicBody::~cKinematicBody()
@@ -29,7 +30,6 @@ void cKinematicBody::Init(const Json::Value &value)
     {
     case eKinematicBodyShape::KINEMATIC_CUSTOM:
     {
-
         mCustomMeshPath = cJsonUtil::ParseAsString(cKinematicBody::MESH_PATH_KEY, value);
         cJsonUtil::ReadVectorJson(
             cJsonUtil::ParseAsValue(cKinematicBody::TARGET_AABB_KEY, value), mTargetAABB);
@@ -41,7 +41,15 @@ void cKinematicBody::Init(const Json::Value &value)
         BuildCustomKinematicBody();
         break;
     }
-
+    case eKinematicBodyShape::KINEMATIC_PLANE:
+    {
+        cJsonUtil::ReadVectorJson(
+            cJsonUtil::ParseAsValue(cKinematicBody::PLANE_EQUATION_KEY, value), mPlaneEquation);
+        // std::cout << "plane equation = " << mPlaneEquation.transpose() << std::endl;
+        mPlaneScale = cJsonUtil::ParseAsDouble(cKinematicBody::PLANE_SCALE_KEY, value);
+        BuildPlane();
+        break;
+    }
     default:
         SIM_ERROR("Unsupported kinematic shape {}", type);
     }
@@ -71,6 +79,20 @@ bool cKinematicBody::IsStatic() const
     return mIsStatic;
 }
 #include "geometries/Triangulator.h"
+
+/**
+ * \brief           Build plane data strucutre
+*/
+void cKinematicBody::BuildPlane()
+{
+    // 1. build legacy XOZ plane, then do a transformation
+    // for (int i = 0; i < 4; i++)
+    cObjUtil::BuildPlaneGeometryData(mPlaneScale, this->mPlaneEquation, mVertexArray, mEdgeArray, mTriangleArray);
+}
+
+/**
+ * \brief               Build custom kinematic body
+*/
 void cKinematicBody::BuildCustomKinematicBody()
 {
     // std::cout << "mesh path = " << mCustomMeshPath << std::endl;

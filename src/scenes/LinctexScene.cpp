@@ -326,9 +326,9 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
 {
     cSimScene::CreateObstacle(conf);
 
-    for (auto x : mObstacleList)
+    for (int i = 0; i < mObstacleList.size(); i++)
     {
-
+        auto &x = mObstacleList[i];
         std::vector<Int3> se_triangles(0);
         std::vector<Float3> se_positions(0);
         std::vector<Float3> se_normals(0);
@@ -365,6 +365,7 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
             // calculate vertices and normals
             for (int i = 0; i < v_array.size(); i++)
             {
+
                 se_positions.push_back(
                     Float3(
                         v_array[i]->mPos[0],
@@ -376,8 +377,10 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
                         v_normal_array[i][0],
                         v_normal_array[i][1],
                         v_normal_array[i][2]));
+                // std::cout << "v = " << v_array[i]->mPos.transpose() << " n = " << v_normal_array[i].transpose() << std::endl;
             }
         }
+        // printf("[debug] obstacle %d, num of triangles %d\n", i, se_triangles.size());
         auto obstacle = SeObstacle::Create(se_triangles,
                                            se_positions,
                                            se_normals);
@@ -389,7 +392,7 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
         // exit(0);
         mSeScene->AddObstacle(obstacle);
     }
-    std::cout << "[debug] add linctex obstacles succ\n";
+    std::cout << "[debug] add linctex obstacles succ, num = " << mObstacleList.size() << std::endl;
 }
 
 void cLinctexScene::SetSimProperty(const tPhyPropertyPtr &prop)

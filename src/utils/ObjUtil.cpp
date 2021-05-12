@@ -4,6 +4,7 @@
 #include "utils/LogUtil.h"
 #include "geometries/Primitives.h"
 #include <iostream>
+#include "geometries/Triangulator.h"
 
 void cObjUtil::LoadObj(const cObjUtil::tParams &param,
                        std::vector<tVertex *> &v_array,
@@ -112,6 +113,10 @@ void cObjUtil::LoadObj(const cObjUtil::tParams &param,
     }
     cObjUtil::BuildEdge(v_array, e_array, t_array);
 }
+
+/**
+ * \brief       Given vertex array and triangle array, build the edge list
+*/
 #include <set>
 typedef std::pair<int, int> int_pair;
 void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
@@ -126,9 +131,13 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
         int_pair>
         edge_info;
     edge_info.clear();
+
+    // for each triangle
     for (int t_id = 0; t_id < t_array.size(); t_id++)
     {
         tTriangle *tri = t_array[t_id];
+
+        // check three edges
         for (int i = 0; i < 3; i++)
         {
             // auto e = new tEdge();
@@ -155,12 +164,15 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
             std::map<
                 int_pair,
                 int_pair>::iterator it = edge_info.find(edge_id_pairs);
+
+            // create new edge
             if (it == edge_info.end())
             {
                 edge_info[edge_id_pairs] = int_pair(t_id, -1);
             }
             else
             {
+                // use old edge
 
                 SIM_ASSERT(it->second.first != -1 && it->second.second == -1);
                 it->second.second = t_id;
@@ -169,6 +181,7 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
         }
     }
 
+    // set dataset for edges
     for (auto t = edge_info.begin(); t != edge_info.end(); t++)
     {
         int v0 = t->first.first,
@@ -185,7 +198,77 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
         e_array.push_back(edge);
         // printf("[debug] edge %d, v0 %d, v1 %d, raw length %.3f, t0 %d, t1 %d, is_boud %d\n",
 
-            //    e_array.size() - 1, v0, v1, edge->mRawLength, tid0, tid1, edge->mIsBoundary);
+        //    e_array.size() - 1, v0, v1, edge->mRawLength, tid0, tid1, edge->mIsBoundary);
     }
     std::cout << "[debug] build " << e_array.size() << " edges\n";
+}
+
+/**
+ * \brief           Build plane geometry data
+*/
+void cObjUtil::BuildPlaneGeometryData(
+    const double scale,
+    const tVector &plane_equation,
+    std::vector<tVertex *> &vertex_array,
+    std::vector<tEdge *> &edge_array,
+    std::vector<tTriangle *> &triangle_array)
+{
+    vertex_array.clear();
+    edge_array.clear();
+    triangle_array.clear();
+    // 1. calculate a general vertex array
+    tVector cur_normal = tVector(0, 1, 0, 0);
+    tEigenArr<tVector> pos_lst = {
+        tVector(1, 0, -1, 1),
+        tVector(-1, 0, -1, 1),
+        tVector(-1, 0, 1, 1),
+        tVector(1, 0, 1, 1)};
+    tEigenArr<tVector3i> triangle_idx_lst = {
+        tVector3i(0, 1, 3),
+        tVector3i(3, 1, 2)};
+
+    // build vertices
+    for (auto &x : pos_lst)
+    {
+        tVertex *v = new tVertex();
+        v->mPos.noalias() = x;
+        v->mPos.segment(0, 3) *= scale;
+        vertex_array.push_back(v);
+    }
+
+    // build triangles
+    for (auto &x : triangle_idx_lst)
+    {
+        tTriangle *tri = new tTriangle();
+        tri->mId0 = x[0];
+        tri->mId1 = x[1];
+        tri->mId2 = x[2];
+        triangle_array.push_back(tri);
+    }
+
+    cObjUtil::BuildEdge(vertex_array, edge_array, triangle_array);
+    cTriangulator::ValidateGeometry(vertex_array, edge_array, triangle_array);
+
+    // rotation
+
+    tVector normal = cMathUtil::CalcNormalFromPlane(plane_equation);
+    tMatrix transform = cMathUtil::AxisAngleToRotmat(cMathUtil::CalcAxisAngleFromOneVectorToAnother(
+        cur_normal, normal));
+
+    // translation
+    {
+        tVector new_pt = transform * vertex_array[0]->mPos;
+        tVector3d abc = plane_equation.segment(0, 3);
+        double k = (-plane_equation[3] - abc.dot(new_pt.segment(0, 3))) /
+                   (abc.dot(normal.segment(0, 3)));
+        transform.block(0, 3, 3, 1) = k * normal.segment(0, 3);
+    }
+
+    for (auto &x : vertex_array)
+    {
+        // std::cout << "old pos0 = " << x->mPos.transpose() << std::endl;
+        x->mPos = transform * x->mPos;
+        // std::cout << "eval = " << cMathUtil::EvaluatePlane(plane_equation, x->mPos) << std::endl;
+    }
+    // exit(0);
 }

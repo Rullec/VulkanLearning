@@ -45,7 +45,7 @@
                     1e3,
                     1e4
                 ],
-                "num_of_samples": 8,
+                "num_of_samples": 5,
                 "visible": true,
                 "index": 0
             },
@@ -54,7 +54,7 @@
                     1e3,
                     1e4
                 ],
-                "num_of_samples": 8,
+                "num_of_samples": 5,
                 "visible": true,
                 "index": 1
             },
@@ -63,7 +63,7 @@
                     1e3,
                     1e4
                 ],
-                "num_of_samples": 8,
+                "num_of_samples": 5,
                 "visible": true,
                 "index": 2
             }
@@ -86,7 +86,8 @@
         "enable_init_rotation": false,
         "enable_gaussian_pos_noise": true,
         "gaussian_std": 0.02,
-        "enable_fold_noise": true
+        "enable_fold_noise": true,
+        "fold_coef": 1
     },
     "enable_data_cleaner": true,
     "data_cleaner_threshold": 0.01

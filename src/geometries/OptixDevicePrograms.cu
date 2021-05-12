@@ -54,7 +54,34 @@ extern "C" __global__ void __closesthit__radiance()
     int r = unsigned(primID) * 13 * 17 + 0x234235;
     int g = unsigned(primID) * 7 * 3 * 5 + 0x773477;
     int b = unsigned(primID) * 11 * 19 + 0x223766;
-    int t = optixGetRayTmax() * 400;
+    // int t = optixGetRayTmax() * 400;
+
+    // {
+        const int ix = optixGetLaunchIndex().x;
+        const int iy = optixGetLaunchIndex().y;
+        tVector3f rayDir = ((optixLaunchParams.convert_mat * tVector4f(ix, iy, 1, 1)).segment(0, 3) - optixLaunchParams.position).normalized() * optixGetRayTmax();
+        // 1. get camera pos, get ray direction
+        // float3 ray_dir = make_float3(
+        //         rayDir.x(),
+        //         rayDir.y(),
+        //         rayDir.z());
+        // ray_dir.x = ray_dir.x ;
+        // ray_dir.y = ray_dir.y * optixGetRayTmax();
+        // ray_dir.z = ray_dir.z * optixGetRayTmax();
+
+        // 2. get the normal vector of the camera plane
+        tVector3f eigen_focus_dir =  (optixLaunchParams.camera_center - optixLaunchParams.position).normalized();
+        // float3 focus_dir = make_float3(
+        //     eigen_focus_dir.x(),
+        //     eigen_focus_dir.y(),
+        //     eigen_focus_dir.z()
+        // );
+        float real_depth = std::fabs(eigen_focus_dir.dot(rayDir));
+        int t = static_cast<int>(real_depth * 200) ;
+        t = t > 255 ? 255 : t;
+        // t = 255;
+    // }
+    // 3. dot product then abs, get the real depth
     optixSetPayload_0(r);
     optixSetPayload_1(g);
     optixSetPayload_2(b);

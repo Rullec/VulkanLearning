@@ -96,11 +96,29 @@ void cSimScene::InitDrawBuffer()
 #include "geometries/OptixRaycaster.h"
 void cSimScene::InitRaycaster()
 {
+    // auto total_triangle_array = mTriangleArray;
+    // auto total_vertex_array = mVertexArray;
+    // std::cout << "begin to add obstacle data array\n";
+    // for (auto &x : mObstacleList)
+    // {
+    //     auto obstacle_v_array =  x->GetVertexArray();
+    //     auto obstacle_triangle_array =  x->GetVertexArray();
+
+    // }
+    // for (int i = 0; i < this->)
 #ifdef USE_OPTIX
-    mRaycaster = std::make_shared<cOptixRaycaster>(&mTriangleArray, &mVertexArray);
+    mRaycaster = std::make_shared<cOptixRaycaster>();
 #else
-    mRaycaster = std::make_shared<cRaycaster>(&mTriangleArray, &mVertexArray);
+    mRaycaster = std::make_shared<cRaycaster>();
 #endif
+    mRaycaster->AddResources(mTriangleArray, mVertexArray);
+    for (auto &x : mObstacleList)
+    {
+        auto obstacle_v_array = x->GetVertexArray();
+        auto obstacle_triangle_array = x->GetTriangleArray();
+        mRaycaster->AddResources(obstacle_triangle_array, obstacle_v_array);
+    }
+    std::cout << "[debug] add resources to raycaster done, num of obstacles = " << mObstacleList.size() << std::endl;
 }
 /**
  * \brief           Update the simulation procedure

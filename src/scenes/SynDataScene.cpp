@@ -61,11 +61,14 @@ std::string to_string(const tVectorXd &vec)
 /**
  * \brief           Given a simulatin property, run the simulation and get the result 
 */
-int mTotalSamples = 0;
+
+int mTotalSamples_valid = 0;
+int mTotalSamples_count = 0;
 void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
 {
     // std::cout << "run sim for feature = " < < < < std::endl;
     // std::cout << "feature size = " << props->BuildFullFeatureVector().size() << std::endl;
+    mTotalSamples_count++;
     Reset();
 
     if (mEnableDataAug == true)
@@ -90,7 +93,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
         if (
             (diff_norm < threshold && is_first_frame == false && cur_iters > min_iters))
         {
-            printf("[debug] RunSimulation: iters %d, diff norm %.6f < %.6f, converge for feature ", cur_iters, diff_norm, threshold);
+            printf("[debug] %d RunSimulation: iters %d, diff norm %.6f < %.6f, converge for feature ", mTotalSamples_count, cur_iters, diff_norm, threshold);
             std::cout << props->BuildVisibleFeatureVector().transpose() << std::endl;
             break;
         }
@@ -105,7 +108,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     {
         // old behavior
         // 1. form the export data path (along with the directory)
-        std::string single_name = std::to_string(mTotalSamples) + ".json";
+        std::string single_name = std::to_string(mTotalSamples_valid) + ".json";
         std::string full_name = cFileUtil::ConcatFilename(mExportDataDir, single_name);
         // 2. "input" & output
         cLinctexScene::DumpSimulationData(
@@ -114,13 +117,13 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
             // init_trans.block(0, 3, 4, 1),
             full_name);
-        mTotalSamples++;
+        mTotalSamples_valid++;
     }
     else
     {
         if (false == CheckDuplicateWithDataSet())
         {
-            std::string single_name = std::to_string(mTotalSamples) + ".json";
+            std::string single_name = std::to_string(mTotalSamples_valid) + ".json";
             std::string full_name = cFileUtil::ConcatFilename(mExportDataDir, single_name);
             // 2. "input" & output
             cLinctexScene::DumpSimulationData(
@@ -129,7 +132,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
                 // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
                 // init_trans.block(0, 3, 4, 1),
                 full_name);
-            mTotalSamples++;
+            mTotalSamples_valid++;
         }
     }
 }
@@ -153,7 +156,7 @@ bool cSynDataScene::CheckDuplicateWithDataSet() const
 {
     tVectorXd old_res, old_prop;
     tVectorXd cur_res = mLinScene->GetClothFeatureVector();
-    for (int i = mTotalSamples - 1; i >= 0; i--)
+    for (int i = mTotalSamples_valid - 1; i >= 0; i--)
     {
         std::string single_name = std::to_string(i) + ".json";
         std::string full_name = cFileUtil::ConcatFilename(mExportDataDir, single_name);
@@ -217,7 +220,7 @@ void cSynDataScene::Update(double dt)
         }
     }
 
-    printf("[log] total samples = %d, real unduplicate samples = %d\n", total_sample, mTotalSamples);
+    printf("[log] total samples = %d, real unduplicate samples = %d\n", total_sample, mTotalSamples_valid);
     exit(0);
 }
 void cSynDataScene::Reset()
@@ -293,6 +296,7 @@ cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
     mEnableFoldNoise = cJsonUtil::ParseAsBool("enable_fold_noise", conf);
     mEnableInitYPosNoise = cJsonUtil::ParseAsBool("enable_gaussian_pos_noise", conf);
     mInitYPosNoiseStd = cJsonUtil::ParseAsDouble("gaussian_std", conf);
+    mFoldCoef = cJsonUtil::ParseAsDouble("fold_coef", conf);
     // SIM_ASSERT(mEnableInitYRotation == false);
     // SIM_ASSERT(mEnableFoldNoise == true);
     // std::cout << mNumOfNoisedSamples << " " << mEnableInitYRotation << " " << mEnableInitYPosNoise << " " << this->mInitYPosNoiseStd << std::endl;
@@ -310,13 +314,13 @@ void cSynDataScene::ApplyNoiseIfPossible()
         // mLinScene->ApplyNoise(this->mSynDataNoise->mEnableInitYRotation, theta, mSynDataNoise->mEnableInitYPosNoise, mSynDataNoise->mInitYPosNoiseStd);
         if (this->mSynDataNoise->mEnableFoldNoise == true)
         {
-            double a = 1.5;
+
             tVector3d principle_axis = tVector3d::Random();
             principle_axis[1] = 0;
             principle_axis.normalize();
 
-            mLinScene->ApplyFoldNoise(principle_axis, a);
-            std::cout << "[debug] apply fold noise along principle noise " << principle_axis.transpose() << std::endl;
+            mLinScene->ApplyFoldNoise(principle_axis, mSynDataNoise->mFoldCoef);
+            std::cout << "[debug] apply fold noise along principle noise " << principle_axis.transpose() << ", folding coef = " << mSynDataNoise->mFoldCoef << std::endl;
         }
 
         // if(this-)

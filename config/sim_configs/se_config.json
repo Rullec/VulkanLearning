@@ -51,9 +51,9 @@
     "pause_at_first": false,
     "camera": {
         "camera_pos": [
-            0.35,
-            0.35,
-            -0.0
+            0.6,
+            0.45,
+            0.0
         ],
         "camera_focus": [
             0.0,
@@ -91,7 +91,7 @@
             "mesh_path": "data/clinder.obj",
             "target_aabb": [
                 0.3,
-                0.05,
+                0.06,
                 0.3
             ],
             "translation": [
@@ -104,6 +104,16 @@
                 0,
                 0
             ]
+        },
+        {
+            "type": "plane",
+            "equation": [
+                0,
+                1,
+                0,
+                1e-3
+            ],
+            "plane_scale": 10
         }
     ],
     "enable_dump_geometry_info": true,

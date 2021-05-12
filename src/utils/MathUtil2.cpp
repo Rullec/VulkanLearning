@@ -682,6 +682,16 @@ void cMathUtil::ThresholdOp(tVectorXd &v, double threshold)
     v = (threshold < v.array().abs()).select(v, 0.0f);
 }
 
+tVector cMathUtil::CalcAxisAngleFromOneVectorToAnother(const tVector &v0_, const tVector &v1_)
+{
+    tVector v0 = v0_.normalized(),
+            v1 = v1_.normalized();
+
+    tVector rot_axis = v0.cross3(v1);
+    rot_axis = rot_axis.normalized() * std::asin(rot_axis.norm());
+    return rot_axis;
+}
+
 double cMathUtil::Truncate(double num, int digits)
 {
     return round(num * pow(10, digits)) / pow(10, digits);
@@ -959,4 +969,71 @@ double cMathUtil::CalcDistanceFromPointToLine(const tVector3d &point, const tVec
     // std::cout << "origin_2_point_proj = " << origin_2_point_proj.transpose() << std::endl;
     tVector3d res = origin_2_point - origin_2_point_proj;
     return res.norm();
+}
+
+double cMathUtil::EvaluatePlane(const tVector &plane, const tVector &point)
+{
+    double sum = plane[3];
+    for (int i = 0; i < 3; i++)
+        sum += plane[i] * point[i];
+    return sum;
+};
+tVector cMathUtil::SampleFromPlane(const tVector &plane_equation)
+{
+    // 1. find the non-zero index
+    int id = -1;
+    for (int i = 0; i < 3; i++)
+    {
+        if (std::fabs(plane_equation[i]) > 1e-10)
+        {
+            id = i;
+            break;
+        }
+    }
+
+    if (id == 3)
+    {
+        SIM_ERROR("failed to sample from plane {}", plane_equation.transpose());
+        exit(1);
+    }
+
+    tVector point = tVector::Random();
+    point[3] = 1;
+    double residual = -plane_equation[3];
+    for (int i = 0; i < 3; i++)
+    {
+        if (i != id)
+        {
+            residual += -plane_equation[i] * point[i];
+        }
+    }
+    point[id] = residual / plane_equation[id];
+    return point;
+};
+
+/**
+ * \brief           Calculate normal by given plane equaiton "ax + by + cz + d = 0"
+*/
+tVector cMathUtil::CalcNormalFromPlane(const tVector &plane_equation)
+{
+    tVector res = tVector::Zero();
+    res.segment(0, 3) = plane_equation.segment(0, 3).normalized();
+    return res;
+
+    // tVector
+    //     p0 = SampleFromPlane(plane_equation),
+    //     p1 = SampleFromPlane(plane_equation),
+    //     p2 = SampleFromPlane(plane_equation);
+
+    // tVector v0 = p0 - p1,
+    //         v1 = p1 - p2;
+    // tVector normal = (v0.cross3(v1)).normalized();
+    // if (EvaluatePlane(plane_equation, p0 + normal) < 0)
+    //     normal *= -1;
+    // // std::cout << "plane = " << plane_equation.transpose() << std::endl;
+    // // std::cout << "p0 = " << p0.transpose() << std::endl;
+    // // std::cout << "p1 = " << p1.transpose() << std::endl;
+    // // std::cout << "p2 = " << p2.transpose() << std::endl;
+    // // exit(1);
+    // return normal;
 }

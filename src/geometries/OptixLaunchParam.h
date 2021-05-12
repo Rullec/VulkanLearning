@@ -26,6 +26,10 @@ struct MY_ALIGN(16) LaunchParams
     MY_ALIGN(16)
     tMatrix4f convert_mat;
 
+    MY_ALIGN(16)
+    tVector3f camera_up;
+    tVector3f camera_center;
+
     OptixTraversableHandle traversable;
 };
 

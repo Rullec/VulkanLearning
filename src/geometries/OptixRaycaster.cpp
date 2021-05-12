@@ -36,8 +36,9 @@ struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) HitgroupRecord
     int objectID;
 };
 
-cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> *triangles,
-                                 const std::vector<tVertex *> *vertices) : cRaycaster(triangles, vertices)
+// cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> triangles,
+//                                  const std::vector<tVertex *> vertices) : cRaycaster(triangles, vertices)
+cOptixRaycaster::cOptixRaycaster()
 {
     InitOptix();
 
@@ -53,6 +54,12 @@ cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> *triangles,
     CreateMissPrograms();
     // std::cout << "creating hitgroup programs ..." << std::endl;
     CreateHitgroupPrograms();
+}
+
+void cOptixRaycaster::AddResources(const std::vector<tTriangle *> triangles,
+                                   const std::vector<tVertex *> vertices)
+{
+    cRaycaster::AddResources(triangles, vertices);
 
     launchParams.traversable = BuildAccel();
     // auto a = <=>(1, 2);
@@ -74,7 +81,6 @@ cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> *triangles,
     // std::cout << "Optix 7 Sample fully set up" << std::endl;
     // std::cout << GDT_TERMINAL_DEFAULT;
 }
-
 void cOptixRaycaster::Rebuild()
 {
     launchParams.traversable = BuildAccel();
@@ -476,30 +482,73 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
 void cOptixRaycaster::BuildGeometryCudaHostBuffer()
 {
     // std::cout << "[debug] recalculate the cuda buffer\n";
-    if (cuda_host_vertices_buffer.size() != mVertexArray->size())
-        cuda_host_vertices_buffer.resize(mVertexArray->size(), tVector3f::Zero());
-    if (cuda_host_index_buffer.size() != mTriangleArray->size())
+    // 1. get the total size of vertices and triangles buffer
+    int vertices_size = 0,
+        triangle_size = 0;
+    for (int i = 0; i < mTriangleArray_lst.size(); i++)
+    {
+        vertices_size += mVertexArray_lst[i].size();
+        triangle_size += mTriangleArray_lst[i].size();
+    }
+    cuda_host_vertices_buffer.resize(vertices_size, tVector3f::Zero());
+    if (cuda_host_index_buffer.size() != triangle_size)
         cuda_host_index_buffer.resize(
-            this->mTriangleArray->size(), tVector3i::Zero());
+            triangle_size, tVector3i::Zero());
 
-    for (int i = 0; i < mTriangleArray->size(); i++)
+    int num_of_obj = mTriangleArray_lst.size();
+    int cur_obj_verteix_offset = 0;
+    int total_triangle_idx = 0,
+        total_vertex_idx = 0;
+    for (int obj_id = 0; obj_id < num_of_obj; obj_id++)
     {
-        cuda_host_index_buffer[i].noalias() =
-            tVector3i(
-                mTriangleArray->at(i)->mId0,
-                mTriangleArray->at(i)->mId1,
-                mTriangleArray->at(i)->mId2);
-    }
+        // 1. add this object's indices and vertex data
+        auto tri_array = mTriangleArray_lst[obj_id];
+        auto ver_array = mVertexArray_lst[obj_id];
+        for (int i = 0; i < tri_array.size(); i++)
+        {
+            cuda_host_index_buffer[total_triangle_idx++].noalias() =
+                tVector3i(
+                    tri_array[i]->mId0 + cur_obj_verteix_offset,
+                    tri_array[i]->mId1 + cur_obj_verteix_offset,
+                    tri_array[i]->mId2 + cur_obj_verteix_offset);
+        }
+        // 2. add the bias
 
-    for (int i = 0; i < mVertexArray->size(); i++)
-    {
-        cuda_host_vertices_buffer[i].noalias() =
-            tVector3f(
-                mVertexArray->at(i)->mPos[0],
-                mVertexArray->at(i)->mPos[1],
-                mVertexArray->at(i)->mPos[2]);
+        for (int i = 0; i < ver_array.size(); i++)
+        {
+            cuda_host_vertices_buffer[total_vertex_idx++].noalias() =
+                ver_array[i]->mPos.segment(0, 3).cast<float>();
+        }
+
+        cur_obj_verteix_offset += ver_array.size();
     }
-    // std::cout << "triangle size = " << mTriangleArray->size() << std::endl;
+    // int st = 0;
+    // for (auto &mTriangleArray : mTriangleArray_lst)
+    // {
+    //     for (int i = 0; i < mTriangleArray.size(); i++)
+    //     {
+    //         cuda_host_index_buffer[st].noalias() =
+    //             tVector3i(
+    //                 mTriangleArray.at(i)->mId0,
+    //                 mTriangleArray.at(i)->mId1,
+    //                 mTriangleArray.at(i)->mId2);
+    //         st++;
+    //     }
+    // }
+
+    // st = 0;
+    // for (auto &mVertexArray : mVertexArray_lst)
+    // {
+    //     for (int i = 0; i < mVertexArray.size(); i++)
+    //     {
+    //         cuda_host_vertices_buffer[st++].noalias() =
+    //             tVector3f(
+    //                 mVertexArray.at(i)->mPos[0],
+    //                 mVertexArray.at(i)->mPos[1],
+    //                 mVertexArray.at(i)->mPos[2]);
+    //     }
+    // }
+    // std::cout << "triangle size = " << mTriangleArray.size() << std::endl;
     // std::cout << "vertices size = " << mVertexArray->size() << std::endl;
 }
 
@@ -630,6 +679,13 @@ void cOptixRaycaster::setCamera(const CameraBasePtr &camera)
         view_mat_inv, true);
     // std::cout << "tmp = \n" << tmp << std::endl;
     // exit(0);
+    // tVector3f y_axis = tVector3f(0, 1, 0);
+    // y_axis = view_mat_inv.inverse().block(0, 0, 3, 3) * y_axis;
+    // std::cout
+    //     << "camera up = " << y_axis.transpose() << std::endl;
+    // exit(0);
+    launchParams.camera_up = camera->up;
+    launchParams.camera_center = camera->center;
     launchParams.convert_mat = tmp;
 }
 
