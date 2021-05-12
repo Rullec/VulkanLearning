@@ -290,8 +290,11 @@ cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
 {
     mNumOfNoisedSamples = cJsonUtil::ParseAsInt("noised_samples", conf);
     mEnableInitYRotation = cJsonUtil::ParseAsBool("enable_init_rotation", conf);
+    mEnableFoldNoise = cJsonUtil::ParseAsBool("enable_fold_noise", conf);
     mEnableInitYPosNoise = cJsonUtil::ParseAsBool("enable_gaussian_pos_noise", conf);
     mInitYPosNoiseStd = cJsonUtil::ParseAsDouble("gaussian_std", conf);
+    // SIM_ASSERT(mEnableInitYRotation == false);
+    // SIM_ASSERT(mEnableFoldNoise == true);
     // std::cout << mNumOfNoisedSamples << " " << mEnableInitYRotation << " " << mEnableInitYPosNoise << " " << this->mInitYPosNoiseStd << std::endl;
     // exit(0);
 }
@@ -303,9 +306,30 @@ void cSynDataScene::ApplyNoiseIfPossible()
 {
     if (mEnableDataAug)
     {
-        double theta = 0;
-        mLinScene->ApplyNoise(this->mSynDataNoise->mEnableInitYRotation, theta, mSynDataNoise->mEnableInitYPosNoise, mSynDataNoise->mInitYPosNoiseStd);
-        printf("[debug] apply noise done, theta %.4f, std %.4f\n", theta, mSynDataNoise->mInitYPosNoiseStd);
+        // double theta = 0;
+        // mLinScene->ApplyNoise(this->mSynDataNoise->mEnableInitYRotation, theta, mSynDataNoise->mEnableInitYPosNoise, mSynDataNoise->mInitYPosNoiseStd);
+        if (this->mSynDataNoise->mEnableFoldNoise == true)
+        {
+            double a = 1.5;
+            tVector3d principle_axis = tVector3d::Random();
+            principle_axis[1] = 0;
+            principle_axis.normalize();
+
+            mLinScene->ApplyFoldNoise(principle_axis, a);
+            std::cout << "[debug] apply fold noise along principle noise " << principle_axis.transpose() << std::endl;
+        }
+
+        // if(this-)
+        if (mSynDataNoise->mEnableInitYPosNoise == true)
+        {
+            double angle = 0;
+            mLinScene->ApplyNoise(
+                mSynDataNoise->mEnableInitYRotation,
+                angle,
+                mSynDataNoise->mEnableInitYPosNoise,
+                mSynDataNoise->mInitYPosNoiseStd);
+            std::cout << "[debug] apply gaussian noise on Y axis, std = " << mSynDataNoise->mInitYPosNoiseStd << std::endl;
+        }
         // std::cout << "theta = " << theta << std::endl;
         // std::cout << "std = " << mSynDataNoise->mInitYPosNoiseStd << std::endl;
         // exit(0);

@@ -4,7 +4,7 @@
     "cloth_mass": 0.027,
     "cloth_init_pos": [
         0,
-        0.21,
+        0.35,
         0
     ],
     "cloth_init_orientation": [
@@ -24,8 +24,9 @@
     "cloth_property": {
         "stretch_warp": 1e4,
         "stretch_weft": 1e4,
-        "bending_warp": 1e3,
-        "bending_weft": 1e3
+        "bending_warp": 1e4,
+        "bending_weft": 1e4,
+        "bending_bias": 1e3
     },
     "constraints": {
         "fixed_point.bak": [
@@ -50,13 +51,13 @@
     "pause_at_first": false,
     "camera": {
         "camera_pos": [
-            0.3,
-            0.12,
+            0.35,
+            0.35,
             -0.0
         ],
         "camera_focus": [
             0.0,
-            0.12,
+            0.2,
             0
         ],
         "fov": 69,
@@ -65,21 +66,46 @@
     },
     "enable_profiling": true,
     "enable_obstacle": true,
-    "obstacle_conf": {
-        "type": "custom",
-        "mesh_path": "data/clinder.obj",
-        "scale": 0.5,
-        "position": [
-            0,
-            0,
-            0
-        ],
-        "orientation": [
-            0,
-            0,
-            0
-        ]
-    },
+    "obstacle_conf": [
+        {
+            "type": "custom",
+            "mesh_path": "data/clinder.obj",
+            "target_aabb": [
+                0.1,
+                0.2,
+                0.1
+            ],
+            "translation": [
+                0,
+                0.05,
+                0
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "type": "custom",
+            "mesh_path": "data/clinder.obj",
+            "target_aabb": [
+                0.3,
+                0.05,
+                0.3
+            ],
+            "translation": [
+                0,
+                0,
+                0
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ]
+        }
+    ],
     "enable_dump_geometry_info": true,
     "dump_triangle_info_path": "./log/geo_info.json",
     "enable_network_inference_mode": false,

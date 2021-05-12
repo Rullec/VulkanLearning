@@ -11,6 +11,7 @@ void tPhyProperty::Init(const Json::Value &root)
     mStretchWeft = cJsonUtil::ParseAsDouble(mPropertiesName[1], conf);
     mBendingWarp = cJsonUtil::ParseAsDouble(mPropertiesName[2], conf);
     mBendingWeft = cJsonUtil::ParseAsDouble(mPropertiesName[3], conf);
+    mBendingBias = cJsonUtil::ParseAsDouble(mPropertiesName[4], conf);
     SIM_ASSERT(conf.size() == mNumOfProperties);
 }
 tVectorXd tPhyProperty::BuildFullFeatureVector() const
@@ -20,6 +21,7 @@ tVectorXd tPhyProperty::BuildFullFeatureVector() const
     feature[1] = mStretchWeft;
     feature[2] = mBendingWarp;
     feature[3] = mBendingWeft;
+    feature[4] = mBendingBias;
     return feature;
 }
 
@@ -43,6 +45,10 @@ double tPhyProperty::GetFeature(std::string name) const
     else if (name == "bending_weft")
     {
         return mBendingWeft;
+    }
+    else if (name == "bending_bias")
+    {
+        return mBendingBias;
     }
     else
     {
@@ -73,6 +79,10 @@ int tPhyProperty::GetFeatureIdx(std::string name)
     {
         return 3;
     }
+    else if (name == "bending_bias")
+    {
+        return 4;
+    }
     else
     {
         SIM_ERROR("unrecognized feature name {}", name);
@@ -90,6 +100,7 @@ void tPhyProperty::ReadFeatureVector(const tVectorXd &vec)
     mStretchWeft = vec[1];
     mBendingWarp = vec[2];
     mBendingWeft = vec[3];
+    mBendingBias = vec[4];
 }
 
 /**

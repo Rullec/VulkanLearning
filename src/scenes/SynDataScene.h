@@ -31,6 +31,7 @@ protected:
         tSyncDataNoise(const Json::Value &value);
         int mNumOfNoisedSamples;
         bool mEnableInitYRotation;
+        bool mEnableFoldNoise;
         bool mEnableInitYPosNoise;
         double mInitYPosNoiseStd;
         // void ApplyNoise(std::vector<tVertex *> &vertex_array);

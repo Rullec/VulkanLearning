@@ -276,6 +276,7 @@ void tPhyPropertyManager::InitFeatures()
 
     // std::cout << "features = \n"
     //           << mAllPropertyFeatures << std::endl;
+    // exit(0);
     // std::cout << "num of features = " << GetNumOfProperties() << std::endl;
     // exit(0);
 }

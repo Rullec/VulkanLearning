@@ -421,6 +421,7 @@ public:
                                 double eps = 1e-10);
     static tMatrixXd CartesianProduct(const std::vector<std::vector<double>> &lists);
     static std::vector<std::vector<double>> CartesianProductVec(const std::vector<std::vector<double>> &lists);
+    static double CalcDistanceFromPointToLine(const tVector3d &point, const tVector3d &line_origin, const tVector3d &line_end);
 
 private:
     static cRand gRand;

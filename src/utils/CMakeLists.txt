@@ -8,6 +8,7 @@ add_library(utils_lib FileUtil.cpp
 JsonUtil.cpp
 LogUtil.cpp
 MathUtil.cpp
+MathUtil2.cpp
 Rand.cpp
 TimeUtil.cpp
 ObjUtil.cpp

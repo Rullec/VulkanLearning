@@ -325,67 +325,71 @@ tVector CalcNormal(
 void cLinctexScene::CreateObstacle(const Json::Value &conf)
 {
     cSimScene::CreateObstacle(conf);
-    std::vector<Int3> se_triangles(0);
-    std::vector<Float3> se_positions(0);
-    std::vector<Float3> se_normals(0);
+
+    for (auto x : mObstacleList)
     {
-        const auto &v_array = mObstacle->GetVertexArray();
-        // const auto &e_array = mObstacle->GetEdgeArray();
-        const auto &t_array = mObstacle->GetTriangleArray();
 
-        tEigenArr<tVector> v_normal_array(v_array.size(), tVector::Zero());
-        std::vector<int> v_normal_array_count(v_array.size(), 0);
-
-        //  init triangle and calculate vertex normal
-        for (int i = 0; i < t_array.size(); i++)
+        std::vector<Int3> se_triangles(0);
+        std::vector<Float3> se_positions(0);
+        std::vector<Float3> se_normals(0);
         {
-            se_triangles.push_back(Int3(
-                t_array[i]->mId0,
-                t_array[i]->mId1,
-                t_array[i]->mId2));
-            tVector f_normal = CalcNormal(
-                v_array[t_array[i]->mId0]->mPos,
-                v_array[t_array[i]->mId1]->mPos,
-                v_array[t_array[i]->mId2]->mPos);
+            const auto &v_array = x->GetVertexArray();
+            const auto &t_array = x->GetTriangleArray();
+
+            tEigenArr<tVector> v_normal_array(v_array.size(), tVector::Zero());
+            std::vector<int> v_normal_array_count(v_array.size(), 0);
+
+            //  init triangle and calculate vertex normal
+            for (int i = 0; i < t_array.size(); i++)
             {
-                v_normal_array[t_array[i]->mId0] += f_normal;
-                v_normal_array[t_array[i]->mId1] += f_normal;
-                v_normal_array[t_array[i]->mId2] += f_normal;
+                se_triangles.push_back(Int3(
+                    t_array[i]->mId0,
+                    t_array[i]->mId1,
+                    t_array[i]->mId2));
+                tVector f_normal = CalcNormal(
+                    v_array[t_array[i]->mId0]->mPos,
+                    v_array[t_array[i]->mId1]->mPos,
+                    v_array[t_array[i]->mId2]->mPos);
+                {
+                    v_normal_array[t_array[i]->mId0] += f_normal;
+                    v_normal_array[t_array[i]->mId1] += f_normal;
+                    v_normal_array[t_array[i]->mId2] += f_normal;
+                }
+                {
+                    v_normal_array_count[t_array[i]->mId0] += 1;
+                    v_normal_array_count[t_array[i]->mId1] += 1;
+                    v_normal_array_count[t_array[i]->mId2] += 1;
+                }
             }
+
+            // calculate vertices and normals
+            for (int i = 0; i < v_array.size(); i++)
             {
-                v_normal_array_count[t_array[i]->mId0] += 1;
-                v_normal_array_count[t_array[i]->mId1] += 1;
-                v_normal_array_count[t_array[i]->mId2] += 1;
+                se_positions.push_back(
+                    Float3(
+                        v_array[i]->mPos[0],
+                        v_array[i]->mPos[1],
+                        v_array[i]->mPos[2]));
+                v_normal_array[i] /= v_normal_array_count[i];
+                se_normals.push_back(
+                    Float3(
+                        v_normal_array[i][0],
+                        v_normal_array[i][1],
+                        v_normal_array[i][2]));
             }
         }
-
-        // calculate vertices and normals
-        for (int i = 0; i < v_array.size(); i++)
-        {
-            se_positions.push_back(
-                Float3(
-                    v_array[i]->mPos[0],
-                    v_array[i]->mPos[1],
-                    v_array[i]->mPos[2]));
-            v_normal_array[i] /= v_normal_array_count[i];
-            se_normals.push_back(
-                Float3(
-                    v_normal_array[i][0],
-                    v_normal_array[i][1],
-                    v_normal_array[i][2]));
-        }
+        auto obstacle = SeObstacle::Create(se_triangles,
+                                           se_positions,
+                                           se_normals);
+        // std::cout << "old obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
+        obstacle->SetSurfaceOffset(0);
+        // mSeScene->GetSimulationParameters()->
+        // this->mCloth->GetSimulationProperties()->
+        // std::cout << "new obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
+        // exit(0);
+        mSeScene->AddObstacle(obstacle);
     }
-    auto obstacle = SeObstacle::Create(se_triangles,
-                                       se_positions,
-                                       se_normals);
-    // std::cout << "old obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
-    obstacle->SetSurfaceOffset(0);
-    // mSeScene->GetSimulationParameters()->
-    // this->mCloth->GetSimulationProperties()->
-    // std::cout << "new obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
-    // exit(0);
-    mSeScene->AddObstacle(obstacle);
-    std::cout << "[debug] add linctex obstacle succ\n";
+    std::cout << "[debug] add linctex obstacles succ\n";
 }
 
 void cLinctexScene::SetSimProperty(const tPhyPropertyPtr &prop)
@@ -396,6 +400,7 @@ void cLinctexScene::SetSimProperty(const tPhyPropertyPtr &prop)
     phyProp->SetStretchWeft(mClothProp->mStretchWeft);
     phyProp->SetBendingWarp(mClothProp->mBendingWarp);
     phyProp->SetBendingWeft(mClothProp->mBendingWeft);
+    phyProp->SetBendingBias(mClothProp->mBendingBias);
 }
 tPhyPropertyPtr cLinctexScene::GetSimProperty() const
 {
@@ -569,8 +574,30 @@ void cLinctexScene::Key(int key, int scancode, int action, int mods)
     }
 }
 
+/**
+ * \brief           Calculate the center of mass
+*/
+tVector cLinctexScene::CalcCOM() const
+{
+    tVector com = tVector::Zero();
+    double total_mass = 0;
+    for (auto &x : mVertexArray)
+    {
+        total_mass += x->mMass;
+        com += x->mMass * x->mPos;
+        // std::cout << "pos = " << x->mPos.transpose() << std::endl;
+    }
+    com /= total_mass;
+    com[3] = 1;
+    return com;
+}
+
 #include <math.h>
 #include <cmath>
+
+/**
+ * \brief           Apply random gaussian noise, point-wise
+*/
 void cLinctexScene::ApplyNoise(bool enable_y_random_rotation, double &rotation_angle, bool enable_y_random_pos, const double random_ypos_std)
 {
     rotation_angle = 0;
@@ -606,4 +633,60 @@ void cLinctexScene::ApplyNoise(bool enable_y_random_rotation, double &rotation_a
     UpdateCurNodalPosition(mXcur);
 }
 
+/**
+ * s\brief          Apply fold noise by given an axis and the parabola coef "a"
+*/
+void cLinctexScene::ApplyFoldNoise(const tVector3d &principle_noise, const double a)
+{
+    // tVector3d old_pos = tVector3d(0, 0, 0);
+    // tVector3d dir_origin = tVector3d(0, 1, 1);
+    // tVector3d dir_end = tVector3d(1, 1, 1);
+    // std::cout << "dist = " << cMathUtil::CalcDistanceFromPointToLine(old_pos, dir_origin, dir_end) << std::endl;
+    SIM_ASSERT(std::fabs(principle_noise.norm() - 1) < 1e-10);
+    tVector3d COM = this->CalcCOM().segment(0, 3);
+    // std::cout << "COM = " << COM.transpose() << std::endl;
+    // std::cout << "principle noise dir = " << principle_noise.transpose() << std::endl;
+    // int num_of_positive = 0, num_of_negative = 0;
+    for (int i = 0; i < mXcur.size() / 3; i++)
+    {
+        const tVector3d &old_pos = mXcur.segment(i * 3, 3);
+        // std::cout << "old pos = " << old_pos.transpose() << std::endl;
+        // 1. calculate distance between cur pos and the center line
+        double dist = cMathUtil::CalcDistanceFromPointToLine(
+            old_pos,
+            COM,
+            COM + principle_noise);
+        // std::cout << "dist = " << dist << std::endl;
+        // 2. calculate (x, y) pos on projected plane, defined by given principle noise vector
+        // 2.1 determine the positive or negative
+        tVector3d com_2_pos = old_pos - COM;
+        // std::cout << "com 2 pos = " << com_2_pos.transpose() << std::endl;
+        tVector3d com_2_pos_parallel_with_principle = com_2_pos.dot(principle_noise) * principle_noise;
+        // std::cout << "com_2_pos_parallel_with_principle = " << com_2_pos_parallel_with_principle.transpose() << std::endl;
+        tVector3d com_2_pos_proj = com_2_pos - com_2_pos_parallel_with_principle;
+        // std::cout << "com_2_pos_proj = " << com_2_pos_proj.transpose() << std::endl;
+        int sign = (tVector3d(0, 1, 0).cross(com_2_pos_proj)).dot(principle_noise) > 0 ? 1 : -1;
+        // std::cout << "sign = " << sign << std::endl;
+
+        // 2.2
+
+        double x = sign * dist / (std::sqrt(1 + a * a));
+        double y = -std::fabs(a * x);
+        tVector3d x_dir = principle_noise.cross(tVector3d(0, 1, 0));
+        // std::cout << "x_dir = " << x_dir.transpose() << std::endl;
+        // std::cout << "x = " << x << std::endl;
+        // std::cout << "y = " << y << std::endl;
+        tVector3d new_pos =
+            (x * x_dir +
+             y * tVector3d(0, 1, 0) + COM) // projected pos
+            +
+            com_2_pos_parallel_with_principle;
+        // std::cout << "new_pos = " << new_pos.transpose() << std::endl;
+        mXcur.segment(i * 3, 3) = new_pos;
+        // exit(0);
+    }
+    UpdateCurNodalPosition(mXcur);
+    // std::cout << num_of_positive << std::endl;
+    // std::cout << num_of_negative << std::endl;
+}
 #endif

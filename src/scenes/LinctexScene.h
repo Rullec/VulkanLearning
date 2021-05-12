@@ -28,6 +28,7 @@ public:
     virtual void SetSimProperty(const tPhyPropertyPtr &prop);
     // virtual void ApplyTransform(const tMatrix &trans);
     virtual void ApplyNoise(bool enable_y_random_rotation, double &rotation_angle, bool enable_y_random_pos, const double random_ypos_std);
+    virtual void ApplyFoldNoise(const tVector3d &principle_noise, const double a);
     virtual tPhyPropertyPtr GetSimProperty() const;
     virtual const tVectorXd &GetClothFeatureVector() const;
     virtual int GetClothFeatureSize() const;
@@ -40,6 +41,7 @@ public:
         tVectorXd &simulation_property,
         const std::string &filename);
     virtual void Key(int key, int scancode, int action, int mods);
+    virtual tVector CalcCOM() const;
 
 protected:
     virtual void UpdateSubstep() override final;

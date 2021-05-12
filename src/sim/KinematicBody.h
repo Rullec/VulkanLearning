@@ -18,6 +18,13 @@ enum eKinematicBodyShape
 class cKinematicBody : public cBaseObject
 {
 public:
+    inline const static std::string
+        TYPE_KEY = "type",
+        MESH_PATH_KEY = "mesh_path",
+        TARGET_AABB_KEY = "target_aabb",
+        TRANSLATION_KEY = "translation",
+        ORIENTATION_KEY = "orientation";
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     cKinematicBody();
     virtual ~cKinematicBody();
     virtual void Init(const Json::Value &conf) override;
@@ -37,7 +44,7 @@ public:
 protected:
     eKinematicBodyShape mBodyShape;
     std::string mCustomMeshPath;
-    double mScale;
+    tVector mTargetAABB;
     tVector mInitPos;
     tVector mInitOrientation;
     bool mIsStatic;

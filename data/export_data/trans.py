@@ -2,7 +2,7 @@ import os
 from PIL import Image
 from tqdm import tqdm
 
-new_dir = "./reduced_noised_gen360/"
+new_dir = "./3feature_gen360/"
 # dest_dir = "./test_small_data/"
 
 png_files = [i for i in os.listdir(new_dir) if i.find("png") != -1]

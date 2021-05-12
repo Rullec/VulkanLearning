@@ -11,13 +11,16 @@ struct tPhyProperty
     double mStretchWeft;
     double mBendingWarp;
     double mBendingWeft;
+    double mBendingBias;
 
-    inline static const int mNumOfProperties = 4;
+    inline static const int mNumOfProperties = 5;
     inline static const std::string mPropertiesName[tPhyProperty::mNumOfProperties] = {
         "stretch_warp",
         "stretch_weft",
         "bending_warp",
-        "bending_weft"};
+        "bending_weft",
+        "bending_bias"};
+
     virtual void Init(const Json::Value &conf); // normal init
     virtual tVectorXd BuildFullFeatureVector() const;
     virtual tVectorXd BuildVisibleFeatureVector() const;

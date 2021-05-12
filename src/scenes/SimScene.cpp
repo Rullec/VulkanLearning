@@ -60,7 +60,11 @@ void cSimScene::InitDrawBuffer()
     // init the buffer
     {
         int num_of_triangles_cloth = mTriangleArray.size();
-        int num_of_triangles_obstacle = mObstacle == nullptr ? 0 : mObstacle->GetDrawNumOfTriangles();
+        int num_of_triangles_obstacle = 0;
+        for (auto &x : mObstacleList)
+        {
+            num_of_triangles_obstacle += x->GetDrawNumOfTriangles();
+        }
         int num_of_triangles = num_of_triangles_cloth + num_of_triangles_obstacle;
         int num_of_vertices = num_of_triangles * 3;
         int size_per_vertices = RENDERING_SIZE_PER_VERTICE;
@@ -72,7 +76,11 @@ void cSimScene::InitDrawBuffer()
     }
     {
         int num_of_edges_cloth = mEdgeArray.size();
-        int num_of_edges_obstacle = mObstacle == nullptr ? 0 : mObstacle->GetDrawNumOfEdges();
+        int num_of_edges_obstacle = 0;
+        for (auto &x : mObstacleList)
+        {
+            num_of_edges_obstacle += x->GetDrawNumOfEdges();
+        }
         int num_of_edges = num_of_edges_obstacle + num_of_edges_cloth;
         int size_per_edge = 2 * RENDERING_SIZE_PER_VERTICE;
         mEdgesDrawBuffer.resize(num_of_edges * size_per_edge);
@@ -284,10 +292,11 @@ void cSimScene::CalcTriangleDrawBuffer()
     }
     // 2. calculate for obstacle triangle
     {
-        if (mObstacle != nullptr)
+        for (auto &x : mObstacleList)
         {
             Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data() + st, mTriangleDrawBuffer.size() - st);
-            mObstacle->CalcTriangleDrawBuffer(ref);
+            x->CalcTriangleDrawBuffer(ref);
+            st += x->GetDrawNumOfTriangles() * 3 * RENDERING_SIZE_PER_VERTICE;
         }
     }
 }
@@ -313,11 +322,16 @@ void cSimScene::CalcEdgesDrawBuffer()
     }
     // 2. for draw buffer
     {
-        if (mObstacle != nullptr)
+        if (mObstacleList.empty() == false)
         {
-            Eigen::Map<tVectorXf> ref(mEdgesDrawBuffer.data() + st, mEdgesDrawBuffer.size() - st);
             // std::cout << "[debug] calc edge draw buffer obstacle, size = " << ref.size() << std::endl;
-            mObstacle->CalcEdgeDrawBuffer(ref);
+            for (auto &x : mObstacleList)
+            {
+                int size = x->GetDrawNumOfEdges() * RENDERING_SIZE_PER_VERTICE * 2;
+                Eigen::Map<tVectorXf> ref(mEdgesDrawBuffer.data() + st, mEdgesDrawBuffer.size() - st);
+                x->CalcEdgeDrawBuffer(ref);
+                st += size;
+            }
         }
     }
 }
@@ -599,10 +613,18 @@ void cSimScene::ReleasePerturb()
 
 void cSimScene::CreateObstacle(const Json::Value &conf)
 {
-    mObstacle = std::make_shared<cKinematicBody>();
-    mObstacle->Init(conf);
-    std::cout << "[debug] create obstacle done, now begin to exit\n";
-    
+    // 1. parse the number of obstacles
+    Json::Value obstacles_lst = conf;
+    int num_of_obstacles = obstacles_lst.size();
+    SIM_ASSERT(num_of_obstacles == obstacles_lst.size());
+    for (int i = 0; i < num_of_obstacles; i++)
+    {
+        auto obs = std::make_shared<cKinematicBody>();
+        obs->Init(obstacles_lst[i]);
+        mObstacleList.push_back(obs);
+    }
+
+    printf("[debug] create %d obstacle(s) done\n", mObstacleList.size());
     // exit(0);
 }
 

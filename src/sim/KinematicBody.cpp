@@ -14,6 +14,7 @@ cKinematicBody::cKinematicBody() : cBaseObject(eObjectType::KINEMATICBODY_TYPE)
     mIsStatic = true;
     mBodyShape = eKinematicBodyShape::KINEMATIC_INVALID;
     mCustomMeshPath = "";
+    mTargetAABB = tVector::Zero();
 }
 
 cKinematicBody::~cKinematicBody()
@@ -21,22 +22,22 @@ cKinematicBody::~cKinematicBody()
 }
 void cKinematicBody::Init(const Json::Value &value)
 {
-    std::string type = cJsonUtil::ParseAsString("type", value);
+
+    std::string type = cJsonUtil::ParseAsString(cKinematicBody::TYPE_KEY, value);
     mBodyShape = BuildKinematicBodyShape(type);
     switch (mBodyShape)
     {
     case eKinematicBodyShape::KINEMATIC_CUSTOM:
     {
-        mCustomMeshPath = cJsonUtil::ParseAsString("mesh_path", value);
-        mScale = cJsonUtil::ParseAsDouble("scale", value);
+
+        mCustomMeshPath = cJsonUtil::ParseAsString(cKinematicBody::MESH_PATH_KEY, value);
         cJsonUtil::ReadVectorJson(
-            cJsonUtil::ParseAsValue("position", value), mInitPos);
+            cJsonUtil::ParseAsValue(cKinematicBody::TARGET_AABB_KEY, value), mTargetAABB);
         cJsonUtil::ReadVectorJson(
-            cJsonUtil::ParseAsValue("orientation", value), mInitOrientation);
-        // std::cout << "init scale = " << mScale << std::endl;
-        // std::cout << "init position = " << mInitPos.transpose() << std::endl;
-        // std::cout << "init orientation = " << mInitOrientation.transpose() << std::endl;
-        // exit(0);
+            cJsonUtil::ParseAsValue(cKinematicBody::TRANSLATION_KEY, value), mInitPos);
+        cJsonUtil::ReadVectorJson(
+            cJsonUtil::ParseAsValue(cKinematicBody::ORIENTATION_KEY, value), mInitOrientation);
+        // std::cout << "target aabb = " << mTargetAABB.transpose() << std::endl;
         BuildCustomKinematicBody();
         break;
     }
@@ -87,8 +88,17 @@ void cKinematicBody::BuildCustomKinematicBody()
                                       mInitOrientation, eRotationOrder::XYZ)
                                       .topLeftCorner<3, 3>();
     }
+    tVector aabb_min, aabb_max;
+    CalcAABB(aabb_min, aabb_max);
+    tVector aabb = aabb_max - aabb_min;
+    // std::cout << "init aabb = " << (aabb_max - aabb_min).transpose() << std::endl;
+    // exit(0);
     tMatrix scale_mat = tMatrix::Identity();
-    scale_mat.topLeftCorner<3, 3>() *= mScale;
+    for (int i = 0; i < 3; i++)
+    {
+        scale_mat(i, i) = mTargetAABB[i] / aabb[i];
+    }
+    // scale_mat.topLeftCorner<3, 3>() *= mScale;
     // std::cout << "trans = \n"
     //           << trans << std::endl;
     // std::cout << "init pos = " << mInitPos.transpose() << std::endl;
@@ -143,7 +153,6 @@ void cKinematicBody::CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res) const
     int st_pos = 0;
     for (auto &x : mEdgeArray)
     {
-
         CalcEdgeDrawBufferSingle(
             mVertexArray[x->mId0],
             mVertexArray[x->mId1],
