@@ -58,8 +58,8 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action,
     }
     else if (key == GLFW_KEY_I && action == GLFW_PRESS)
     {
-        gPause = !gPause;
-        std::cout << "[log] simulation paused\n";
+        // gPause = !gPause;
+        // std::cout << "[log] simulation paused\n";
     }
 }
 

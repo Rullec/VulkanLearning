@@ -67,9 +67,9 @@ protected:
     std::string mGeometryType;
     eSceneType mSceneType;
     bool mEnableProfiling;
-    bool mEnableObstacle;                     // using obstacle?
+    bool mEnableObstacle;                         // using obstacle?
     std::vector<cKinematicBodyPtr> mObstacleList; // obstacle for cloth simulation
-    cRaycasterPtr mRaycaster;                 // raycaster
+    cRaycasterPtr mRaycaster;                     // raycaster
     // double mClothWidth;           // a square cloth
     // double mClothMass;            // cloth mass
     // tVector mClothInitPos;        //
@@ -112,4 +112,6 @@ protected:
     // virtual void CreatePerturb(tRay *ray);
 
     virtual void CreateObstacle(const Json::Value &conf);
+    bool mPauseSim;
+    virtual void PauseSim() ;
 };

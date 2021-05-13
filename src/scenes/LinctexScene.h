@@ -29,6 +29,7 @@ public:
     // virtual void ApplyTransform(const tMatrix &trans);
     virtual void ApplyNoise(bool enable_y_random_rotation, double &rotation_angle, bool enable_y_random_pos, const double random_ypos_std);
     virtual void ApplyFoldNoise(const tVector3d &principle_noise, const double a);
+    virtual void ApplyMultiFoldsNoise(int num_of_folds);
     virtual tPhyPropertyPtr GetSimProperty() const;
     virtual const tVectorXd &GetClothFeatureVector() const;
     virtual int GetClothFeatureSize() const;
@@ -56,6 +57,8 @@ protected:
     virtual void InitClothFeatureVector();
     virtual void UpdateClothFeatureVector();
     void NetworkInferenceFunction();
+    
+    virtual void PauseSim() override;
     std::shared_ptr<StyleEngine::SePiece> mCloth;
     std::shared_ptr<StyleEngine::SeDraggedPoints> mDragPt;
     std::shared_ptr<StyleEngine::SeScene> mSeScene;

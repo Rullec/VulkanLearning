@@ -4,7 +4,7 @@
     "cloth_mass": 0.027,
     "cloth_init_pos": [
         0,
-        0.35,
+        0.3,
         0
     ],
     "cloth_init_orientation": [
@@ -24,8 +24,8 @@
     "cloth_property": {
         "stretch_warp": 1e4,
         "stretch_weft": 1e4,
-        "bending_warp": 1e4,
-        "bending_weft": 1e4,
+        "bending_warp": 1e3,
+        "bending_weft": 1e3,
         "bending_bias": 1e3
     },
     "constraints": {

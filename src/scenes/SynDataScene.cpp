@@ -297,6 +297,7 @@ cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
     mEnableInitYPosNoise = cJsonUtil::ParseAsBool("enable_gaussian_pos_noise", conf);
     mInitYPosNoiseStd = cJsonUtil::ParseAsDouble("gaussian_std", conf);
     mFoldCoef = cJsonUtil::ParseAsDouble("fold_coef", conf);
+    mEnableLowFreqNoise = cJsonUtil::ParseAsDouble("enable_low_freq_noise", conf);
     // SIM_ASSERT(mEnableInitYRotation == false);
     // SIM_ASSERT(mEnableFoldNoise == true);
     // std::cout << mNumOfNoisedSamples << " " << mEnableInitYRotation << " " << mEnableInitYPosNoise << " " << this->mInitYPosNoiseStd << std::endl;
@@ -333,6 +334,13 @@ void cSynDataScene::ApplyNoiseIfPossible()
                 mSynDataNoise->mEnableInitYPosNoise,
                 mSynDataNoise->mInitYPosNoiseStd);
             std::cout << "[debug] apply gaussian noise on Y axis, std = " << mSynDataNoise->mInitYPosNoiseStd << std::endl;
+        }
+
+        if (mSynDataNoise->mEnableLowFreqNoise == true)
+        {
+            int num = cMathUtil::RandInt(4, 10);
+            mLinScene->ApplyMultiFoldsNoise(num);
+            std::cout << "[debug] apply low freq noise " << num << std::endl;
         }
         // std::cout << "theta = " << theta << std::endl;
         // std::cout << "std = " << mSynDataNoise->mInitYPosNoiseStd << std::endl;

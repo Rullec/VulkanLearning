@@ -35,6 +35,7 @@ protected:
         bool mEnableInitYPosNoise;
         double mInitYPosNoiseStd;
         double mFoldCoef;
+        bool mEnableLowFreqNoise;
         // void ApplyNoise(std::vector<tVertex *> &vertex_array);
         // protected:
         // tEigenArr<tMatrix> GenerateAugmentTransform() const;

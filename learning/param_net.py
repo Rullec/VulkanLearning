@@ -411,7 +411,8 @@ class ParamNet:
                     diff = np.abs(pred - gt)
                 else:
                     diff = np.abs(pred - gt)
-                diff_perc = diff / gt * 100
+                # diff_perc = diff / gt * 100
+                diff_perc = np.linalg.norm(diff)
                 # print(f"pred {pred}")
                 # print(f"gt {gt}")
                 # print(f"diff {gt}")

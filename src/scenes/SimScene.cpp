@@ -34,6 +34,7 @@ cSimScene::cSimScene()
     mVertexArray.clear();
     mFixedPointIds.clear();
     mPerturb = nullptr;
+    mPauseSim = false;
     // mClothInitPos.setZero();
 }
 
@@ -52,6 +53,11 @@ void cSimScene::Init(const std::string &conf_path)
     mEnableObstacle = cJsonUtil::ParseAsBool(cSimScene::ENABLE_OBSTACLE_KEY, root);
     if (mEnableObstacle)
         CreateObstacle(cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, root));
+}
+
+void cSimScene::PauseSim()
+{
+    mPauseSim = !mPauseSim;
 }
 
 void cSimScene::InitDrawBuffer()
@@ -477,9 +483,13 @@ void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
         }
     }
 }
-
+#include "GLFW/glfw3.h"
 void cSimScene::Key(int key, int scancode, int action, int mods)
 {
+    if (key == GLFW_KEY_I && action == GLFW_PRESS)
+    {
+        PauseSim();
+    }
 }
 void cSimScene::InitGeometry(const Json::Value &conf)
 {

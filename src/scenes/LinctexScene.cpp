@@ -183,9 +183,25 @@ void cLinctexScene::NetworkInferenceFunction()
     }
     mNetworkInfer_CurIter++;
 }
+
+void cLinctexScene::PauseSim()
+{
+    if (mPauseSim == true)
+    {
+        mSeScene->End();
+    }
+    else
+    {
+        mSeScene->Start();
+    }
+    mPauseSim = !mPauseSim;
+    std::cout << "current " << mPauseSim << std::endl;
+}
 void cLinctexScene::Update(double dt)
 {
     // std::cout << "linctex update\n";
+    if (mPauseSim == true)
+        return;
     if (mEngineStart == false)
     {
         mEngineStart = true;
@@ -691,5 +707,187 @@ void cLinctexScene::ApplyFoldNoise(const tVector3d &principle_noise, const doubl
     UpdateCurNodalPosition(mXcur);
     // std::cout << num_of_positive << std::endl;
     // std::cout << num_of_negative << std::endl;
+}
+
+/**
+ * \brief                   Apply multiple folds noise
+ * \param num_of_folds      Given number of folds
+*/
+void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
+{
+    SIM_ASSERT(num_of_folds >= 2 && num_of_folds <= 10);
+    // 1. calculate the fold cycle (theta)
+    double theta = 2 * M_PI / num_of_folds;
+    // std::cout << "cycle theta = " << theta << std::endl;
+    // 2. calculate the fold direction, random the amptitude
+    // double st_bias = cMathUtil::RandDoubleNorm(0, theta / 3);
+    double st_bias = 0;
+    // std::cout << "bias = " << st_bias << std::endl;
+
+    // lying on the XOZ plane
+    tEigenArr<tVector2d> fold_directions_array(0);
+    std::vector<double> fold_st_angle_array(0);
+    std::vector<double> fold_amp_array(0);
+    for (int i = 0; i < num_of_folds; i++)
+    {
+
+        // 2 * 1 vector
+        double angle = theta * i + st_bias;
+        angle = cMathUtil::NormalizeAngle(angle);
+        // std::cout << "angle " << i << " = " << angle << std::endl;
+        // double amp = cMathUtil::RandDouble(0, 0.1); // up to 10 cm amp
+        // double amp = 0.1;
+        double amp = cMathUtil::RandDouble(0, 0.15);
+        // double amp = cMathUtil::RandDoubleNorm(0.1, 0.1);
+        tVector fold_dir = cMathUtil::AxisAngleToRotmat(tVector(0, 1, 0, 0) * angle) * tVector(1, 0, 0, 0);
+        // printf("[debug] angle %d = %.3f, dir = ", i, angle);
+        fold_st_angle_array.push_back(angle);
+        fold_amp_array.push_back(amp);
+        // project to XOZ plane
+        fold_directions_array.push_back(tVector2d(fold_dir[0], fold_dir[2]));
+        // printf("[info] angle %d = %.3f, amp = %.3f\n", i, angle, amp);
+        // std::cout << fold_directions_array[fold_directions_array.size() - 1].transpose() << std::endl;
+    }
+
+    /*
+        3. calculate the noise for each point
+            3.1 for each point, calculate the pole coordinate
+            3.2 confirm two fold direction
+            3.3 calculate the height field for these 2 fold. (clamped cos function)
+            3.4 averaging these 2 values, apply this height
+    */
+    auto calc_angle_distance = [](double first, double second)
+    {
+        first = cMathUtil::NormalizeAngle(first);
+        second = cMathUtil::NormalizeAngle(second);
+        double dist = std::fabs(first - second);
+        if (dist > M_PI)
+            return 2 * M_PI - dist;
+        else
+            return dist;
+    };
+
+    std::vector<int> times(num_of_folds, 0);
+    tVector com = CalcCOM();
+    // int idx = 0;
+    for (int v_id = 0; v_id < mVertexArray.size(); v_id++)
+    {
+        auto &v = mVertexArray[v_id];
+        // project the nodal vector to XOZ plane, calculate the "angle"
+        tVector node_vec = v->mPos - com;
+        // double theta = 2 * M_PI / mVertexArray.size() * (idx++);
+        // tVector node_vec =
+        //     tVector(
+        //         std::cos(theta),
+        //         0,
+        //         std::sin(theta), 0);
+        node_vec[1] = 0;
+        node_vec.normalize();
+        // std::cout << tVector(1, 0, 0, 0).cross3(tVector(0, 0, -1, 0)) << std::endl;
+        // exit(0);
+        tVector res = cMathUtil::CalcAxisAngleFromOneVectorToAnother(tVector(1, 0, 0, 0), node_vec);
+        if (res[1] < 0)
+        {
+            res = tVector(0, 2 * M_PI + res[1], 0, 0);
+        }
+        // {
+        //     tVector residual = tVector(0, 1, 0, 0) * res.norm() - res;
+        //     SIM_ASSERT(residual.norm() < 1e-6);
+        //     if (residual.norm() > 1e-6)
+        //     {
+        //         std::cout << "node_vec = " << node_vec.transpose() << std::endl;
+        //         std::cout << "res = " << res.transpose() << std::endl;
+        //         exit(1);
+        //     }
+        // }
+        double cur_angle = cMathUtil::NormalizeAngle(res[1]);
+        // double cur_angle = 3;
+        // double cur_angle = 1.24081;
+        // std::cout << "for point " << node_vec.transpose() << " its angle = " << cur_angle << std::endl;
+        int interval0 = -1, interval1 = -1;
+        for (int i = 0; i < num_of_folds; i++)
+        {
+            // for fold 1
+            int fold0_id = i, fold1_id = (i + 1) % num_of_folds;
+            double angle0 = fold_st_angle_array[fold0_id],
+                   angle1 = fold_st_angle_array[fold1_id];
+
+            // if the value is on the boundary, include them
+            if (std::fabs(angle0 - cur_angle) < 1e-6 ||
+                std::fabs(angle1 - cur_angle) < 1e-6)
+            {
+                interval0 = fold0_id;
+                interval1 = fold1_id;
+                break;
+            }
+            else
+            {
+                double interval = calc_angle_distance(angle0, angle1);
+                if (
+                    calc_angle_distance(angle0, cur_angle) < interval &&
+                    calc_angle_distance(angle1, cur_angle) < interval)
+                {
+                    interval0 = fold0_id;
+                    interval1 = fold1_id;
+                    break;
+                }
+            }
+        }
+
+        if (interval0 == -1 || interval1 == -1)
+        {
+            std::cout << "[error] for angle " << cur_angle << " failed to judge the interval. cur interval are:";
+            for (auto &x : fold_st_angle_array)
+                std::cout << x << " ";
+            std::cout << std::endl;
+            exit(0);
+        }
+        else
+        {
+            times[interval0] += 1;
+
+            double amp0 = fold_amp_array[interval0],
+                   amp1 = fold_amp_array[interval1];
+            double int_angle0 = fold_st_angle_array[interval0], int_angle1 = fold_st_angle_array[interval1];
+            double angle_with0 = calc_angle_distance(cur_angle, int_angle0);
+            double angle_with1 = calc_angle_distance(cur_angle, int_angle1);
+            double bias = 0;
+            if (angle_with0 < theta / 2)
+            {
+                bias += std::cos(angle_with0 / (theta / 2) * M_PI) * amp0;
+            }
+            else
+            {
+                bias += -amp0 * std::pow(angle_with1 / (theta / 2), 2);
+            }
+            if (angle_with1 < theta / 2)
+            {
+                bias += std::cos(angle_with1 / (theta / 2) * M_PI) * amp1;
+            }
+            else
+            {
+                bias += -amp1 * std::pow(angle_with0 / (theta / 2), 2);
+            }
+
+            // remove stretch
+            double raw_length = (v->mPos - com).norm();
+            bias *= std::pow( (v->mPos - com).norm() / (mClothWidth / 2), 2) * 0.5;
+            mXcur[3 * v_id + 1] += bias / 2;
+
+            // tVector3d ref = mXcur.segment(3 * (v_id - 1), 3);
+            // tVector3d cur = mXcur.segment(3 * (v_id), 3);
+
+            // mXcur.segment(3 * v_id, 3) = (cur - ref).normalized() * (v->mPos.segment(0, 3) - ref).norm() + ref.segment(0, 3);
+            // v->mPos[1] ;
+            // printf("[info] angle %.4f is in [%.3f, %.3f]\n", cur_angle, fold_st_angle_array[interval0],
+            //        fold_st_angle_array[interval1]);
+        }
+    }
+    UpdateCurNodalPosition(mXcur);
+    // for (auto &x : times)
+    // {
+    //     std::cout << x << std::endl;
+    // }
+    // exit(0);
 }
 #endif

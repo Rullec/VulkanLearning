@@ -600,13 +600,17 @@ void cDrawScene::Reset()
         principle_axis[1] = 0;
         principle_axis.normalize();
         // principle_axis = tVector3d(1, 0, 0);
-        lin_scene->ApplyFoldNoise(principle_axis, a);
+        // lin_scene->ApplyFoldNoise(principle_axis, a);
         // naive gaussian noise
         double angle = 0;
         double std = 0.02;
         // lin_scene->ApplyNoise(true, angle, false, 0);
-        lin_scene->ApplyNoise(true, angle, true, std);
-        std::cout << "apply noise in draw scene, std = " << std << std::endl;
+        // lin_scene->ApplyNoise(true, angle, true, std);
+
+        // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
+        lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
+        std::cout << "apply multiple folds noise\n";
+        // std::cout << "apply noise in draw scene, std = " << std << std::endl;
     }
 }
 
