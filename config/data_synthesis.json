@@ -42,28 +42,28 @@
             },
             "bending_warp": {
                 "range": [
-                    1e3,
+                    5e2,
                     1e4
                 ],
-                "num_of_samples": 5,
+                "num_of_samples": 8,
                 "visible": true,
                 "index": 0
             },
             "bending_weft": {
                 "range": [
-                    1e3,
+                    5e2,
                     1e4
                 ],
-                "num_of_samples": 5,
+                "num_of_samples": 8,
                 "visible": true,
                 "index": 1
             },
             "bending_bias": {
                 "range": [
-                    1e3,
+                    5e2,
                     1e4
                 ],
-                "num_of_samples": 5,
+                "num_of_samples": 8,
                 "visible": true,
                 "index": 2
             }

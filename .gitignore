@@ -381,3 +381,9 @@ Simulationd.dll
 Simulationd.lib
 Simulation.dll
 Simulation.lib
+
+*lib*
+*dll*
+*pyd*
+includes
+OpenNI2

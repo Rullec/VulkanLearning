@@ -7,7 +7,7 @@
     "covg_threshold": 1e-2,
     "optimizer": "adam",
     "data_dir.test": "D:\\SimpleClothSimulator\\data\\export_data\\test_dtype_data",
-    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\goodcamera_data0_gen360",
+    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\reduced_noised_gen360",
     "layers": [
         2048,
         128,
