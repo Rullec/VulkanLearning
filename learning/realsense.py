@@ -12,6 +12,7 @@ import cv2
 from PIL import Image
 from scipy import signal
 import os
+from axon import resize
 
 global_xpos = 0
 global_ypos = 0
@@ -35,28 +36,6 @@ def calc_depth_map(scale):
     # aligned_depth_frame.get_distance
     # dis = aligned_depth_frame.get_distance(x, y)
 
-
-def resize(image):
-    # height, width
-    height, width = image.shape
-    mid = width / 2
-    assert width % 2 == 0
-    # to a square
-    image = image[:,
-                  int(mid - height / 2):int(mid + height / 2)].astype(np.float)
-    # expand this square to
-    from PIL import Image
-    image = Image.fromarray(image)
-    image = image.resize((128, 128))
-    image = np.array(image)
-    # print(image.shape)
-    # print(np.max(image))
-    # print(np.min(image))
-    # import matplotlib.pyplot as plt
-    # plt.imshow(image)
-    # plt.show()
-    # exit(0)
-    return image
 
 
 def mouse_move_callback(event, x, y, flags, param):

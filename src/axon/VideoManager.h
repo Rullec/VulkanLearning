@@ -5,12 +5,13 @@
 // typedef Eigen::MatrixXd tMatrixXd;
 // typedef Eigen::MatrixXi tMatrixXi;
 
-class cDepthSampler
+class cVideoManager
 {
 public:
-    cDepthSampler();
+    cVideoManager();
     virtual tMatrixXi GetDepthImage();
     virtual double GetDepthUnit_mm();
+    virtual tMatrixXi GetIrImage();
 
 protected:
     virtual void Init();
@@ -18,9 +19,7 @@ protected:
     openni::Device m_device;
     openni::VideoStream m_depthStream;
     int m_width, m_height;
-    tMatrixXi mat;
-    // texture members
-    // unsigned int m_nTexMapX;
-    // unsigned int m_nTexMapY;
-    // openni::RGB888Pixel *m_pTexMap;
+    tMatrixXi depth_mat, ir_mat;
+    openni::VideoFrameRef m_irFrame;
+    openni::VideoStream m_irStream;
 };

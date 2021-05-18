@@ -1,11 +1,33 @@
 import numpy as np
-import depth_sampler
+import video_manager
 import os
-from realsense import resize
+from PIL import Image
 
 global_xpos = None
 global_ypos = None
 cam = None
+
+
+def resize(image):
+    # height, width
+    height, width = image.shape
+    mid = width / 2
+    assert width % 2 == 0
+    # to a square
+    image = image[:, int(mid - height / 2):int(mid + height / 2)].astype(float)
+    # expand this square to
+    from PIL import Image
+    image = Image.fromarray(image)
+    image = image.resize((128, 128))
+    image = np.array(image)
+    # print(image.shape)
+    # print(np.max(image))
+    # print(np.min(image))
+    # import matplotlib.pyplot as plt
+    # plt.imshow(image)
+    # plt.show()
+    # exit(0)
+    return image
 
 
 def mouse_move(event):
@@ -30,8 +52,16 @@ def get_depth_image_mm(cam):
     '''
         get the depth image (unit mm)
     '''
-    depth = cam.GetDepthImage().astype(np.float) * cam.GetDepthUnit_mm()
+    depth = cam.GetDepthImage().astype(float) * cam.GetDepthUnit_mm()
     return depth
+
+
+def get_ir_image(cam):
+    '''
+        get the ir image
+    '''
+    ir = cam.GetIrImage()
+    return ir
 
 
 def show_image(depth_image):
@@ -40,7 +70,7 @@ def show_image(depth_image):
     plt.show()
 
 
-def display():
+def display(mode="depth"):
     global global_xpos, global_ypos
     import matplotlib.pyplot as plt
     # 打开交互模式
@@ -54,7 +84,10 @@ def display():
     while True:
         fig1.clf()
         ax1 = fig1.add_subplot(1, 1, 1)
-        res = get_depth_image_mm(cam)
+        if mode == "depth":
+            res = get_depth_image_mm(cam)
+        elif mode == "ir":
+            res = get_ir_image(cam)
         res = resize(res)
         # print(f"raw {res.dtype}")
 
@@ -99,13 +132,41 @@ def infer_net(net, depth_image):
     return param
 
 
+def ir_camera_calibration():
+    cam = video_manager.video_manager()
+
+    import matplotlib.pyplot as plt
+    import cv2
+    from axon_calibrate import get_camera_pts_to_world_coord
+    plt.ion()
+    fig1 = plt.figure('frame')
+
+    while True:
+        # clear but do not close the figure
+        fig1.clf()
+        ax1 = fig1.add_subplot(1, 1, 1)
+        image = get_ir_image(cam).astype(np.uint8)
+        print(image.shape)
+        ax1.imshow(image)
+        # get_camera_pts_to_world_coord([image])
+
+        # draw the image
+        ax1.title.set_text("ir image")
+
+        # pause
+        plt.pause(3e-2)
+
+    print(f"get ir succ, shape {image.shape}")
+
+
 if __name__ == "__main__":
-    cam = depth_sampler.depth_camera()
-    unit = cam.GetDepthUnit_mm()
-    print(f"cur unit {unit} mm")
-    depth = get_depth_image_mm(cam)
-    conf_path = "..\config\\train_configs\\conv_conf.json"
-    print(f"depth shape {depth.shape}")
-    # display()
-    net = load_agent(conf_path)
-    infer_net(net, depth)
+    ir_camera_calibration()
+    # cam = video_manager.video_manager()
+    # unit = cam.GetDepthUnit_mm()
+    # print(f"cur unit {unit} mm")
+    # depth = get_depth_image_mm(cam)
+    # conf_path = "..\config\\train_configs\\conv_conf.json"
+    # print(f"depth shape {depth.shape}")
+    # # display()
+    # net = load_agent(conf_path)
+    # infer_net(net, depth)

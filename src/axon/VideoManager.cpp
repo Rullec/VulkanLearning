@@ -1,4 +1,4 @@
-#include "DepthSampler.h"
+#include "VideoManager.h"
 // #include "Viewer.h"
 #include "AXonLink.h"
 
@@ -178,18 +178,19 @@ int InitDevice(openni::Status &rc,
     printf("[debug] Init axon depth camera done\n");
 }
 
-cDepthSampler::cDepthSampler()
+cVideoManager::cVideoManager()
 {
     openni::Status rc = openni::STATUS_OK;
-    openni::VideoStream color, ir;
-    int ret = InitDevice(rc, m_device, m_depthStream, color, ir);
+    openni::VideoStream color;
+    int ret = InitDevice(rc, m_device, m_depthStream, color, m_irStream);
     Init();
 }
 
-void cDepthSampler::Init()
+void cVideoManager::Init()
 {
     openni::VideoMode depthVideoMode;
     openni::VideoMode colorVideoMode;
+    openni::VideoMode irVideoMode;
 
     if (m_depthStream.isValid())
     {
@@ -217,25 +218,27 @@ void cDepthSampler::Init()
         //     m_height = colorHeight;
         // }
     }
+    if (m_irStream.isValid())
+    {
+        irVideoMode = m_irStream.getVideoMode();
+        int ir_width = irVideoMode.getResolutionX(),
+            ir_height = irVideoMode.getResolutionY();
+        if (ir_width != m_width || ir_height != m_height)
+        {
+            printf("[debug] ir shape %d %d != %d %d\n",
+                   ir_width, ir_height,
+                   m_width, m_height);
+        }
+    }
     printf("[debug] width %d height %d\n", this->m_width, this->m_height);
 
-    mat.resize(m_height, m_width);
+    depth_mat.resize(m_height, m_width);
+    ir_mat.resize(m_height, m_width);
     GetDepthImage();
-    // exit(0);
-    // m_streams = new openni::VideoStream *[3];
-    // m_streams[0] = &m_depthStream;
-    // m_streams[1] = &m_colorStream;
-    // m_streams[2] = &m_irStream;
-
-    // Texture map init
-    // m_nTexMapX = MIN_CHUNKS_SIZE(m_width, TEXTURE_SIZE);
-    // m_nTexMapY = MIN_CHUNKS_SIZE(m_height, TEXTURE_SIZE);
-    // m_pTexMap = new openni::RGB888Pixel[m_nTexMapX * m_nTexMapY];
-
-    // return initOpenGL(argc, argv);
+    GetIrImage();
 }
 
-tMatrixXi cDepthSampler::GetDepthImage()
+tMatrixXi cVideoManager::GetDepthImage()
 {
     m_depthStream.readFrame(&m_depthFrame);
     const openni::DepthPixel *pDepthRow = (const openni::DepthPixel *)m_depthFrame.getData();
@@ -254,7 +257,7 @@ tMatrixXi cDepthSampler::GetDepthImage()
         for (int x = 0; x < m_depthFrame.getWidth(); ++x, ++pDepth)
         {
             uint16_t value = (*pDepth);
-            mat(y, x) = value;
+            depth_mat(y, x) = value;
             if (value > max)
                 max = value;
             if (value < min)
@@ -282,7 +285,7 @@ tMatrixXi cDepthSampler::GetDepthImage()
         // pTexRow += m_nTexMapX;
     }
     // printf("[debug] max %d min %d (mm)\n", max, min);
-    return this->mat;
+    return this->depth_mat;
 }
 
 /**
@@ -290,7 +293,7 @@ tMatrixXi cDepthSampler::GetDepthImage()
 */
 #include "OniEnums.h"
 
-double cDepthSampler::GetDepthUnit_mm()
+double cVideoManager::GetDepthUnit_mm()
 {
     openni::PixelFormat format = m_depthFrame.getVideoMode().getPixelFormat();
     /*
@@ -326,4 +329,38 @@ double cDepthSampler::GetDepthUnit_mm()
         exit(1);
     }
     return res;
+}
+
+tMatrixXi cVideoManager::GetIrImage()
+{
+    m_irStream.readFrame(&m_irFrame);
+    if (m_irFrame.isValid())
+    {
+        // printf("ir %d %d\n", m_irFrame.getSensorType(), m_irFrame.getFrameIndex());
+        const OniGrayscale8Pixel *pDepthRow = (const OniGrayscale8Pixel *)m_irFrame.getData();
+        // openni::RGB888Pixel *pTexRow = m_pTexMap + m_irFrame.getCropOriginY() * m_nTexMapX;
+        int rowSize = m_irFrame.getStrideInBytes() / sizeof(OniGrayscale8Pixel);
+        for (int y = 0; y < m_irFrame.getHeight(); ++y)
+        {
+            const OniGrayscale8Pixel *pDepth = pDepthRow;
+            // openni::RGB888Pixel *pTex = pTexRow + m_irFrame.getCropOriginX();
+
+            // for (int x = 0; x < m_irFrame.getWidth(); ++x, ++pDepth, ++pTex)
+            for (int x = 0; x < m_irFrame.getWidth(); ++x, ++pDepth)
+            {
+                // if (*pDepth != 0)
+                {
+                    uint8_t value = *pDepth;
+                    ir_mat(y, x) = value;
+                    // pTex->r = value;
+                    // pTex->g = value;
+                    // pTex->b = value;
+                }
+            }
+
+            pDepthRow += rowSize;
+            // pTexRow += m_nTexMapX;
+        }
+    }
+    return ir_mat;
 }
