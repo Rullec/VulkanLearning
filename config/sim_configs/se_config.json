@@ -13,8 +13,8 @@
         0,
         0
     ],
-    "window_height": 512,
-    "window_width": 512,
+    "window_height": 480,
+    "window_width": 640,
     "enable_draw": true,
     "cloth_init_nodal_position": "",
     "geometry_type": "regular_triangle",
@@ -51,16 +51,16 @@
     "pause_at_first": false,
     "camera": {
         "camera_pos": [
-            0.6,
-            0.45,
-            0.0
+            0.0,
+            0.367,
+            0.56
         ],
         "camera_focus": [
             0.0,
-            0.2,
+            0.22,
             0
         ],
-        "fov": 69,
+        "fov": 60,
         "near": 0.01,
         "far": 100
     },
