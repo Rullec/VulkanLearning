@@ -364,3 +364,74 @@ tMatrixXi cVideoManager::GetIrImage()
     }
     return ir_mat;
 }
+
+/**
+ * \brief           Get intrinsic camera matrix (for depth camera)
+ * 
+ *      mtx =     
+ *              \begin{bmatrix}
+ *              f_x & 0 & c_x \\
+ *              0 & f_y & c_y \\
+ *              0 & 0 & 1 \\
+ *              \end{bmatrix}
+*/
+tMatrix3d cVideoManager::GetDepthIntrinsicMtx() const
+{
+    AXonLinkCamParam camParam;
+    int dataSize = sizeof(AXonLinkCamParam);
+    m_device.getProperty(AXONLINK_DEVICE_PROPERTY_GET_CAMERA_PARAMETERS, &camParam, &dataSize);
+    tMatrix3d mtx = tMatrix3d::Identity();
+
+    auto &param = camParam.astDepthParam[0];
+    mtx(0, 0) = param.fx;
+    mtx(1, 1) = param.fy;
+    mtx(0, 2) = param.cx;
+    mtx(1, 2) = param.cy;
+    return mtx;
+    // for (int i = 0; i < nResolutionDepth; i++)
+    // {
+    //     printf("astDepthParam x =%d\n", camParam.astDepthParam[i].ResolutionX);
+    //     printf("astDepthParam y =%d\n", camParam.astDepthParam[i].ResolutionY);
+    //     printf("astDepthParam fx =%.5f\n", camParam.astDepthParam[i].fx);
+    //     printf("astDepthParam fy =%.5f\n", camParam.astDepthParam[i].fy);
+    //     printf("astDepthParam cx =%.5f\n", camParam.astDepthParam[i].cx);
+    //     printf("astDepthParam cy =%.5f\n", camParam.astDepthParam[i].cy);
+    //     printf("astDepthParam k1 =%.5f\n", camParam.astDepthParam[i].k1);
+    //     printf("astDepthParam k2 =%.5f\n", camParam.astDepthParam[i].k2);
+    //     printf("astDepthParam p1 =%.5f\n", camParam.astDepthParam[i].p1);
+    //     printf("astDepthParam p2 =%.5f\n", camParam.astDepthParam[i].p2);
+    //     printf("astDepthParam k3 =%.5f\n", camParam.astDepthParam[i].k3);
+    //     printf("astDepthParam k4 =%.5f\n", camParam.astDepthParam[i].k4);
+    //     printf("astDepthParam k5 =%.5f\n", camParam.astDepthParam[i].k5);
+    //     printf("astDepthParam k6 =%.5f\n", camParam.astDepthParam[i].k6);
+    // }
+}
+
+/**
+ * \brief               Get the intrinsic distortion coeffs (depth camera)
+ * 
+ * dist_coef = k_1, k_2, p_1, p_2, k_3, k_4, k_5, k_6
+ * size = 8
+ * which has the same order and meaning with opencv2, 
+ * please check 
+ * https://docs.opencv.org/2.4.13.7/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#calibratecamera
+*/
+tVectorXd cVideoManager::GetDepthIntrinsicDistCoef() const
+{
+    int size = 8;
+    tVectorXd dist_coef = tVectorXd::Zero(8);
+    AXonLinkCamParam camParam;
+    int dataSize = sizeof(AXonLinkCamParam);
+    m_device.getProperty(AXONLINK_DEVICE_PROPERTY_GET_CAMERA_PARAMETERS, &camParam, &dataSize);
+
+    auto &param = camParam.astDepthParam[0];
+    dist_coef[0] = param.k1;
+    dist_coef[1] = param.k2;
+    dist_coef[2] = param.p1;
+    dist_coef[3] = param.p2;
+    dist_coef[4] = param.k3;
+    dist_coef[5] = param.k4;
+    dist_coef[6] = param.k5;
+    dist_coef[7] = param.k6;
+    return dist_coef;
+}

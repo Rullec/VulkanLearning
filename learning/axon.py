@@ -1,5 +1,5 @@
 import numpy as np
-from calib_axon import calc_image_points, get_world_pts_to_obj_coord
+from calib_axon import get_camera_pts_to_world_coord, get_mtx_and_dist, get_mtx_and_dist_sdk
 import video_manager
 import os
 from PIL import Image
@@ -166,12 +166,26 @@ def ir_camera_calibration_legacy():
 
 def ir_camera_calibration():
     cam = video_manager.video_manager()
+    # sdk_mtx = cam.GetDepthIntrinsicMtx()
+    # sdk_dist = cam.GetDepthIntrinsicDistCoef()
+    # # print(f"GetDepthIntrinsicMtx \n{sdk_mtx}")
+    # # print(f"GetDepthIntrinsicDistCoef {sdk_dist}")
+    # self_mtx, self_dist = get_mtx_and_dist()
+    # diff_mtx = self_mtx - sdk_mtx
+    # diff_dist = self_dist - sdk_dist[0:len(self_dist)]
+    # print(f"self mtx \n{self_mtx}")
+    # print(f"sdk mtx \n{sdk_mtx}")
+    # print(f"diff mtx \n{diff_mtx}")
 
+    # print(f"self dist {self_dist}")
+    # print(f"sdk dist {sdk_dist}")
+    # print(f"diff dist {diff_dist}")
+
+    # exit(0)
     import matplotlib.pyplot as plt
     import cv2
     # from calib_axon import get_camera_pts_to_world_coord
-    from calib_axon import calibrate_camera_extrinstic, get_mtx_and_dist, convert_rtvecs_to_transform
-    mtx, dist = get_mtx_and_dist()
+    mtx, dist = get_mtx_and_dist_sdk()
 
     plt.ion()
     fig1 = plt.figure('frame')
@@ -180,14 +194,17 @@ def ir_camera_calibration():
     positive_id = 0
     # os.makedirs("positive")
     # os.makedirs("negative")
+    clear = lambda: os.system('cls')
+    avg_trans = np.zeros([4, 4])
+    avg_counter = 0
     while True:
+        # clear()
         # print("------------------------")
         # clear but do not close the figure
         fig1.clf()
         ax1 = fig1.add_subplot(1, 1, 1)
         image = get_ir_image(cam).astype(np.uint8)
         # from PIL import Image
-        # new_pil_image = Image.fromarray(image)
         # new_pil_image.save(f"tmp/{iter}.png")
         iter += 1
         # print(image.shape)
@@ -195,36 +212,28 @@ def ir_camera_calibration():
         # mat_lst = get_camera_pts_to_world_coord([image], False)
         image = np.ascontiguousarray(image, dtype=np.uint8)
 
-        # print(f"image shape {image.shape}")
-        for i in range(image.shape[0]):
-            for j in range(image.shape[1]):
-                if i < 50 and j < 100:
-                    image[i, j] = 0
-        rvecs, tvecs, X_plus_vector_in_screen_coords, Y_plus_vector_in_screen_coords = calibrate_camera_extrinstic(
-            mtx, dist, [image])
-        
-        # print(
-        #     f"X plus {X_plus_vector_in_screen_coords}, Y plus {Y_plus_vector_in_screen_coords}"
-        # )
-        if rvecs is not None and tvecs is not None:
-            obj_pts_to_camera_coords = convert_rtvecs_to_transform(
-                rvecs, tvecs)
-            # print(f"obj_pts_to_camera_coords\n {obj_pts_to_camera_coords[0]}")
-            world_pts_to_camera_coords = np.matmul(
-                obj_pts_to_camera_coords[0],
-                get_world_pts_to_obj_coord(X_plus_vector_in_screen_coords,
-                                           Y_plus_vector_in_screen_coords))
-            camera_pts_to_world_coords = np.linalg.inv(
-                world_pts_to_camera_coords)
-            print(f"camera pos {camera_pts_to_world_coords[:, 3]}")
-            # if camera_pts_to_world_coords[0, 3] < 0:
-            #     Image.fromarray(image).save(f"negative/{minus_id}.bmp")
-            #     minus_id += 1
-            # else:
-            #     Image.fromarray(image).save(f"positive/{positive_id}.bmp")
-            #     positive_id += 1
-        else:
-            print("[warn] calibrate failed")
+        # get camera transform from sdk intrinsics
+        sdk_mtx, sdk_dist = get_mtx_and_dist_sdk()
+        sdk_camera_pts_to_world_coords = get_camera_pts_to_world_coord(
+            sdk_mtx, sdk_dist, image)
+
+        if sdk_camera_pts_to_world_coords is not None:
+            # print(f"camera pos {sdk_camera_pts_to_world_coords[:, 3]}")
+            # print(f"camera rot \n{sdk_camera_pts_to_world_coords[0:3, 0:3]}")
+            # print(f"camera trans \n{sdk_camera_pts_to_world_coords}")
+            avg_trans = (avg_trans * avg_counter +
+                         sdk_camera_pts_to_world_coords) / (avg_counter + 1)
+            avg_counter += 1
+            print(f"avg trans \n{avg_trans}")
+
+        # # get camera transform from self intrinsics
+        # self_mtx, self_dist = get_mtx_and_dist()
+        # self_camera_pts_to_world_coords = get_camera_pts_to_world_coord(
+        #     self_mtx, self_dist, image)
+        # if self_camera_pts_to_world_coords is not None:
+        #     print(f"self_camera pos {self_camera_pts_to_world_coords[:, 3]}")
+        #     print(f"self_camera rot \n{self_camera_pts_to_world_coords[0:3, 0:3]}")
+
         # draw the image
         ax1.title.set_text("ir image")
 

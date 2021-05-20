@@ -8,7 +8,7 @@ from scipy.spatial.transform import Rotation as R
 
 # from axon import calc_objective_coordinate_in_screen_coordinate
 
-CHECKERBOARD = (7, 9)
+CHECKERBOARD = (6, 9)
 square_size = 30.0  # mm
 display = False
 
@@ -97,7 +97,8 @@ def calc_image_points(images, objp):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     objpoints = []
     imgpoints = []
-    for _idx, gray in enumerate(images):
+    for _idx, gray_ in enumerate(images):
+        gray = gray_.copy()
         # Find the chess board corners
         # If desired number of corners are found in the image then ret = true
         ret, corners = cv2.findChessboardCorners(
@@ -230,6 +231,7 @@ def get_world_pts_to_obj_coord(X_positive_in_screen_coord,
             == 1.0) and (Y_positive_in_screen_coord[0] == -1.0):
         x_size = CHECKERBOARD[0]
         y_size = (CHECKERBOARD[1] - 1) / 2
+        # y_size = y_size + 1
         # print((x_size, y_size))
         trans_mat[0, 3] = square_size * x_size
         trans_mat[1, 3] = square_size * y_size
@@ -241,6 +243,7 @@ def get_world_pts_to_obj_coord(X_positive_in_screen_coord,
 
         x_size = -1
         y_size = (CHECKERBOARD[1] - 1) / 2
+        # y_size = y_size - 1
         trans_mat[0, 3] = square_size * x_size
         trans_mat[1, 3] = square_size * y_size
         trans_mat[2, 3] = 0
@@ -264,22 +267,35 @@ def get_obj_pts_to_world_coord():
     # print(np.matmul (new_res, old_res))
 
 
-def get_camera_pts_to_world_coord(images):
-    obj_pts_to_camera_coords = calculate_transform_matrix_for_obj_points_to_camera_coords(
-        images)
-    if obj_pts_to_camera_coords is None:
-        print("get_camera_pts_to_world_coord failed")
-        return None
+def get_camera_pts_to_world_coord(mtx, dist, image):
+    assert type(image) == np.ndarray
+    rvecs, tvecs, X_plus_vector_in_screen_coords, Y_plus_vector_in_screen_coords = calibrate_camera_extrinstic(
+        mtx, dist, [image])
+
+    # print(
+    #     f"X plus {X_plus_vector_in_screen_coords}, Y plus {Y_plus_vector_in_screen_coords}"
+    # )
+    if rvecs is not None and tvecs is not None:
+        obj_pts_to_camera_coords = convert_rtvecs_to_transform(rvecs, tvecs)
+        # print(f"obj_pts_to_camera_coords\n {obj_pts_to_camera_coords[0]}")
+        world_pts_to_camera_coords = np.matmul(
+            obj_pts_to_camera_coords[0],
+            get_world_pts_to_obj_coord(X_plus_vector_in_screen_coords,
+                                       Y_plus_vector_in_screen_coords))
+        camera_pts_to_world_coords = np.linalg.inv(world_pts_to_camera_coords)
+        return camera_pts_to_world_coords
+        # print(f"camera pos {camera_pts_to_world_coords[:, 3]}")
+        # print(f"camera rot \n{camera_pts_to_world_coords[0:3, 0:3]}")
+
+        # if camera_pts_to_world_coords[0, 3] < 0:
+        #     Image.fromarray(image).save(f"negative/{minus_id}.bmp")
+        #     minus_id += 1
+        # else:
+        #     Image.fromarray(image).save(f"positive/{positive_id}.bmp")
+        #     positive_id += 1
     else:
-        camera_pts_to_obj_coords = [
-            np.linalg.inv(i) for i in obj_pts_to_camera_coords
-        ]
-        obj_pts_to_world_coord = get_obj_pts_to_world_coord()
-        camera_pt_to_world_coord_lst = [
-            np.matmul(i, obj_pts_to_world_coord)
-            for i in camera_pts_to_obj_coords
-        ]
-    return camera_pt_to_world_coord_lst
+        print("[warn] calibrate failed")
+        return None
 
 
 def legacy_cal_camera_pos():
@@ -339,7 +355,18 @@ def load_images(pat):
     return gray_images
 
 
+def get_mtx_and_dist_sdk():
+    mtx = np.array([[504.65344238, 0., 314.07043457],
+                    [0., 504.35171509, 233.0559845], [0., 0., 1.]])
+    dist = np.array([
+        -0.03364468, -0.03456402, -0.0007391, 0.00034046, -0.09825993, 0., 0.,
+        0.
+    ])
+    return mtx, dist
+
+
 def get_mtx_and_dist():
+    # assert False, "please donot call this API anymore... use get_mtx_and_dist_sdk instead"
     mtx = np.array([[500.8670683, 0., 302.22452252],
                     [0., 504.03608172, 226.05892077], [
                         0.,
@@ -358,7 +385,7 @@ if __name__ == "__main__":
     pat = './images/*.bmp'
     # images = load_images(pat)
 
-    mtx, dist = get_mtx_and_dist()
+    mtx, dist = get_mtx_and_dist_sdk()
     # print(f"mtx = \n{mtx}")
     # print(f"dist = {dist}")
 
