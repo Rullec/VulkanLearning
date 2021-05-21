@@ -43,6 +43,7 @@ public:
         const std::string &filename);
     virtual void Key(int key, int scancode, int action, int mods);
     virtual tVector CalcCOM() const;
+    virtual void End();
 
 protected:
     virtual void UpdateSubstep() override final;
@@ -57,7 +58,7 @@ protected:
     virtual void InitClothFeatureVector();
     virtual void UpdateClothFeatureVector();
     void NetworkInferenceFunction();
-    
+
     virtual void PauseSim() override;
     std::shared_ptr<StyleEngine::SePiece> mCloth;
     std::shared_ptr<StyleEngine::SeDraggedPoints> mDragPt;

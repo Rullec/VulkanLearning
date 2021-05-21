@@ -4,6 +4,9 @@
 #include "OptixCUDABuffer.h"
 #include "OptixLaunchParam.h"
 
+namespace Json{
+    class Value;
+};
 class cOptixRaycaster : public cRaycaster
 {
 public:

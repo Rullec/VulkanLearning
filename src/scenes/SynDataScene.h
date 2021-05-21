@@ -13,6 +13,7 @@ SIM_DECLARE_CLASS_AND_PTR(tPhyPropertyManager);
 class cSynDataScene : public cSimScene
 {
 public:
+    inline static const std::string ENABLE_DRAWING_KEY = "enable_drawing";
     explicit cSynDataScene();
     virtual void Init(const std::string &conf_path) override;
     virtual void Update(double dt) override;
@@ -22,6 +23,7 @@ public:
     static eSceneType BuildSceneType(const std::string &str);
     virtual bool CreatePerturb(tRay *ray) override;
     virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos) override;
+    virtual void Key(int key, int scancode, int action, int mods) override;
     virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
                              int mods) override;
 
@@ -41,6 +43,7 @@ protected:
         // tEigenArr<tMatrix> GenerateAugmentTransform() const;
         // tEigenArr<tMatrix> mTrans;
     };
+    bool mEnableDrawing; // enable drawing when sampling (for debug purpose)
     std::shared_ptr<tSyncDataNoise> mSynDataNoise;
     cLinctexScenePtr mLinScene;
     std::string mDefaultConfigPath;      // config used to build simulation
@@ -56,6 +59,7 @@ protected:
     void ApplyNoiseIfPossible();
     void InitExportDataDir();
     bool CheckDuplicateWithDataSet() const;
+    void OfflineSampling();
     tVectorXd buffer0, buffer1;
 };
 #endif

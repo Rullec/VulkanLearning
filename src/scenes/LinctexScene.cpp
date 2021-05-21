@@ -195,7 +195,6 @@ void cLinctexScene::PauseSim()
         mSeScene->Start();
     }
     mPauseSim = !mPauseSim;
-    std::cout << "current " << mPauseSim << std::endl;
 }
 void cLinctexScene::Update(double dt)
 {
@@ -213,7 +212,6 @@ void cLinctexScene::Update(double dt)
     UpdatePerturb();
     if (mSeScene->Capture())
     {
-        // std::cout << "capture\n";
         mSeScene->AcquirePositions();
         auto &pos = mCloth->FetchPositions();
         for (int i = 0; i < mVertexArray.size(); i++)
@@ -611,6 +609,10 @@ tVector cLinctexScene::CalcCOM() const
     return com;
 }
 
+void cLinctexScene::End()
+{
+    this->mSeScene->End();
+}
 #include <math.h>
 #include <cmath>
 
@@ -858,7 +860,7 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
             }
             else
             {
-                bias += -amp0 * std::pow(angle_with1 / (theta / 2), 2);
+                bias += -amp0 * std::pow(angle_with1 / theta, 2);
             }
             if (angle_with1 < theta / 2)
             {
@@ -866,14 +868,14 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
             }
             else
             {
-                bias += -amp1 * std::pow(angle_with0 / (theta / 2), 2);
+                bias += -amp1 * std::pow(angle_with0 / theta, 2);
             }
 
             // remove stretch
-            double raw_length = (v->mPos - com).norm();
-            bias *= std::pow( (v->mPos - com).norm() / (mClothWidth / 2), 2) * 0.5;
-            mXcur[3 * v_id + 1] += bias / 2;
-
+            double raw_length = (v->mPos - com).segment(0, 3).norm();
+            double max_length = mClothWidth / 2 * std::sqrt(2);
+            bias *= std::pow(raw_length / max_length, 3);
+            mXcur[3 * v_id + 1] += bias;
             // tVector3d ref = mXcur.segment(3 * (v_id - 1), 3);
             // tVector3d cur = mXcur.segment(3 * (v_id), 3);
 

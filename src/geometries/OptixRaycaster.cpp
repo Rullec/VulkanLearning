@@ -728,6 +728,7 @@ void cOptixRaycaster::downloadPixels(uint32_t h_pixels[])
 /**
  * \brief           calculate depth image for multiple camera views
 */
+#include "utils/FileUtil.h"
 void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width, std::vector<CameraBasePtr> camera_array, std::vector<std::string> path_array)
 {
     Rebuild();
@@ -739,6 +740,11 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width, std::vector
     SIM_ASSERT(size == path_array.size());
     for (int i = 0; i < size; i++)
     {
+        if (true == cFileUtil::ExistsFile(path_array[i]))
+        {
+            printf("[warn] depth img %s exist, ignore\n", path_array[i].c_str());
+            continue;
+        }
         // 1. if the size is changed, we need to resize the buffer
         setCamera(camera_array[i]);
         if (launchParams.frame.size.x() != width || launchParams.frame.size.y() != height)

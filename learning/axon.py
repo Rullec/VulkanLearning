@@ -21,13 +21,6 @@ def resize(image):
     image = Image.fromarray(image)
     image = image.resize((128, 128))
     image = np.array(image)
-    # print(image.shape)
-    # print(np.max(image))
-    # print(np.min(image))
-    # import matplotlib.pyplot as plt
-    # plt.imshow(image)
-    # plt.show()
-    # exit(0)
     return image
 
 

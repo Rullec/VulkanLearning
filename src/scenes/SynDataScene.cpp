@@ -7,6 +7,9 @@
 #include "sim/ClothProperty.h"
 #include <iostream>
 #include "utils/FileUtil.h"
+int online_cur_prop_id = -1;
+tVectorXd online_before_nodal_pos;
+
 cSynDataScene::cSynDataScene()
 {
     mSynDataNoise = nullptr;
@@ -36,7 +39,10 @@ void cSynDataScene::Init(const std::string &conf_path)
     mEnableDataCleaner = cJsonUtil::ParseAsBool("enable_data_cleaner", conf_json);
     mDataCleanerThreshold = cJsonUtil::ParseAsDouble("data_cleaner_threshold", conf_json);
     mPropManager = std::make_shared<tPhyPropertyManager>(cJsonUtil::ParseAsValue("property_manager", conf_json));
-
+    mEnableDrawing = cJsonUtil::ParseAsBool(this->ENABLE_DRAWING_KEY, conf_json);
+    {
+        mIdealDefaultTimestep = cJsonUtil::ParseAsDouble(cSimScene::DEFAULT_TIMESTEP_KEY, conf_json);
+    }
     // std::cout << "enable noise = " << mEnableDataAug << std::endl;
     if (mEnableDataAug == true)
     {
@@ -45,6 +51,14 @@ void cSynDataScene::Init(const std::string &conf_path)
     mLinScene = std::make_shared<cLinctexScene>();
     mLinScene->Init(mDefaultConfigPath);
     InitExportDataDir();
+
+    if (mEnableDrawing == false)
+    {
+        OfflineSampling();
+    }
+    else
+    {
+    }
 }
 
 std::string to_string(const tVectorXd &vec)
@@ -176,7 +190,7 @@ bool cSynDataScene::CheckDuplicateWithDataSet() const
 /**
  * \brief       ultimate run method
 */
-void cSynDataScene::Update(double dt)
+void cSynDataScene::OfflineSampling()
 {
     // 1. fetch all settings
     int total_sample = 0;
@@ -223,6 +237,17 @@ void cSynDataScene::Update(double dt)
     printf("[log] total samples = %d, real unduplicate samples = %d\n", total_sample, mTotalSamples_valid);
     exit(0);
 }
+void cSynDataScene::Update(double dt)
+{
+    cSimScene::Update(dt);
+
+    if (online_cur_prop_id != -1)
+    {
+        // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        // mLinScene->Update(dt);
+        mLinScene->UpdateRenderingResource();
+    }
+}
 void cSynDataScene::Reset()
 {
     mLinScene->Reset();
@@ -247,6 +272,10 @@ bool cSynDataScene::CreatePerturb(tRay *ray)
 void cSynDataScene::CursorMove(cDrawScene *draw_scene, int xpos, int ypos)
 {
     mLinScene->CursorMove(draw_scene, xpos, ypos);
+}
+
+void cSynDataScene::Key(int key, int scancode, int action, int mods)
+{
 }
 void cSynDataScene::MouseButton(cDrawScene *draw_scene, int button, int action,
                                 int mods)

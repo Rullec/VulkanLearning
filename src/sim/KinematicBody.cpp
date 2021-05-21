@@ -88,6 +88,8 @@ void cKinematicBody::BuildPlane()
     // 1. build legacy XOZ plane, then do a transformation
     // for (int i = 0; i < 4; i++)
     cObjUtil::BuildPlaneGeometryData(mPlaneScale, this->mPlaneEquation, mVertexArray, mEdgeArray, mTriangleArray);
+    for (auto &x : mVertexArray)
+        x->mColor = tVector(0.1f, 0.1f, 0.1f, 0);
 }
 
 /**
