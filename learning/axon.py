@@ -53,7 +53,9 @@ def get_depth_image_mm(cam):
     '''
         get the depth image (unit mm)
     '''
+    # print("begin to get depth image")
     depth = cam.GetDepthImage().astype(float) * cam.GetDepthUnit_mm()
+    # print("succ to get depth image")
     return depth
 
 
@@ -71,7 +73,7 @@ def show_image(depth_image):
     plt.show()
 
 
-def display(mode="depth"):
+def display(cam, mode="depth", save=False):
     global global_xpos, global_ypos
     import matplotlib.pyplot as plt
     # 打开交互模式
@@ -82,14 +84,16 @@ def display(mode="depth"):
 
     plt.connect('key_press_event', on_press)
     # fig2 = plt.figure('subImg')
+
+    iters = 0
     while True:
         fig1.clf()
         ax1 = fig1.add_subplot(1, 1, 1)
         if mode == "depth":
-            res = get_depth_image_mm(cam)
+            raw_res = get_depth_image_mm(cam)
         elif mode == "ir":
-            res = get_ir_image(cam)
-        res = resize(res)
+            raw_res = get_ir_image(cam)
+        res = resize(raw_res)
         # print(f"raw {res.dtype}")
 
         if global_xpos is not None and global_ypos is not None:
@@ -97,6 +101,13 @@ def display(mode="depth"):
                 f"\rdepth ({global_ypos}, {global_xpos}) = {int(res[global_ypos, global_xpos])} mm",
                 end='')
         ax1.imshow(res)
+        if save == True:
+            import pickle
+            string = f"{iters}.pkl"
+            with open(string, 'wb') as f:
+                pickle.dump(raw_res, f)
+            iters += 1
+            print(f"[log] save to {string}")
         ax1.title.set_text("depth image (mm)")
         # ax1.plot(p1[:, 0], p1[:, 1], 'g.')
         plt.pause(3e-2)
@@ -244,8 +255,8 @@ def ir_camera_calibration():
 
 
 if __name__ == "__main__":
-    np.set_printoptions(suppress=True)
-    ir_camera_calibration()
+    # np.set_printoptions(suppress=True)
+    # ir_camera_calibration()
     # import cv2
     # from calib_axon import calc_objp, calc_objective_coordinate_in_screen_coordinate
     # img = cv2.imread("images/1.bmp")
@@ -263,10 +274,14 @@ if __name__ == "__main__":
     # chess_board_size = get_chessboard_size()
 
     # ir_camera_calibration()
-    # cam = video_manager.video_manager()
+    cam = video_manager.video_manager()
+    display(cam, save=True)
     # unit = cam.GetDepthUnit_mm()
     # print(f"cur unit {unit} mm")
     # depth = get_depth_image_mm(cam)
+    # import matplotlib.pyplot as plt
+    # plt.imshow(depth)
+    # plt.plot()
     # conf_path = "..\config\\train_configs\\conv_conf.json"
     # print(f"depth shape {depth.shape}")
     # # display()

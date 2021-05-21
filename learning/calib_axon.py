@@ -225,6 +225,7 @@ def get_world_pts_to_obj_coord(X_positive_in_screen_coord,
     '''
     global CHECKERBOARD
     global square_size
+    height_of_table = 63 # mm
     trans_mat = np.identity(4)
     # in screen coordinate, X plus is down, Y plus is left, origin is right-up corner
     if (X_positive_in_screen_coord[1]
@@ -233,7 +234,7 @@ def get_world_pts_to_obj_coord(X_positive_in_screen_coord,
         y_size = (CHECKERBOARD[1] - 1) / 2
         # y_size = y_size + 1
         # print((x_size, y_size))
-        trans_mat[0, 3] = square_size * x_size
+        trans_mat[0, 3] = square_size * x_size + height_of_table
         trans_mat[1, 3] = square_size * y_size
         trans_mat[2, 3] = 0
         trans_mat[0:3, 0:3] = np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]])
@@ -244,7 +245,7 @@ def get_world_pts_to_obj_coord(X_positive_in_screen_coord,
         x_size = -1
         y_size = (CHECKERBOARD[1] - 1) / 2
         # y_size = y_size - 1
-        trans_mat[0, 3] = square_size * x_size
+        trans_mat[0, 3] = square_size * x_size - height_of_table
         trans_mat[1, 3] = square_size * y_size
         trans_mat[2, 3] = 0
         trans_mat[0:3, 0:3] = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]])

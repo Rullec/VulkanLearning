@@ -51,16 +51,16 @@
     "pause_at_first": false,
     "camera": {
         "camera_pos": [
-            0.0,
-            0.367,
-            0.56
+            0.00187508856,
+            0.42842519843,
+            0.55907583299
         ],
         "camera_focus": [
-            0.0,
-            0.22,
+            -0.00352920924,
+            0.28065162501,
             0
         ],
-        "fov": 60,
+        "fov": 52.5,
         "near": 0.01,
         "far": 100
     },
@@ -72,7 +72,7 @@
             "mesh_path": "data/clinder.obj",
             "target_aabb": [
                 0.1,
-                0.2,
+                0.202,
                 0.1
             ],
             "translation": [
