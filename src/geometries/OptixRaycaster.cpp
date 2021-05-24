@@ -1,9 +1,9 @@
 #ifdef USE_OPTIX
 #include "OptixRaycaster.h"
-#include "utils/LogUtil.h"
-#include <iostream>
 #include "optix_function_table_definition.h"
 #include "scenes/cameras/CameraBase.h"
+#include "utils/LogUtil.h"
+#include <iostream>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "utils/stb_image_write.h"
 
@@ -12,7 +12,8 @@ extern "C" char embedded_ptx_code[];
 /*! SBT record for a raygen program */
 struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) RaygenRecord
 {
-    __align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
+    __align__(
+        OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
     // just a dummy value - later examples will use more interesting
     // data here
     void *data;
@@ -21,7 +22,8 @@ struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) RaygenRecord
 /*! SBT record for a miss program */
 struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) MissRecord
 {
-    __align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
+    __align__(
+        OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
     // just a dummy value - later examples will use more interesting
     // data here
     void *data;
@@ -30,14 +32,16 @@ struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) MissRecord
 /*! SBT record for a hitgroup program */
 struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) HitgroupRecord
 {
-    __align__(OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
+    __align__(
+        OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
     // just a dummy value - later examples will use more interesting
     // data here
     int objectID;
 };
 
 // cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> triangles,
-//                                  const std::vector<tVertex *> vertices) : cRaycaster(triangles, vertices)
+//                                  const std::vector<tVertex *> vertices) :
+//                                  cRaycaster(triangles, vertices)
 cOptixRaycaster::cOptixRaycaster()
 {
     InitOptix();
@@ -73,9 +77,9 @@ void cOptixRaycaster::AddResources(const std::vector<tTriangle *> triangles,
     BuildSBT();
 
     launchParamsBuffer.alloc(sizeof(launchParams));
-    // // std::cout << "sizeof launchparam = " << sizeof(launchParams) << std::endl;
-    // exit(0);
-    // std::cout << "context, module, pipeline, etc, all set up ..." << std::endl;
+    // // std::cout << "sizeof launchparam = " << sizeof(launchParams) <<
+    // std::endl; exit(0); std::cout << "context, module, pipeline, etc, all set
+    // up ..." << std::endl;
 
     // std::cout << GDT_TERMINAL_GREEN;
     // std::cout << "Optix 7 Sample fully set up" << std::endl;
@@ -117,10 +121,8 @@ void cOptixRaycaster::InitOptix()
     //           << GDT_TERMINAL_DEFAULT << std::endl;
 }
 
-static void context_log_cb(unsigned int level,
-                           const char *tag,
-                           const char *message,
-                           void *)
+static void context_log_cb(unsigned int level, const char *tag,
+                           const char *message, void *)
 {
     printf("[%2d][%12s]: %s\n", (int)level, tag, message);
 }
@@ -142,7 +144,8 @@ void cOptixRaycaster::CreateContext()
         printf("Error querying current context: error code %d\n", cuRes);
 
     OPTIX_CHECK(optixDeviceContextCreate(cudaContext, 0, &optixContext));
-    OPTIX_CHECK(optixDeviceContextSetLogCallback(optixContext, context_log_cb, nullptr, 3));
+    OPTIX_CHECK(optixDeviceContextSetLogCallback(optixContext, context_log_cb,
+                                                 nullptr, 3));
 }
 
 /*! creates the module that contains all the programs we are going
@@ -155,12 +158,14 @@ void cOptixRaycaster::CreateModule()
     moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
 
     pipelineCompileOptions = {};
-    pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
+    pipelineCompileOptions.traversableGraphFlags =
+        OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
     pipelineCompileOptions.usesMotionBlur = false;
     pipelineCompileOptions.numPayloadValues = 4;
     pipelineCompileOptions.numAttributeValues = 2;
     pipelineCompileOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
-    pipelineCompileOptions.pipelineLaunchParamsVariableName = "optixLaunchParams";
+    pipelineCompileOptions.pipelineLaunchParamsVariableName =
+        "optixLaunchParams";
 
     pipelineLinkOptions.maxTraceDepth = 2;
 
@@ -168,13 +173,9 @@ void cOptixRaycaster::CreateModule()
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    OPTIX_CHECK(optixModuleCreateFromPTX(optixContext,
-                                         &moduleCompileOptions,
-                                         &pipelineCompileOptions,
-                                         ptxCode.c_str(),
-                                         ptxCode.size(),
-                                         log, &sizeof_log,
-                                         &module));
+    OPTIX_CHECK(optixModuleCreateFromPTX(
+        optixContext, &moduleCompileOptions, &pipelineCompileOptions,
+        ptxCode.c_str(), ptxCode.size(), log, &sizeof_log, &module));
     if (sizeof_log > 1)
         std::cout << log;
 }
@@ -194,12 +195,8 @@ void cOptixRaycaster::CreateRaygenPrograms()
     // OptixProgramGroup raypg;
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    OPTIX_CHECK(optixProgramGroupCreate(optixContext,
-                                        &pgDesc,
-                                        1,
-                                        &pgOptions,
-                                        log, &sizeof_log,
-                                        &raygenPGs[0]));
+    OPTIX_CHECK(optixProgramGroupCreate(optixContext, &pgDesc, 1, &pgOptions,
+                                        log, &sizeof_log, &raygenPGs[0]));
     if (sizeof_log > 1)
         std::cout << log;
 }
@@ -219,12 +216,8 @@ void cOptixRaycaster::CreateMissPrograms()
     // OptixProgramGroup raypg;
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    OPTIX_CHECK(optixProgramGroupCreate(optixContext,
-                                        &pgDesc,
-                                        1,
-                                        &pgOptions,
-                                        log, &sizeof_log,
-                                        &missPGs[0]));
+    OPTIX_CHECK(optixProgramGroupCreate(optixContext, &pgDesc, 1, &pgOptions,
+                                        log, &sizeof_log, &missPGs[0]));
     if (sizeof_log > 1)
         std::cout << log;
 }
@@ -245,12 +238,8 @@ void cOptixRaycaster::CreateHitgroupPrograms()
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    OPTIX_CHECK(optixProgramGroupCreate(optixContext,
-                                        &pgDesc,
-                                        1,
-                                        &pgOptions,
-                                        log, &sizeof_log,
-                                        &hitgroupPGs[0]));
+    OPTIX_CHECK(optixProgramGroupCreate(optixContext, &pgDesc, 1, &pgOptions,
+                                        log, &sizeof_log, &hitgroupPGs[0]));
     if (sizeof_log > 1)
         std::cout << log;
 }
@@ -268,29 +257,28 @@ void cOptixRaycaster::CreatePipeline()
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    OPTIX_CHECK(optixPipelineCreate(optixContext,
-                                    &pipelineCompileOptions,
-                                    &pipelineLinkOptions,
-                                    programGroups.data(),
-                                    (int)programGroups.size(),
-                                    log, &sizeof_log,
+    OPTIX_CHECK(optixPipelineCreate(optixContext, &pipelineCompileOptions,
+                                    &pipelineLinkOptions, programGroups.data(),
+                                    (int)programGroups.size(), log, &sizeof_log,
                                     &pipeline));
     // if (sizeof_log > 1)
     //     std::cout << log;
 
-    OPTIX_CHECK(optixPipelineSetStackSize(/* [in] The pipeline to configure the stack size for */
-                                          pipeline,
-                                          /* [in] The direct stack size requirement for direct
-                    callables invoked from IS or AH. */
-                                          2 * 1024,
-                                          /* [in] The direct stack size requirement for direct
-                    callables invoked from RG, MS, or CH.  */
-                                          2 * 1024,
-                                          /* [in] The continuation stack requirement. */
-                                          2 * 1024,
-                                          /* [in] The maximum depth of a traversable graph
-                    passed to trace. */
-                                          1));
+    OPTIX_CHECK(
+        optixPipelineSetStackSize(/* [in] The pipeline to configure the stack
+                                     size for */
+                                  pipeline,
+                                  /* [in] The direct stack size requirement for
+            direct callables invoked from IS or AH. */
+                                  2 * 1024,
+                                  /* [in] The direct stack size requirement for
+            direct callables invoked from RG, MS, or CH.  */
+                                  2 * 1024,
+                                  /* [in] The continuation stack requirement. */
+                                  2 * 1024,
+                                  /* [in] The maximum depth of a traversable
+            graph passed to trace. */
+                                  1));
     // if (sizeof_log > 1)
     //     std::cout << log;
 }
@@ -358,7 +346,7 @@ void cOptixRaycaster::UpdateVertexBufferToCuda()
 }
 /**
  * \brief           Build the acceleration strucutre
-*/
+ */
 OptixTraversableHandle cOptixRaycaster::BuildAccel()
 {
     BuildGeometryCudaHostBuffer();
@@ -380,12 +368,15 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
     // it's the cuda format, near the same as mine
     triangleInput.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
     triangleInput.triangleArray.vertexStrideInBytes = sizeof(tVector3f);
-    triangleInput.triangleArray.numVertices = (int)cuda_host_vertices_buffer.size();
+    triangleInput.triangleArray.numVertices =
+        (int)cuda_host_vertices_buffer.size();
     triangleInput.triangleArray.vertexBuffers = &d_vertices;
 
-    triangleInput.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+    triangleInput.triangleArray.indexFormat =
+        OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
     triangleInput.triangleArray.indexStrideInBytes = sizeof(tVector3i);
-    triangleInput.triangleArray.numIndexTriplets = (int)cuda_host_index_buffer.size();
+    triangleInput.triangleArray.numIndexTriplets =
+        (int)cuda_host_index_buffer.size();
     triangleInput.triangleArray.indexBuffer = d_indices;
 
     uint32_t triangleInputFlags[1] = {0};
@@ -403,13 +394,13 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
     // ==================================================================
 
     OptixAccelBuildOptions accelOptions = {};
-    accelOptions.buildFlags = OPTIX_BUILD_FLAG_NONE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+    accelOptions.buildFlags =
+        OPTIX_BUILD_FLAG_NONE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
     accelOptions.motionOptions.numKeys = 1;
     accelOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
 
     OptixAccelBufferSizes blasBufferSizes;
-    OPTIX_CHECK(optixAccelComputeMemoryUsage(optixContext,
-                                             &accelOptions,
+    OPTIX_CHECK(optixAccelComputeMemoryUsage(optixContext, &accelOptions,
                                              &triangleInput,
                                              1, // num_build_inputs
                                              &blasBufferSizes));
@@ -435,20 +426,16 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
     CUDABuffer outputBuffer;
     outputBuffer.alloc(blasBufferSizes.outputSizeInBytes);
 
-    OPTIX_CHECK(optixAccelBuild(optixContext,
-                                /* stream */ 0,
-                                &accelOptions,
-                                &triangleInput,
-                                1,
-                                tempBuffer.d_pointer(),
-                                tempBuffer.sizeInBytes,
+    OPTIX_CHECK(
+        optixAccelBuild(optixContext,
+                        /* stream */ 0, &accelOptions, &triangleInput, 1,
+                        tempBuffer.d_pointer(), tempBuffer.sizeInBytes,
 
-                                outputBuffer.d_pointer(),
-                                outputBuffer.sizeInBytes,
+                        outputBuffer.d_pointer(), outputBuffer.sizeInBytes,
 
-                                &asHandle,
+                        &asHandle,
 
-                                &emitDesc, 1));
+                        &emitDesc, 1));
     CUDA_SYNC_CHECK();
 
     // ==================================================================
@@ -459,11 +446,8 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
 
     asBuffer.alloc(compactedSize);
     OPTIX_CHECK(optixAccelCompact(optixContext,
-                                  /*stream:*/ 0,
-                                  asHandle,
-                                  asBuffer.d_pointer(),
-                                  asBuffer.sizeInBytes,
-                                  &asHandle));
+                                  /*stream:*/ 0, asHandle, asBuffer.d_pointer(),
+                                  asBuffer.sizeInBytes, &asHandle));
     CUDA_SYNC_CHECK();
 
     // ==================================================================
@@ -478,13 +462,12 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
 
 /**
  * \brief           Build the geometry host buffer
-*/
+ */
 void cOptixRaycaster::BuildGeometryCudaHostBuffer()
 {
     // std::cout << "[debug] recalculate the cuda buffer\n";
     // 1. get the total size of vertices and triangles buffer
-    int vertices_size = 0,
-        triangle_size = 0;
+    int vertices_size = 0, triangle_size = 0;
     for (int i = 0; i < mTriangleArray_lst.size(); i++)
     {
         vertices_size += mVertexArray_lst[i].size();
@@ -492,13 +475,11 @@ void cOptixRaycaster::BuildGeometryCudaHostBuffer()
     }
     cuda_host_vertices_buffer.resize(vertices_size, tVector3f::Zero());
     if (cuda_host_index_buffer.size() != triangle_size)
-        cuda_host_index_buffer.resize(
-            triangle_size, tVector3i::Zero());
+        cuda_host_index_buffer.resize(triangle_size, tVector3i::Zero());
 
     int num_of_obj = mTriangleArray_lst.size();
     int cur_obj_verteix_offset = 0;
-    int total_triangle_idx = 0,
-        total_vertex_idx = 0;
+    int total_triangle_idx = 0, total_vertex_idx = 0;
     for (int obj_id = 0; obj_id < num_of_obj; obj_id++)
     {
         // 1. add this object's indices and vertex data
@@ -507,10 +488,9 @@ void cOptixRaycaster::BuildGeometryCudaHostBuffer()
         for (int i = 0; i < tri_array.size(); i++)
         {
             cuda_host_index_buffer[total_triangle_idx++].noalias() =
-                tVector3i(
-                    tri_array[i]->mId0 + cur_obj_verteix_offset,
-                    tri_array[i]->mId1 + cur_obj_verteix_offset,
-                    tri_array[i]->mId2 + cur_obj_verteix_offset);
+                tVector3i(tri_array[i]->mId0 + cur_obj_verteix_offset,
+                          tri_array[i]->mId1 + cur_obj_verteix_offset,
+                          tri_array[i]->mId2 + cur_obj_verteix_offset);
         }
         // 2. add the bias
 
@@ -552,15 +532,17 @@ void cOptixRaycaster::BuildGeometryCudaHostBuffer()
     // std::cout << "vertices size = " << mVertexArray->size() << std::endl;
 }
 
-void save(const std::string fileName, int width, int height, uint32_t h_pixels[])
+void save(const std::string fileName, int width, int height,
+          uint32_t h_pixels[])
 {
-    stbi_write_png(fileName.c_str(), width, height, 4,
-                   h_pixels, width * sizeof(uint32_t));
+    stbi_write_png(fileName.c_str(), width, height, 4, h_pixels,
+                   width * sizeof(uint32_t));
 }
 /**
  * \brief           Calculate the depth image
-*/
-void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera, std::string path)
+ */
+void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera,
+                                   std::string path)
 {
     Rebuild();
 
@@ -569,7 +551,8 @@ void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera, 
 
     // 1. if the size is changed, we need to resize the buffer
     setCamera(camera);
-    if (launchParams.frame.size.x() != width || launchParams.frame.size.y() != height)
+    if (launchParams.frame.size.x() != width ||
+        launchParams.frame.size.y() != height)
     {
         tVector2i size = tVector2i(width, height);
         resize(size);
@@ -590,8 +573,8 @@ void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera, 
 }
 
 extern float fov;
-tMatrix4f get_discrete_mat(int height,
-                           int width, const tMatrix4f &view_mat_inv, bool is_vulkan)
+tMatrix4f get_discrete_mat(int height, int width, const tMatrix4f &view_mat_inv,
+                           bool is_vulkan)
 {
     // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
 
@@ -637,14 +620,15 @@ tMatrix4f get_discrete_mat(int height,
     tMatrix4f mat4 = view_mat_inv;
     // std::cout << "after 4, vec = "
     //           << (test = mat4 * test).transpose() << std::endl;
-    // std::cout <<"dir = " <<  (test - mCamera->GetCameraPos()).normalized().transpose() << std::endl;
+    // std::cout <<"dir = " <<  (test -
+    // mCamera->GetCameraPos()).normalized().transpose() << std::endl;
     mat = mat4 * mat3 * mat2 * mat1;
     return mat;
 }
 
 /**
  * \brief           Resize the info
-*/
+ */
 void cOptixRaycaster::resize(const tVector2i &newSize)
 {
     // if window minimized
@@ -665,18 +649,18 @@ void cOptixRaycaster::resize(const tVector2i &newSize)
 
 /**
  * \brief       set the camera info to the launch parameter (in the GPU)
-*/
+ */
 void cOptixRaycaster::setCamera(const CameraBasePtr &camera)
 {
     lastSetCamera = camera;
     launchParams.position = camera->pos;
 
     // launchParams.convert_mat = tMatrix4f::Identity();
-    tMatrix4f view_mat_inv = Eigen::lookAt(camera->pos, camera->center, camera->up).inverse();
-    tMatrix4f tmp = get_discrete_mat(
-        launchParams.frame.size[1],
-        launchParams.frame.size[0],
-        view_mat_inv, true);
+    tMatrix4f view_mat_inv =
+        Eigen::lookAt(camera->pos, camera->center, camera->up).inverse();
+    tMatrix4f tmp =
+        get_discrete_mat(launchParams.frame.size[1], launchParams.frame.size[0],
+                         view_mat_inv, true);
     // std::cout << "tmp = \n" << tmp << std::endl;
     // exit(0);
     // tVector3f y_axis = tVector3f(0, 1, 0);
@@ -702,12 +686,10 @@ void cOptixRaycaster::render()
                             pipeline, stream,
                             /*! parameters and SBT */
                             launchParamsBuffer.d_pointer(),
-                            launchParamsBuffer.sizeInBytes,
-                            &sbt,
+                            launchParamsBuffer.sizeInBytes, &sbt,
                             /*! dimensions of the launch: */
                             launchParams.frame.size.x(),
-                            launchParams.frame.size.y(),
-                            1));
+                            launchParams.frame.size.y(), 1));
     // sync - make sure the frame is rendered before we download and
     // display (obviously, for a high-performance application you
     // want to use streams and double-buffering, but for this simple
@@ -717,19 +699,29 @@ void cOptixRaycaster::render()
 
 /**
  * \brief       download the color pixels (gray scale rgb channels)
-*/
+ */
 
 void cOptixRaycaster::downloadPixels(uint32_t h_pixels[])
 {
-    colorBuffer.download(h_pixels,
-                         launchParams.frame.size.x() * launchParams.frame.size.y());
+    colorBuffer.download(h_pixels, launchParams.frame.size.x() *
+                                       launchParams.frame.size.y());
+}
+
+void cOptixRaycaster::downloadPixels(std::vector<float> &h_pixels)
+{
+    colorBuffer.download(h_pixels.data(), launchParams.frame.size.x() *
+                                              launchParams.frame.size.y());
 }
 
 /**
  * \brief           calculate depth image for multiple camera views
-*/
+ */
 #include "utils/FileUtil.h"
-void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width, std::vector<CameraBasePtr> camera_array, std::vector<std::string> path_array)
+extern bool SaveDepthEXR(const float *rgb, int width, int height,
+                         const char *outfilename);
+void cOptixRaycaster::CalcDepthMapMultiCamera(
+    int height, int width, std::vector<CameraBasePtr> camera_array,
+    std::vector<std::string> path_array)
 {
     Rebuild();
 
@@ -742,12 +734,14 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width, std::vector
     {
         if (true == cFileUtil::ExistsFile(path_array[i]))
         {
-            printf("[warn] depth img %s exist, ignore\n", path_array[i].c_str());
+            printf("[warn] depth img %s exist, ignore\n",
+                   path_array[i].c_str());
             continue;
         }
         // 1. if the size is changed, we need to resize the buffer
         setCamera(camera_array[i]);
-        if (launchParams.frame.size.x() != width || launchParams.frame.size.y() != height)
+        if (launchParams.frame.size.x() != width ||
+            launchParams.frame.size.y() != height)
         {
             tVector2i size = tVector2i(width, height);
             resize(size);
@@ -759,10 +753,14 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width, std::vector
         render();
         // 3. launch the optix program
         // std::cout << "render done\n";
-        std::vector<uint32_t> pixels(width * height, 0);
-        this->downloadPixels(pixels.data());
+        // std::vector<uint32_t> pixels(width * height, 0);
+        std::vector<float> pixels(width * height, 0);
+        this->downloadPixels(pixels);
         // std::cout << "download pixels done\n";
-        save(path_array[i], width, height, pixels.data());
+        // save(path_array[i], width, height, pixels.data());
+        SaveDepthEXR(pixels.data(), width, height, path_array[i].c_str());
+        // SaveDepthEXR(const float *rgb, int width, int height, const
+        // char*outfilename)
     }
 }
 #endif

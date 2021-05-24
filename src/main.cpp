@@ -86,8 +86,17 @@ bool gEnableDraw = true;
 void SimDraw(const std::string &conf_path);
 void SimNoDraw(const std::string &conf_path);
 void ParseConfig(std::string conf);
+
+// extern bool SaveDepthEXR(const float *rgb, int width, int height, const char *outfilename);
 int main(int argc, char **argv)
 {
+
+    // {
+    //     int width = 512, height = 512;
+    //     std::vector<float> pixels(width * height, 0.5);
+    //     SaveDepthEXR(pixels.data(), width, height, "depth.exr");
+    //     exit(0);
+    // }
     SIM_ASSERT(argc == 2);
     std::string conf = std::string(argv[1]);
     ParseConfig(conf);

@@ -1,11 +1,12 @@
 #ifdef USE_OPTIX
 #pragma once
-#include "Raycaster.h"
 #include "OptixCUDABuffer.h"
 #include "OptixLaunchParam.h"
+#include "Raycaster.h"
 
-namespace Json{
-    class Value;
+namespace Json
+{
+class Value;
 };
 class cOptixRaycaster : public cRaycaster
 {
@@ -13,8 +14,12 @@ public:
     explicit cOptixRaycaster();
     virtual void AddResources(const std::vector<tTriangle *> triangles,
                               const std::vector<tVertex *> vertices) override;
-    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera, std::string path) override final;
-    virtual void CalcDepthMapMultiCamera(int height, int width, std::vector<CameraBasePtr> camera_array, std::vector<std::string> path_array);
+    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera,
+                              std::string path) override final;
+    virtual void
+    CalcDepthMapMultiCamera(int height, int width,
+                            std::vector<CameraBasePtr> camera_array,
+                            std::vector<std::string> path_array);
 
 protected:
     // -----------methods------------
@@ -33,6 +38,7 @@ protected:
     void setCamera(const CameraBasePtr &camera);
     void render();
     void downloadPixels(uint32_t h_pixels[]);
+    void downloadPixels(std::vector<float> &h_pixels);
     void UpdateVertexBufferToCuda();
     // -----------vars-------------
     int cur_width, cur_height;

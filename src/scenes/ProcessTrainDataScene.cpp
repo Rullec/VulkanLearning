@@ -83,7 +83,7 @@ void cProcessTrainDataScene::CalcDepthMapNoCloth()
     // {
     int i = 0;
     save_png_path_array.push_back(
-        cFileUtil::ConcatFilename(mGenDataDir, std::to_string(i) + ".png"));
+        cFileUtil::ConcatFilename(mGenDataDir, std::to_string(i) + ".exr"));
     // }
     std::vector<CameraBasePtr> cam_views(0);
     cam_views.push_back(mCamera);
@@ -117,7 +117,7 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         std::vector<CameraBasePtr> my_camera_views(0);
         my_camera_views.push_back(mCamera);
         // {
-        //     std::string new_image_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) + "_" + std::to_string(camera_id) + ".png";
+        //     std::string new_image_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) + "_" + std::to_string(camera_id) + ".exr";
         //     std::string new_feature_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) + "_" + std::to_string(camera_id) + ".json";
         //     std::string new_full_image_name = cFileUtil::ConcatFilename(mGenDataDir, new_image_name);
         //     std::string new_full_feature_name = cFileUtil::ConcatFilename(mGenDataDir, new_feature_name);
@@ -251,7 +251,7 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
         for (int j = 0; j < camera_array.size(); j++)
         {
             auto new_base = basename + "_" + std::to_string(i) + "_" + std::to_string(j);
-            png_array.push_back(cFileUtil::ConcatFilename(this->mGenDataDir, new_base + ".png"));
+            png_array.push_back(cFileUtil::ConcatFilename(this->mGenDataDir, new_base + ".exr"));
             save_feature_path_array.push_back(cFileUtil::ConcatFilename(this->mGenDataDir, new_base + ".json"));
         }
 
