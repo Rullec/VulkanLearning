@@ -20,6 +20,9 @@ public:
     CalcDepthMapMultiCamera(int height, int width,
                             std::vector<CameraBasePtr> camera_array,
                             std::vector<std::string> path_array);
+    virtual void CalcDepthMapMultiCamera(int height, int width,
+                                         CameraBasePtr cur_cam,
+                                         tVectorXf &pixels);
 
 protected:
     // -----------methods------------
@@ -38,7 +41,7 @@ protected:
     void setCamera(const CameraBasePtr &camera);
     void render();
     void downloadPixels(uint32_t h_pixels[]);
-    void downloadPixels(std::vector<float> &h_pixels);
+    void downloadPixels(float *h_pixels);
     void UpdateVertexBufferToCuda();
     // -----------vars-------------
     int cur_width, cur_height;

@@ -706,10 +706,10 @@ void cOptixRaycaster::downloadPixels(uint32_t h_pixels[])
                                        launchParams.frame.size.y());
 }
 
-void cOptixRaycaster::downloadPixels(std::vector<float> &h_pixels)
+void cOptixRaycaster::downloadPixels(float *h_pixels)
 {
-    colorBuffer.download(h_pixels.data(), launchParams.frame.size.x() *
-                                              launchParams.frame.size.y());
+    colorBuffer.download(h_pixels, launchParams.frame.size.x() *
+                                       launchParams.frame.size.y());
 }
 
 /**
@@ -754,12 +754,46 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
         // std::cout << "render done\n";
         // std::vector<uint32_t> pixels(width * height, 0);
         std::vector<float> pixels(width * height, 0);
-        this->downloadPixels(pixels);
+        this->downloadPixels(pixels.data());
         // std::cout << "download pixels done\n";
         // save(path_array[i], width, height, pixels.data());
         SaveDepthEXR(pixels.data(), width, height, path_array[i].c_str());
         // SaveDepthEXR(const float *rgb, int width, int height, const
         // char*outfilename)
     }
+}
+
+void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width,
+                                              CameraBasePtr cur_cam,
+                                              tVectorXf &pixels_eigen)
+{
+    Rebuild();
+
+    this->cur_width = width;
+    this->cur_height = height;
+
+    // 1. if the size is changed, we need to resize the buffer
+    setCamera(cur_cam);
+    if (launchParams.frame.size.x() != width ||
+        launchParams.frame.size.y() != height)
+    {
+        tVector2i size = tVector2i(width, height);
+        resize(size);
+    }
+    // std::cout << "resize done\n";
+
+    // UpdateVertexBufferToCuda();
+    // 2. reupload all values in launch param
+    render();
+    // 3. launch the optix program
+    // std::cout << "render done\n";
+    // std::vector<uint32_t> pixels(width * height, 0);
+    // std::vector<float> pixels(width * height, 0);
+    downloadPixels(pixels_eigen.data());
+    // std::cout << "download pixels done\n";
+    // save(path_array[i], width, height, pixels.data());
+    // SaveDepthEXR(pixels.data(), width, height, path_array[i].c_str());
+    // SaveDepthEXR(const float *rgb, int width, int height, const
+    // char*outfilename)
 }
 #endif

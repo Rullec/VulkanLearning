@@ -9,6 +9,7 @@
 #include <iostream>
 cProcessTrainDataScene::cProcessTrainDataScene()
 {
+    mRaycaster = nullptr;
     mWidth = 0;
     mHeight = 0;
 }
@@ -57,16 +58,7 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
 
     // 4. load a data info, set the vertex pos, init rendering resources
     InitCameraViews();
-    InitRaycaster();
-    if (mEnableClothGeometry == true)
-    {
-        CalcDepthMapLoop();
-    }
-    else
-    {
-        CalcDepthMapNoCloth();
-    }
-    exit(0);
+
     InitDrawBuffer();
     UpdateRenderingResource();
 }
@@ -304,7 +296,22 @@ void cProcessTrainDataScene::InitCameraViews()
                                                camera_up, mCameraFov);
 }
 
-void cProcessTrainDataScene::Update(double dt) { UpdateRenderingResource(); }
+void cProcessTrainDataScene::Update(double dt)
+{
+    if (mRaycaster == nullptr)
+    {
+        InitRaycaster();
+    }
+    if (mEnableClothGeometry == true)
+    {
+        CalcDepthMapLoop();
+    }
+    else
+    {
+        CalcDepthMapNoCloth();
+    }
+    exit(0);
+}
 
 void cProcessTrainDataScene::UpdateRenderingResource()
 {
@@ -455,3 +462,34 @@ void write_bmp(const std::string path, const int width, const int height,
 //     // exit(0);
 //     return tMatrixXd::Zero(0, 0);
 // }
+
+/**
+ *
+ */
+tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
+                                                      const tVector &cam_focus,
+                                                      float fov)
+{
+    // 1. create cloth geometry
+    mEnableClothGeometry = false;
+    InitRaycaster();
+
+    // 2. begin to create camera views
+    mCameraPos = cam_pos;
+    mCameraFov = fov;
+    mCameraUp = tVector(0, 1, 0, 0);
+    InitCameraViews();
+
+    // 3. begin to calculate the depth image
+    tVectorXf mPixels = tVectorXf::Zero(mHeight * mWidth);
+
+    // 4.
+    auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
+    ptr->CalcDepthMapMultiCamera(mHeight, mWidth, mCamera, mPixels);
+    return mPixels;
+}
+
+std::pair<int, int> cProcessTrainDataScene::GetDepthImageShape() const
+{
+    return std::pair<int, int>(mWidth, mHeight);
+}

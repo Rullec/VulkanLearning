@@ -8,11 +8,13 @@ class cProcessTrainDataScene : public cSimScene
 public:
     cProcessTrainDataScene();
     virtual ~cProcessTrainDataScene();
-    void InitExport(std::string conf_path);
     virtual void Init(const std::string &conf_path) override;
     virtual void Update(double dt) override;
     virtual void UpdateRenderingResource() override;
     virtual void Reset() override;
+    std::pair<int, int> GetDepthImageShape() const;
+    tVectorXf CalcEmptyDepthImage(const tVector &cam_pos,
+                                  const tVector &cam_focus, float fov);
 
 protected:
     inline static const std::string CAMERA_POS_KEY = "capture_camera_pos",
