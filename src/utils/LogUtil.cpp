@@ -40,9 +40,9 @@ int cLogUtil::GetLevelEnumFromString(const std::string &level_name)
     else
     {
         SIM_ERROR("Unknown logging level [{}]. Levels = trace, debug, info, "
-                    "warn, error, "
-                    "critical, off",
-                    level_name);
+                  "warn, error, "
+                  "critical, off",
+                  level_name);
     }
 }
 

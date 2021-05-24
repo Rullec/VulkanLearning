@@ -25,18 +25,8 @@ enum eRotationOrder
 // extern const enum eRotationOrder gRotationOrder;// rotation order. declared
 // here and defined in LoboJointV2.cpp
 const std::string ROTATION_ORDER_NAME[] = {
-    "XYZ",
-    "XZY",
-    "XYX",
-    "XZX",
-    "YXZ",
-    "YZX",
-    "YXY",
-    "YZY",
-    "ZXY",
-    "ZYX",
-    "ZYZ",
-    "ZXZ",
+    "XYZ", "XZY", "XYX", "XZX", "YXZ", "YZX",
+    "YXY", "YZY", "ZXY", "ZYX", "ZYZ", "ZXZ",
 };
 
 // for convenience define standard vector for rendering
@@ -76,96 +66,97 @@ const double gFeetToMeters = 0.3048;
 namespace Eigen
 {
 
-    /// @brief Returns a perspective transformation matrix like the one from gluPerspective
-    /// @see http://www.opengl.org/sdk/docs/man2/xhtml/gluPerspective.xml
-    /// @see glm::perspective
-    template <typename Scalar>
-    Eigen::Matrix<Scalar, 4, 4> perspective(Scalar fovy, Scalar aspect,
-                                            Scalar zNear, Scalar zFar)
-    {
-        Transform<Scalar, 3, Projective> tr;
-        tr.matrix().setZero();
-        assert(aspect > 0);
-        assert(zFar > zNear);
-        assert(zNear > 0);
-        Scalar radf = static_cast<Scalar>(M_PI * fovy / 180.0);
-        Scalar tan_half_fovy = static_cast<Scalar>(std::tan(radf / 2.0));
-        tr(0, 0) = static_cast<Scalar>(1.0 / (aspect * tan_half_fovy));
-        tr(1, 1) = static_cast<Scalar>(1.0 / (tan_half_fovy));
-        tr(2, 2) = -(zFar + zNear) / (zFar - zNear);
-        tr(3, 2) = -1.0;
-        tr(2, 3) = static_cast<Scalar>(-(2.0 * zFar * zNear) / (zFar - zNear));
-        return tr.matrix();
-    }
+/// @brief Returns a perspective transformation matrix like the one from
+/// gluPerspective
+/// @see http://www.opengl.org/sdk/docs/man2/xhtml/gluPerspective.xml
+/// @see glm::perspective
+template <typename Scalar>
+Eigen::Matrix<Scalar, 4, 4> perspective(Scalar fovy, Scalar aspect,
+                                        Scalar zNear, Scalar zFar)
+{
+    Transform<Scalar, 3, Projective> tr;
+    tr.matrix().setZero();
+    assert(aspect > 0);
+    assert(zFar > zNear);
+    assert(zNear > 0);
+    Scalar radf = static_cast<Scalar>(M_PI * fovy / 180.0);
+    Scalar tan_half_fovy = static_cast<Scalar>(std::tan(radf / 2.0));
+    tr(0, 0) = static_cast<Scalar>(1.0 / (aspect * tan_half_fovy));
+    tr(1, 1) = static_cast<Scalar>(1.0 / (tan_half_fovy));
+    tr(2, 2) = -(zFar + zNear) / (zFar - zNear);
+    tr(3, 2) = -1.0;
+    tr(2, 3) = static_cast<Scalar>(-(2.0 * zFar * zNear) / (zFar - zNear));
+    return tr.matrix();
+}
 
-    template <typename Scalar>
-    Eigen::Matrix<Scalar, 4, 4> scale(Scalar x, Scalar y, Scalar z)
-    {
-        Transform<Scalar, 3, Affine> tr;
-        tr.matrix().setZero();
-        tr(0, 0) = x;
-        tr(1, 1) = y;
-        tr(2, 2) = z;
-        tr(3, 3) = 1;
-        return tr.matrix();
-    }
+template <typename Scalar>
+Eigen::Matrix<Scalar, 4, 4> scale(Scalar x, Scalar y, Scalar z)
+{
+    Transform<Scalar, 3, Affine> tr;
+    tr.matrix().setZero();
+    tr(0, 0) = x;
+    tr(1, 1) = y;
+    tr(2, 2) = z;
+    tr(3, 3) = 1;
+    return tr.matrix();
+}
 
-    template <typename Scalar>
-    Eigen::Matrix<Scalar, 4, 4> translate(Scalar x, Scalar y, Scalar z)
-    {
-        Transform<Scalar, 3, Affine> tr;
-        tr.matrix().setIdentity();
-        tr(0, 3) = x;
-        tr(1, 3) = y;
-        tr(2, 3) = z;
-        return tr.matrix();
-    }
+template <typename Scalar>
+Eigen::Matrix<Scalar, 4, 4> translate(Scalar x, Scalar y, Scalar z)
+{
+    Transform<Scalar, 3, Affine> tr;
+    tr.matrix().setIdentity();
+    tr(0, 3) = x;
+    tr(1, 3) = y;
+    tr(2, 3) = z;
+    return tr.matrix();
+}
 
-    /// @brief Returns a view transformation matrix like the one from glu's lookAt
-    /// @see http://www.opengl.org/sdk/docs/man2/xhtml/gluLookAt.xml
-    /// @see glm::lookAt
-    template <typename Derived>
-    Eigen::Matrix<typename Derived::Scalar, 4, 4>
-    lookAt(Derived const &eye, Derived const &center, Derived const &up)
-    {
-        typedef Eigen::Matrix<typename Derived::Scalar, 4, 4> Matrix4;
-        typedef Eigen::Matrix<typename Derived::Scalar, 3, 1> Vector3;
-        Vector3 f = (center - eye).normalized();
-        Vector3 u = up.normalized();
-        Vector3 s = f.cross(u).normalized();
-        u = s.cross(f);
-        Matrix4 mat = Matrix4::Zero();
-        mat(0, 0) = s.x();
-        mat(0, 1) = s.y();
-        mat(0, 2) = s.z();
-        mat(0, 3) = -s.dot(eye);
-        mat(1, 0) = u.x();
-        mat(1, 1) = u.y();
-        mat(1, 2) = u.z();
-        mat(1, 3) = -u.dot(eye);
-        mat(2, 0) = -f.x();
-        mat(2, 1) = -f.y();
-        mat(2, 2) = -f.z();
-        mat(2, 3) = f.dot(eye);
-        mat.row(3) << 0, 0, 0, 1;
-        return mat;
-    }
+/// @brief Returns a view transformation matrix like the one from glu's lookAt
+/// @see http://www.opengl.org/sdk/docs/man2/xhtml/gluLookAt.xml
+/// @see glm::lookAt
+template <typename Derived>
+Eigen::Matrix<typename Derived::Scalar, 4, 4>
+lookAt(Derived const &eye, Derived const &center, Derived const &up)
+{
+    typedef Eigen::Matrix<typename Derived::Scalar, 4, 4> Matrix4;
+    typedef Eigen::Matrix<typename Derived::Scalar, 3, 1> Vector3;
+    Vector3 f = (center - eye).normalized();
+    Vector3 u = up.normalized();
+    Vector3 s = f.cross(u).normalized();
+    u = s.cross(f);
+    Matrix4 mat = Matrix4::Zero();
+    mat(0, 0) = s.x();
+    mat(0, 1) = s.y();
+    mat(0, 2) = s.z();
+    mat(0, 3) = -s.dot(eye);
+    mat(1, 0) = u.x();
+    mat(1, 1) = u.y();
+    mat(1, 2) = u.z();
+    mat(1, 3) = -u.dot(eye);
+    mat(2, 0) = -f.x();
+    mat(2, 1) = -f.y();
+    mat(2, 2) = -f.z();
+    mat(2, 3) = f.dot(eye);
+    mat.row(3) << 0, 0, 0, 1;
+    return mat;
+}
 
-    /// @see glm::ortho
-    template <typename Scalar>
-    Eigen::Matrix<Scalar, 4, 4> ortho(Scalar const &left, Scalar const &right,
-                                      Scalar const &bottom, Scalar const &top,
-                                      Scalar const &zNear, Scalar const &zFar)
-    {
-        Eigen::Matrix<Scalar, 4, 4> mat = Eigen::Matrix<Scalar, 4, 4>::Identity();
-        mat(0, 0) = Scalar(2) / (right - left);
-        mat(1, 1) = Scalar(2) / (top - bottom);
-        mat(2, 2) = -Scalar(2) / (zFar - zNear);
-        mat(3, 0) = -(right + left) / (right - left);
-        mat(3, 1) = -(top + bottom) / (top - bottom);
-        mat(3, 2) = -(zFar + zNear) / (zFar - zNear);
-        return mat;
-    }
+/// @see glm::ortho
+template <typename Scalar>
+Eigen::Matrix<Scalar, 4, 4> ortho(Scalar const &left, Scalar const &right,
+                                  Scalar const &bottom, Scalar const &top,
+                                  Scalar const &zNear, Scalar const &zFar)
+{
+    Eigen::Matrix<Scalar, 4, 4> mat = Eigen::Matrix<Scalar, 4, 4>::Identity();
+    mat(0, 0) = Scalar(2) / (right - left);
+    mat(1, 1) = Scalar(2) / (top - bottom);
+    mat(2, 2) = -Scalar(2) / (zFar - zNear);
+    mat(3, 0) = -(right + left) / (right - left);
+    mat(3, 1) = -(top + bottom) / (top - bottom);
+    mat(3, 2) = -(zFar + zNear) / (zFar - zNear);
+    return mat;
+}
 
 } // namespace Eigen
 
@@ -207,7 +198,8 @@ public:
     static double SmoothStep(double t);
 
     // matrices
-    static tMatrix TransformMat(const tVector &translation, const tVector &euler_xyz_orientation);
+    static tMatrix TransformMat(const tVector &translation,
+                                const tVector &euler_xyz_orientation);
     static tMatrix TranslateMat(const tVector &trans);
     static tMatrix ScaleMat(double scale);
     static tMatrix ScaleMat(const tVector &scale);
@@ -383,9 +375,9 @@ public:
     static tVector SkewMatToVector(const tMatrix &);
     static bool IsSame(const tVector &v1, const tVector &v2, const double eps);
     static void ThresholdOp(tVectorXd &v, double threshold = 1e-6);
-    static tVector CalcAxisAngleFromOneVectorToAnother(const tVector & v0, const tVector & v1);
-    template <typename T>
-    static const std::string EigenToString(const T &mat)
+    static tVector CalcAxisAngleFromOneVectorToAnother(const tVector &v0,
+                                                       const tVector &v1);
+    template <typename T> static const std::string EigenToString(const T &mat)
     {
         std::stringstream ss;
         ss << mat;
@@ -404,13 +396,11 @@ public:
     {
         mat = (threshold < mat.array().abs()).select(mat, 0.0f);
     }
-    template <typename T>
-    static tVector Expand(const T &vec, double n)
+    template <typename T> static tVector Expand(const T &vec, double n)
     {
         return tVector(vec[0], vec[1], vec[2], n);
     }
-    template <typename T>
-    static tMatrix ExpandMat(const T &raw_mat)
+    template <typename T> static tMatrix ExpandMat(const T &raw_mat)
     {
         tMatrix mat = tMatrix::Zero();
         mat.block(0, 0, 3, 3) = raw_mat.block(0, 0, 3, 3);
@@ -419,12 +409,16 @@ public:
     static tVector RayCastTri(const tVector &ori, const tVector &dir,
                               const tVector &p1, const tVector &p2,
                               const tVector &p3, double eps = 1e-10);
-    static tVector RayCastPlane(const tVector &ray_ori,
-                                const tVector &ray_dir, const tVector &plane_eqaution,
+    static tVector RayCastPlane(const tVector &ray_ori, const tVector &ray_dir,
+                                const tVector &plane_eqaution,
                                 double eps = 1e-10);
-    static tMatrixXd CartesianProduct(const std::vector<std::vector<double>> &lists);
-    static std::vector<std::vector<double>> CartesianProductVec(const std::vector<std::vector<double>> &lists);
-    static double CalcDistanceFromPointToLine(const tVector3d &point, const tVector3d &line_origin, const tVector3d &line_end);
+    static tMatrixXd
+    CartesianProduct(const std::vector<std::vector<double>> &lists);
+    static std::vector<std::vector<double>>
+    CartesianProductVec(const std::vector<std::vector<double>> &lists);
+    static double CalcDistanceFromPointToLine(const tVector3d &point,
+                                              const tVector3d &line_origin,
+                                              const tVector3d &line_end);
     static tVector CalcNormalFromPlane(const tVector &plane_equation);
     static double EvaluatePlane(const tVector &plane, const tVector &point);
     static tVector SampleFromPlane(const tVector &plane_equation);
@@ -432,8 +426,7 @@ public:
 private:
     static cRand gRand;
 
-    template <typename T>
-    static T SignAux(T val)
+    template <typename T> static T SignAux(T val)
     {
         return (T(0) < val) - (val < T(0));
     }

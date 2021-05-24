@@ -1,7 +1,8 @@
 #include "Raycaster.h"
 #include "utils/LogUtil.h"
 // cRaycaster::cRaycaster(const std::vector<tTriangle *> triangles,
-//                        const std::vector<tVertex *> vertices) : mTriangleArray(triangles), mVertexArray(vertices)
+//                        const std::vector<tVertex *> vertices) :
+//                        mTriangleArray(triangles), mVertexArray(vertices)
 cRaycaster::cRaycaster()
 {
     mTriangleArray_lst.clear();
@@ -19,10 +20,9 @@ void cRaycaster::AddResources(const std::vector<tTriangle *> triangles,
 
 /**
  * \brief               Do raycast, calculate the intersection
-*/
+ */
 void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
-                         int &selected_tri_id,
-                         tVector &raycast_point) const
+                         int &selected_tri_id, tVector &raycast_point) const
 {
     // 1. init
     *selected_tri = nullptr;
@@ -61,8 +61,9 @@ void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
 
 /**
  * \brief           Calculate the depth image
-*/
-void cRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera, std::string)
+ */
+void cRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera,
+                              std::string)
 {
     SIM_ASSERT("cRaycaster::CalcDepthMap hasn't been finished yet");
 }

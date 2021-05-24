@@ -2,9 +2,9 @@
 #include "SimScene.h"
 
 /**
- * \brief           Positon based method 
- * 
-*/
+ * \brief           Positon based method
+ *
+ */
 
 struct tTriangle;
 struct tEdge;
@@ -36,8 +36,10 @@ protected:
     bool mEnableParallelPBD;                 // enable parallel pbd
     bool mEnableBendingPBD;                  // enable bending constraint
     double mBendingStiffnessPBD;             // bending constraint stiffness PBD
-    tEigenArr<tVector> mBendingMatrixKArray; // the array of bending matrix "K" for inextensible surface
-    // std::vector<std::vector<int>> mColorGroupPBD; // divide all constraints into several groups, which there is not shared vertices in a same group
+    tEigenArr<tVector> mBendingMatrixKArray; // the array of bending matrix "K"
+                                             // for inextensible surface
+    // std::vector<std::vector<int>> mColorGroupPBD; // divide all constraints
+    // into several groups, which there is not shared vertices in a same group
 
     // void InitColorGroupPBD();
     void UpdateSubstepPBD();

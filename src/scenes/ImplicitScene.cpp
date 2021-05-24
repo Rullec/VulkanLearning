@@ -38,8 +38,9 @@ void cImplicitScene::InitGeometry(const Json::Value &conf)
 void cImplicitScene::Reset() {}
 
 /**
- * \brief           Calcualte Xnext by implicit integration, which means, solve the system equation by newton iteration
-*/
+ * \brief           Calcualte Xnext by implicit integration, which means, solve
+ * the system equation by newton iteration
+ */
 #include <Eigen/SparseLU>
 tVectorXd cImplicitScene::CalcNextPositionImplicit()
 {
@@ -48,9 +49,10 @@ tVectorXd cImplicitScene::CalcNextPositionImplicit()
 
         G(X) = dt2 * F_int(X) - M * X + M (2 * Xcur - Xpre) + dt2 * Fext = 0
 
-        Let x0 = Xcur as an init solution (we can certainly have some other init x0)
-        Let i = 0
-        1. Calc res = G(Xi), if i > max_iters or |res| < thre, to step5; else step 2
+        Let x0 = Xcur as an init solution (we can certainly have some other init
+       x0) Let i = 0
+        1. Calc res = G(Xi), if i > max_iters or |res| < thre, to step5; else
+       step 2
         2. Xi <- Xi - (dGdX).inv() * res, i+=1, to step1
         5. return res
     */
@@ -94,7 +96,7 @@ tVectorXd cImplicitScene::CalcNextPositionImplicit()
             solver.analyzePattern(dGdx);
 
         solver.factorize(dGdx);
-        //Use the factors to solve the linear system
+        // Use the factors to solve the linear system
         // x = ;
         x0 = x0 - solver.solve(res);
         cur_iter++;
@@ -124,7 +126,7 @@ tVectorXd cImplicitScene::CalcNextPositionImplicit()
 /**
  * \brief           given current pos, calculate the value of dynamic equation
  *      G(x) = 2 * Xcur - Xpre - X + Minv * dt2 * (Fext + Fint) = 0
-*/
+ */
 void cImplicitScene::CalcGxImplicit(const tVectorXd &xcur, tVectorXd &Gx,
                                     tVectorXd &fint_buf, tVectorXd &fext_buf,
                                     tVectorXd &fdamp_buffer) const
@@ -139,8 +141,8 @@ void cImplicitScene::CalcGxImplicit(const tVectorXd &xcur, tVectorXd &Gx,
 }
 
 /**
- * \brief               Given x, Calculate d(Gx)/dx 
-*/
+ * \brief               Given x, Calculate d(Gx)/dx
+ */
 void cImplicitScene::CalcdGxdxImplicit(const tVectorXd &x,
                                        tMatrixXd &dGdx) const
 {
@@ -161,15 +163,16 @@ void cImplicitScene::CalcdGxdxImplicit(const tVectorXd &x,
 
             Calc:
                 d(\bar{f}_i) / dxi, d(\bar{f}_i) / dxj
-        
-            dfi/dxi = k * I3 
+
+            dfi/dxi = k * I3
                     - k * l_{raw} *
                         (
-                            I_3 * |xi - xj| - (xi - xj) * (xi - xj)^T / |xi - xj|
+                            I_3 * |xi - xj| - (xi - xj) * (xi - xj)^T / |xi -
+           xj|
                         )
                         /
                         (xi - xj)^2
-        
+
             dfi/dxj = - dfi/dxi
             dfj/dxi = - dfi/dxi
             dfj/dxj = - dfi/dxj = dfidxi
@@ -191,8 +194,7 @@ void cImplicitScene::CalcdGxdxImplicit(const tVectorXd &x,
         {
             printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
                    id0, id0, id1, dist);
-            std::cout << "dfidxi = \n"
-                      << dfidxi << std::endl;
+            std::cout << "dfidxi = \n" << dfidxi << std::endl;
             std::cout << "pos0 = " << pos0.transpose() << std::endl;
             std::cout << "pos1 = " << pos1.transpose() << std::endl;
             std::cout << "x = " << x.transpose() << std::endl;
@@ -240,8 +242,7 @@ void cImplicitScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
         {
             printf("df%ddx%d has Nan, id0 = %d, id1 = %d, dist = %.5f\n", id0,
                    id0, id0, id1, dist);
-            std::cout << "dfidxi = \n"
-                      << dfidxi << std::endl;
+            std::cout << "dfidxi = \n" << dfidxi << std::endl;
             std::cout << "pos0 = " << pos0.transpose() << std::endl;
             std::cout << "pos1 = " << pos1.transpose() << std::endl;
             std::cout << "x = " << x.transpose() << std::endl;
@@ -274,14 +275,15 @@ void cImplicitScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
     */
     // std::cout << "dFdx = \n" << dGdx << std::endl;
     // dGdx = dt2 * Minv * dFdX - I
-    // dGdx = mCurdt * mCurdt * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() *
+    // dGdx = mCurdt * mCurdt * mInvMassMatrixDiag.asDiagonal().toDenseMatrix()
+    // *
     //            dGdx -
     //        tMatrixXd::Identity(GetNumOfFreedom(), GetNumOfFreedom());
 }
 
 /**
  * \brief           Given x0, test whehter the analytic gradient is correct
-*/
+ */
 void cImplicitScene::TestdGxdxImplicit(const tVectorXd &x0,
                                        const tMatrixXd &Gx_ana)
 {

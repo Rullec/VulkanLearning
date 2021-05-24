@@ -1,12 +1,12 @@
 #ifdef _WIN32
 #pragma once
-#include "SimScene.h"
-#include <string>
-#include "utils/DefUtil.h"
 #include "LinctexScene.h"
+#include "SimScene.h"
+#include "utils/DefUtil.h"
+#include <string>
 /**
  * \brief           scene for synthetic data
-*/
+ */
 SIM_DECLARE_CLASS_AND_PTR(cLinctexScene);
 SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
 SIM_DECLARE_CLASS_AND_PTR(tPhyPropertyManager);
@@ -22,10 +22,9 @@ public:
     virtual const tVectorXf &GetEdgesDrawBuffer() override;
     static eSceneType BuildSceneType(const std::string &str);
     virtual bool CreatePerturb(tRay *ray) override;
-    virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos) override;
+    virtual void CursorMove(int xpos, int ypos) override;
+    virtual void MouseButton(int button, int action, int mods) override;
     virtual void Key(int key, int scancode, int action, int mods) override;
-    virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
-                             int mods) override;
 
 protected:
     struct tSyncDataNoise

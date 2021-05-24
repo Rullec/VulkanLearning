@@ -5,8 +5,7 @@
 // #include "utils/LogUtil.h"
 #include <iostream>
 
-tPhyPropertyManager::tPhyPropertyManager(
-    const Json::Value &conf)
+tPhyPropertyManager::tPhyPropertyManager(const Json::Value &conf)
 {
     const std::string mode = cJsonUtil::ParseAsString("mode", conf);
     if (mode == "log")
@@ -34,7 +33,8 @@ tPhyPropertyManager::tPhyPropertyManager(
         mVisibleIndex = tVectorXi::Ones(tPhyProperty::mNumOfProperties) * -1;
         for (int i = 0; i < tPhyProperty::mNumOfProperties; i++)
         {
-            Json::Value sub_value = cJsonUtil::ParseAsValue(tPhyProperty::mPropertiesName[i], props);
+            Json::Value sub_value = cJsonUtil::ParseAsValue(
+                tPhyProperty::mPropertiesName[i], props);
             // std::cout << sub_value << std::endl;
             tVectorXd range = cJsonUtil::ReadVectorJson(sub_value["range"]);
             mSamples[i] = cJsonUtil::ParseAsInt("num_of_samples", sub_value);
@@ -45,10 +45,15 @@ tPhyPropertyManager::tPhyPropertyManager(
             {
                 mVisibleIndex[i] = cJsonUtil::ParseAsInt("index", sub_value);
             }
-            std::cout << "[debug] property " << tPhyProperty::mPropertiesName[i] << " range = " << range.transpose() << " samples = " << mSamples[i] << " visi = " << mVisibilities[i] << std::endl;
+            std::cout << "[debug] property " << tPhyProperty::mPropertiesName[i]
+                      << " range = " << range.transpose()
+                      << " samples = " << mSamples[i]
+                      << " visi = " << mVisibilities[i] << std::endl;
         }
-        std::cout << "visible index = " << mVisibleIndex.transpose() << std::endl;
-        InitExchangeablePairs(cJsonUtil::ParseAsValue("exchangeable_pairs", conf));
+        std::cout << "visible index = " << mVisibleIndex.transpose()
+                  << std::endl;
+        InitExchangeablePairs(
+            cJsonUtil::ParseAsValue("exchangeable_pairs", conf));
         // exit(0);
         InitFeatures();
     }
@@ -57,8 +62,10 @@ tPhyPropertyManager::tPhyPropertyManager(
     // {
     //     auto prop = GetProperty(i);
     //     printf("-------------%d----------\n", i);
-    //     std::cout << "full feature = " << prop->BuildFullFeatureVector().transpose() << std::endl;
-    //     std::cout << "visible feature = " << prop->BuildVisibleFeatureVector().transpose() << std::endl;
+    //     std::cout << "full feature = " <<
+    //     prop->BuildFullFeatureVector().transpose() << std::endl; std::cout <<
+    //     "visible feature = " << prop->BuildVisibleFeatureVector().transpose()
+    //     << std::endl;
     // }
     // exit(0);
     // std::cout << "sample " << mSamplePerProperty << std::endl;
@@ -66,14 +73,13 @@ tPhyPropertyManager::tPhyPropertyManager(
 
 /**
  * \brief               Init exchangeable pairs
-*/
+ */
 void tPhyPropertyManager::InitExchangeablePairs(const Json::Value &conf)
 {
     for (int i = 0; i < conf.size(); i++)
     {
-        std::string
-            name0 = conf[i][0].asString(),
-            name1 = conf[i][1].asString();
+        std::string name0 = conf[i][0].asString(),
+                    name1 = conf[i][1].asString();
         int idx0 = tPhyProperty::GetFeatureIdx(name0),
             idx1 = tPhyProperty::GetFeatureIdx(name1);
         mExchangeablePairs.push_back(std::pair<int, int>(idx0, idx1));
@@ -91,7 +97,8 @@ tPhyPropertyPtr tPhyPropertyManager::GetProperty(int i)
     // {
     //     // if (this->IsEnd() == true)
     //     // {
-    //     //     SIM_ERROR("now the property is end, failed to get next property");
+    //     //     SIM_ERROR("now the property is end, failed to get next
+    //     property");
     //     // }
     //     // else
     //     // {
@@ -100,9 +107,10 @@ tPhyPropertyPtr tPhyPropertyManager::GetProperty(int i)
     auto ptr = std::make_shared<tBatchProperty>();
     ptr->ReadFeatureVector(mAllPropertyFeatures.row(i));
     ptr->SetVisilibities(this->mVisibilities, this->mVisibleIndex);
-    // std::cout << "visible feature = " << ptr->BuildVisibleFeatureVector().transpose() << std::endl;
-    // std::cout << "full feature = " << ptr->BuildFullFeatureVector().transpose() << std::endl;
-    // std::cout
+    // std::cout << "visible feature = " <<
+    // ptr->BuildVisibleFeatureVector().transpose() << std::endl; std::cout <<
+    // "full feature = " << ptr->BuildFullFeatureVector().transpose() <<
+    // std::endl; std::cout
     //     << "hans't been finished yet\n";
     // exit(0);
     // ptr->ReadFeatureVector(CalcPropertyFromIndices(mNextSampleIndices));
@@ -143,16 +151,17 @@ tPhyPropertyPtr tPhyPropertyManager::GetProperty(int i)
 //     for (int i = 0; i < tPhyProperty::mNumOfProperties; i++)
 //     {
 //         tVector3d feature_range = cJsonUtil::ReadVectorJson(
-//                                       cJsonUtil::ParseAsValue(tPhyProperty::mPropertiesName[i], prop_range_json))
-//                                       .segment(0, 3);
+//                                       cJsonUtil::ParseAsValue(tPhyProperty::mPropertiesName[i],
+//                                       prop_range_json)) .segment(0, 3);
 //         mPropMin[i] = feature_range[0];
 //         mPropDefault[i] = feature_range[1];
 //         mPropMax[i] = feature_range[2];
 //     }
 //     SIM_ASSERT(prop_range_json.size() == tPhyProperty::mNumOfProperties);
-//     std::cout << "[debug] raw prop min = " << mPropMin.transpose() << std::endl;
-//     std::cout << "[debug] raw prop max = " << mPropMax.transpose() << std::endl;
-//     std::cout << "[debug] raw prop default = " << mPropDefault.transpose() << std::endl;
+//     std::cout << "[debug] raw prop min = " << mPropMin.transpose() <<
+//     std::endl; std::cout << "[debug] raw prop max = " << mPropMax.transpose()
+//     << std::endl; std::cout << "[debug] raw prop default = " <<
+//     mPropDefault.transpose() << std::endl;
 //     // exit(0);
 // }
 
@@ -164,17 +173,19 @@ tPhyPropertyPtr tPhyPropertyManager::GetProperty(int i)
 //         // division
 //         if (idx >= 1)
 //         {
-//             mNextSampleIndices[idx - 1] += std::floor(mNextSampleIndices[idx] / mSamplePerProperty);
+//             mNextSampleIndices[idx - 1] += std::floor(mNextSampleIndices[idx]
+//             / mSamplePerProperty);
 //         }
 //         mNextSampleIndices[idx] %= mSamplePerProperty;
 //     }
 // }
 
 /**
- * \brief           
-*/
+ * \brief
+ */
 #include <cmath>
-std::vector<double> tPhyPropertyManager::CalcPropertyDiscreteRange(int idx) const
+std::vector<double>
+tPhyPropertyManager::CalcPropertyDiscreteRange(int idx) const
 {
     std::vector<double> values(0);
     int gap = mSamples[idx] - 1;
@@ -188,7 +199,10 @@ std::vector<double> tPhyPropertyManager::CalcPropertyDiscreteRange(int idx) cons
         {
             double min_log_value = std::log(mPropMin[idx]);
             double incremental =
-                (gap > 0 ? (std::log(mPropMax[idx]) - std::log(mPropMin[idx])) / (gap) : 0) * i;
+                (gap > 0 ? (std::log(mPropMax[idx]) - std::log(mPropMin[idx])) /
+                               (gap)
+                         : 0) *
+                i;
             values.push_back(std::exp(min_log_value + incremental));
             break;
         }
@@ -236,7 +250,9 @@ void tPhyPropertyManager::InitFeatures()
     for (int i = 0; i < tPhyProperty::mNumOfProperties; i++)
     {
         property_values.push_back(CalcPropertyDiscreteRange(i));
-        // std::cout << "vec = " << vec2eigen(property_values[property_values.size() - 1]).transpose() << std::endl;
+        // std::cout << "vec = " <<
+        // vec2eigen(property_values[property_values.size() - 1]).transpose() <<
+        // std::endl;
     }
 
     // 2. cartesian prod
@@ -246,8 +262,7 @@ void tPhyPropertyManager::InitFeatures()
 
     for (auto pair : mExchangeablePairs)
     {
-        int prop_id0 = pair.first,
-            prop_id1 = pair.second;
+        int prop_id0 = pair.first, prop_id1 = pair.second;
         double_vv::iterator it = res.begin();
         while (it != res.end())
         {
@@ -257,14 +272,16 @@ void tPhyPropertyManager::InitFeatures()
             auto new_item_it = std::find(res.begin(), res.end(), new_item);
             if (new_item_it != res.end() && new_item_it != it)
             {
-                // std::cout << "from " << vec2eigen(*it).transpose() << " delete " << vec2eigen(new_item).transpose() << std::endl;
+                // std::cout << "from " << vec2eigen(*it).transpose() << "
+                // delete " << vec2eigen(new_item).transpose() << std::endl;
                 res.erase(new_item_it);
             }
             it++;
         }
     }
 
-    mAllPropertyFeatures.noalias() = tMatrixXd::Zero(res.size(), tPhyProperty::mNumOfProperties);
+    mAllPropertyFeatures.noalias() =
+        tMatrixXd::Zero(res.size(), tPhyProperty::mNumOfProperties);
 
     for (int i = 0; i < res.size(); i++)
     {

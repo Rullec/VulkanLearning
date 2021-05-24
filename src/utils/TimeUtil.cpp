@@ -20,11 +20,10 @@ double cTimeUtil::End(const std::string &name, bool silent /* = false*/)
         exit(1);
     }
 
-    double cost = (high_resolution_clock::now() - time_it->second).count() * 1e-6;
+    double cost =
+        (high_resolution_clock::now() - time_it->second).count() * 1e-6;
     if (silent == false)
-        std::cout << "[log] " << name << " cost time = "
-                  << cost
-                  << " ms\n";
+        std::cout << "[log] " << name << " cost time = " << cost << " ms\n";
     mTimeTable.erase(time_it);
     return cost;
 }

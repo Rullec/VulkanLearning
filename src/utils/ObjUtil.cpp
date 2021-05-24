@@ -1,10 +1,10 @@
 #include "utils/ObjUtil.h"
 #define TINYOBJLOADER_IMPLEMENTATION
+#include "geometries/Primitives.h"
+#include "geometries/Triangulator.h"
 #include "tinyobjloader/tiny_obj_loader.h"
 #include "utils/LogUtil.h"
-#include "geometries/Primitives.h"
 #include <iostream>
-#include "geometries/Triangulator.h"
 
 void cObjUtil::LoadObj(const cObjUtil::tParams &param,
                        std::vector<tVertex *> &v_array,
@@ -72,37 +72,45 @@ void cObjUtil::LoadObj(const cObjUtil::tParams &param,
             {
                 // access to vertex
                 tinyobj::index_t idx = shape.mesh.indices[index_offset + v];
-                tinyobj::real_t vx = attrib.vertices[3 * size_t(idx.vertex_index) + 0];
-                tinyobj::real_t vy = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
-                tinyobj::real_t vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
+                tinyobj::real_t vx =
+                    attrib.vertices[3 * size_t(idx.vertex_index) + 0];
+                tinyobj::real_t vy =
+                    attrib.vertices[3 * size_t(idx.vertex_index) + 1];
+                tinyobj::real_t vz =
+                    attrib.vertices[3 * size_t(idx.vertex_index) + 2];
                 int vertex_id = idx.vertex_index;
                 while (vertex_id >= v_array.size())
                     v_array.push_back(nullptr);
                 if (v_array[vertex_id] == nullptr)
                 {
                     v_array[vertex_id] = new tVertex();
-                    v_array[vertex_id]->mPos = tVector(
-                        vx, vy, vz, 1);
+                    v_array[vertex_id]->mPos = tVector(vx, vy, vz, 1);
                 }
-                // // Check if `normal_index` is zero or positive. negative = no normal data
-                // if (idx.normal_index >= 0)
+                // // Check if `normal_index` is zero or positive. negative = no
+                // normal data if (idx.normal_index >= 0)
                 // {
-                //     tinyobj::real_t nx = attrib.normals[3 * size_t(idx.normal_index) + 0];
-                //     tinyobj::real_t ny = attrib.normals[3 * size_t(idx.normal_index) + 1];
-                //     tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
+                //     tinyobj::real_t nx = attrib.normals[3 *
+                //     size_t(idx.normal_index) + 0]; tinyobj::real_t ny =
+                //     attrib.normals[3 * size_t(idx.normal_index) + 1];
+                //     tinyobj::real_t nz = attrib.normals[3 *
+                //     size_t(idx.normal_index) + 2];
                 // }
 
-                // // Check if `texcoord_index` is zero or positive. negative = no texcoord data
-                // if (idx.texcoord_index >= 0)
+                // // Check if `texcoord_index` is zero or positive. negative =
+                // no texcoord data if (idx.texcoord_index >= 0)
                 // {
-                //     tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
-                //     tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
+                //     tinyobj::real_t tx = attrib.texcoords[2 *
+                //     size_t(idx.texcoord_index) + 0]; tinyobj::real_t ty =
+                //     attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
                 // }
 
                 // // Optional: vertex colors
-                // // tinyobj::real_t red   = attrib.colors[3*size_t(idx.vertex_index)+0];
-                // // tinyobj::real_t green = attrib.colors[3*size_t(idx.vertex_index)+1];
-                // // tinyobj::real_t blue  = attrib.colors[3*size_t(idx.vertex_index)+2];
+                // // tinyobj::real_t red   =
+                // attrib.colors[3*size_t(idx.vertex_index)+0];
+                // // tinyobj::real_t green =
+                // attrib.colors[3*size_t(idx.vertex_index)+1];
+                // // tinyobj::real_t blue  =
+                // attrib.colors[3*size_t(idx.vertex_index)+2];
             }
             index_offset += fv;
 
@@ -116,7 +124,7 @@ void cObjUtil::LoadObj(const cObjUtil::tParams &param,
 
 /**
  * \brief       Given vertex array and triangle array, build the edge list
-*/
+ */
 #include <set>
 typedef std::pair<int, int> int_pair;
 void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
@@ -126,10 +134,7 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
     e_array.clear();
 
     // 1. build duplicate edge array
-    std::map<
-        int_pair,
-        int_pair>
-        edge_info;
+    std::map<int_pair, int_pair> edge_info;
     edge_info.clear();
 
     // for each triangle
@@ -141,29 +146,18 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
         for (int i = 0; i < 3; i++)
         {
             // auto e = new tEdge();
-            int id0 =
-                    (i == 0)
-                        ? (
-                              tri->mId0)
-                        : (
-                              (i == 1) ? tri->mId1
-                                       : (tri->mId2)),
-                id1 =
-                    (i == 0)
-                        ? (
-                              tri->mId1)
-                        : (
-                              (i == 1) ? tri->mId2
-                                       : (tri->mId0));
+            int id0 = (i == 0) ? (tri->mId0)
+                               : ((i == 1) ? tri->mId1 : (tri->mId2)),
+                id1 = (i == 0) ? (tri->mId1)
+                               : ((i == 1) ? tri->mId2 : (tri->mId0));
 
             if (id0 > id1)
             {
                 std::swap(id0, id1);
             }
             auto edge_id_pairs = int_pair(id0, id1);
-            std::map<
-                int_pair,
-                int_pair>::iterator it = edge_info.find(edge_id_pairs);
+            std::map<int_pair, int_pair>::iterator it =
+                edge_info.find(edge_id_pairs);
 
             // create new edge
             if (it == edge_info.end())
@@ -184,10 +178,8 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
     // set dataset for edges
     for (auto t = edge_info.begin(); t != edge_info.end(); t++)
     {
-        int v0 = t->first.first,
-            v1 = t->first.second;
-        int tid0 = t->second.first,
-            tid1 = t->second.second;
+        int v0 = t->first.first, v1 = t->first.second;
+        int tid0 = t->second.first, tid1 = t->second.second;
         tEdge *edge = new tEdge();
         edge->mId0 = v0;
         edge->mId1 = v1;
@@ -196,36 +188,33 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
         edge->mTriangleId1 = tid1;
         edge->mIsBoundary = (tid1 == -1);
         e_array.push_back(edge);
-        // printf("[debug] edge %d, v0 %d, v1 %d, raw length %.3f, t0 %d, t1 %d, is_boud %d\n",
+        // printf("[debug] edge %d, v0 %d, v1 %d, raw length %.3f, t0 %d, t1 %d,
+        // is_boud %d\n",
 
-        //    e_array.size() - 1, v0, v1, edge->mRawLength, tid0, tid1, edge->mIsBoundary);
+        //    e_array.size() - 1, v0, v1, edge->mRawLength, tid0, tid1,
+        //    edge->mIsBoundary);
     }
     std::cout << "[debug] build " << e_array.size() << " edges\n";
 }
 
 /**
  * \brief           Build plane geometry data
-*/
-void cObjUtil::BuildPlaneGeometryData(
-    const double scale,
-    const tVector &plane_equation,
-    std::vector<tVertex *> &vertex_array,
-    std::vector<tEdge *> &edge_array,
-    std::vector<tTriangle *> &triangle_array)
+ */
+void cObjUtil::BuildPlaneGeometryData(const double scale,
+                                      const tVector &plane_equation,
+                                      std::vector<tVertex *> &vertex_array,
+                                      std::vector<tEdge *> &edge_array,
+                                      std::vector<tTriangle *> &triangle_array)
 {
     vertex_array.clear();
     edge_array.clear();
     triangle_array.clear();
     // 1. calculate a general vertex array
     tVector cur_normal = tVector(0, 1, 0, 0);
-    tEigenArr<tVector> pos_lst = {
-        tVector(1, 0, -1, 1),
-        tVector(-1, 0, -1, 1),
-        tVector(-1, 0, 1, 1),
-        tVector(1, 0, 1, 1)};
-    tEigenArr<tVector3i> triangle_idx_lst = {
-        tVector3i(0, 1, 3),
-        tVector3i(3, 1, 2)};
+    tEigenArr<tVector> pos_lst = {tVector(1, 0, -1, 1), tVector(-1, 0, -1, 1),
+                                  tVector(-1, 0, 1, 1), tVector(1, 0, 1, 1)};
+    tEigenArr<tVector3i> triangle_idx_lst = {tVector3i(0, 1, 3),
+                                             tVector3i(3, 1, 2)};
 
     // build vertices
     for (auto &x : pos_lst)
@@ -252,8 +241,8 @@ void cObjUtil::BuildPlaneGeometryData(
     // rotation
 
     tVector normal = cMathUtil::CalcNormalFromPlane(plane_equation);
-    tMatrix transform = cMathUtil::AxisAngleToRotmat(cMathUtil::CalcAxisAngleFromOneVectorToAnother(
-        cur_normal, normal));
+    tMatrix transform = cMathUtil::AxisAngleToRotmat(
+        cMathUtil::CalcAxisAngleFromOneVectorToAnother(cur_normal, normal));
 
     // translation
     {
@@ -268,7 +257,8 @@ void cObjUtil::BuildPlaneGeometryData(
     {
         // std::cout << "old pos0 = " << x->mPos.transpose() << std::endl;
         x->mPos = transform * x->mPos;
-        // std::cout << "eval = " << cMathUtil::EvaluatePlane(plane_equation, x->mPos) << std::endl;
+        // std::cout << "eval = " << cMathUtil::EvaluatePlane(plane_equation,
+        // x->mPos) << std::endl;
     }
     // exit(0);
 }

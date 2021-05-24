@@ -41,6 +41,7 @@ public:
 
     float pitch, yaw;
     tVector3f pos, center, up, front;
+    float fov;
 
 protected:
     eCameraType type;

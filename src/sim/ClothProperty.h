@@ -2,7 +2,7 @@
 #include "utils/MathUtil.h"
 namespace Json
 {
-    class Value;
+class Value;
 };
 struct tPhyProperty
 {
@@ -14,12 +14,10 @@ struct tPhyProperty
     double mBendingBias;
 
     inline static const int mNumOfProperties = 5;
-    inline static const std::string mPropertiesName[tPhyProperty::mNumOfProperties] = {
-        "stretch_warp",
-        "stretch_weft",
-        "bending_warp",
-        "bending_weft",
-        "bending_bias"};
+    inline static const std::string
+        mPropertiesName[tPhyProperty::mNumOfProperties] = {
+            "stretch_warp", "stretch_weft", "bending_warp", "bending_weft",
+            "bending_bias"};
 
     virtual void Init(const Json::Value &conf); // normal init
     virtual tVectorXd BuildFullFeatureVector() const;
@@ -35,7 +33,8 @@ struct tBatchProperty : public tPhyProperty
     bool mVisibility[mNumOfProperties] = {};
     tVectorXi mVisibleFeatureIndex;
     int mNumOfVisibleFeature;
-    void SetVisilibities(std::vector<bool> visibilities, const tVectorXi &visible_faeture_index);
+    void SetVisilibities(std::vector<bool> visibilities,
+                         const tVectorXi &visible_faeture_index);
     virtual tVectorXd BuildVisibleFeatureVector() const override;
 };
 #endif

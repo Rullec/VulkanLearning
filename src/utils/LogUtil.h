@@ -37,28 +37,27 @@ private:
 
 #define SPD_AUGMENTED_LOG(X, ...)                                              \
     cLogUtil::mGlobalLogger->X(                                                \
-        fmt::format("[{}:{} @ {}] ", __FILENAME__, __LINE__, __FUNCTION__) +     \
+        fmt::format("[{}:{} @ {}] ", __FILENAME__, __LINE__, __FUNCTION__) +   \
         fmt::format(__VA_ARGS__))
 
-#define SIM_OUTPUT(...)                                                      \
-    cLogUtil::mGlobalLogger->info(fmt::format(__VA_ARGS__))
+#define SIM_OUTPUT(...) cLogUtil::mGlobalLogger->info(fmt::format(__VA_ARGS__))
 
 #define SIM_TRACE(...) SPD_AUGMENTED_LOG(trace, __VA_ARGS__)
 #define SIM_DEBUG(...) SPD_AUGMENTED_LOG(debug, __VA_ARGS__)
 #define SIM_INFO(...) SPD_AUGMENTED_LOG(info, __VA_ARGS__)
 #define SIM_WARN(...) SPD_AUGMENTED_LOG(warn, __VA_ARGS__)
-#define SIM_ERROR(...)                                                       \
+#define SIM_ERROR(...)                                                         \
     {                                                                          \
         SPD_AUGMENTED_LOG(error, __VA_ARGS__);                                 \
-        SIM_UNREACHABLE;                                                     \
+        SIM_UNREACHABLE;                                                       \
     }
 
-#define SIM_ASSERT_INFO(x, ...)                                              \
+#define SIM_ASSERT_INFO(x, ...)                                                \
     {                                                                          \
         bool ___ret___ = static_cast<bool>(x);                                 \
         if (!___ret___)                                                        \
         {                                                                      \
-            SIM_ERROR(__VA_ARGS__);                                          \
+            SIM_ERROR(__VA_ARGS__);                                            \
         }                                                                      \
     }
 

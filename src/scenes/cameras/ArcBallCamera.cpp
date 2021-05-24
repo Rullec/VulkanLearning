@@ -17,13 +17,15 @@ cArcBallCamera::cArcBallCamera() : CameraBase(eCameraType::ARCBALL_CAMERA)
     // front.normalize();
 }
 cArcBallCamera::cArcBallCamera(const tVector3f &pos_, const tVector3f &center_,
-                             const tVector3f &up_) : CameraBase(eCameraType::ARCBALL_CAMERA)
+                               const tVector3f &up_, float fov_)
+    : CameraBase(eCameraType::ARCBALL_CAMERA)
 {
     pos = pos_;
     center = center_;
     up = up_;
     front = center - pos;
     front.normalize();
+    fov = fov_;
     mouse_acc *= 5e-2;
     key_acc *= 2e-2;
     // pos = tVector3f(1, 1, 0);
@@ -35,7 +37,10 @@ cArcBallCamera::cArcBallCamera(const tVector3f &pos_, const tVector3f &center_,
 
 cArcBallCamera::~cArcBallCamera() {}
 
-tMatrix4f cArcBallCamera::ViewMatrix() { return Eigen::lookAt(pos, center, up); }
+tMatrix4f cArcBallCamera::ViewMatrix()
+{
+    return Eigen::lookAt(pos, center, up);
+}
 
 void cArcBallCamera::MoveForward()
 {
@@ -65,8 +70,9 @@ void cArcBallCamera::MoveDown()
 }
 
 /**
- * \brief           Pinned the center and rotate this arcball camera when mouse moved
-*/
+ * \brief           Pinned the center and rotate this arcball camera when mouse
+ * moved
+ */
 void cArcBallCamera::MouseMove(float mouse_x, float mouse_y)
 {
     if (first_mouse)
@@ -91,11 +97,13 @@ void cArcBallCamera::MouseMove(float mouse_x, float mouse_y)
     last_x = mouse_x;
     last_y = mouse_y;
 
-    // 2. convert this vector to world frame, and opposite it (because we want to rotate the object indeed)
+    // 2. convert this vector to world frame, and opposite it (because we want
+    // to rotate the object indeed)
     tVector3f offset_vec_world =
         -1 * ViewMatrix().block(0, 0, 3, 3).inverse() * offset_vec;
 
-    // 3. calcualte center_to_pos vector, calculate the rotmat for our camera (fixed center)
+    // 3. calcualte center_to_pos vector, calculate the rotmat for our camera
+    // (fixed center)
     tVector3f center_to_pos = pos - center;
 
     tMatrix3f rotmat =

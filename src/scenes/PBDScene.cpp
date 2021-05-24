@@ -7,10 +7,8 @@
 #include <set>
 extern int SelectAnotherVerteix(tTriangle *tri, int v0, int v1);
 
-extern tVector CalculateCotangentCoeff(const tVector &x0,
-                                       tVector &x1,
-                                       tVector &x2,
-                                       tVector &x3);
+extern tVector CalculateCotangentCoeff(const tVector &x0, tVector &x1,
+                                       tVector &x2, tVector &x3);
 
 cPBDScene::cPBDScene()
 {
@@ -23,30 +21,33 @@ cPBDScene::cPBDScene()
 
 /**
  * \brief           Calculat ethe bending constant matrix "K" for each edge
- * 
+ *
  * if one edge is located in the boundary, its value will be "Nan"
-*/
+ */
 void cPBDScene::InitBendingMatrixPBD()
 {
-    mBendingMatrixKArray.resize(mEdgeArray.size(), tVector::Ones() * std::nan(""));
+    mBendingMatrixKArray.resize(mEdgeArray.size(),
+                                tVector::Ones() * std::nan(""));
     for (int i = 0; i < mEdgeArray.size(); i++)
     {
         const auto &e = mEdgeArray[i];
         if (e->mIsBoundary == false)
         {
             // it's an interior boundary, begin to calculate the K
-            int vid[4] = {e->mId0,
-                          e->mId1,
-                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId0], e->mId0, e->mId1),
-                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId1], e->mId0, e->mId1)};
-            // printf("[debug] bending, tri %d and tri %d, shared edge: %d, total vertices: %d %d %d %d\n",
-            //        e->mTriangleId0, e->mTriangleId1, i, vid[0], vid[1], vid[2], vid[3]);
+            int vid[4] = {e->mId0, e->mId1,
+                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId0],
+                                               e->mId0, e->mId1),
+                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId1],
+                                               e->mId0, e->mId1)};
+            // printf("[debug] bending, tri %d and tri %d, shared edge: %d,
+            // total vertices: %d %d %d %d\n",
+            //        e->mTriangleId0, e->mTriangleId1, i, vid[0], vid[1],
+            //        vid[2], vid[3]);
             mBendingMatrixKArray[i].noalias() = CalculateCotangentCoeff(
-                mVertexArray[vid[0]]->mPos,
-                mVertexArray[vid[1]]->mPos,
-                mVertexArray[vid[2]]->mPos,
-                mVertexArray[vid[3]]->mPos);
-            // std::cout << "[debug] pbd K for edge " << i << " = " << mBendingMatrixKArray[i].transpose() << std::endl;
+                mVertexArray[vid[0]]->mPos, mVertexArray[vid[1]]->mPos,
+                mVertexArray[vid[2]]->mPos, mVertexArray[vid[3]]->mPos);
+            // std::cout << "[debug] pbd K for edge " << i << " = " <<
+            // mBendingMatrixKArray[i].transpose() << std::endl;
         }
     }
     // exit(0);
@@ -63,9 +64,9 @@ cPBDScene::~cPBDScene()
  * 1. build vertex
  * 2. build edge
  * 3. build triangles
- * 
+ *
  *  For more details, please check the note "将平面划分为三角形.md"
-*/
+ */
 #include "geometries/Triangulator.h"
 void cPBDScene::InitGeometry(const Json::Value &conf)
 {
@@ -103,22 +104,26 @@ void cPBDScene::InitGeometry(const Json::Value &conf)
 }
 
 extern void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
-                                         Eigen::Map<tVectorXf> &buffer, int &st_pos);
+                                         Eigen::Map<tVectorXf> &buffer,
+                                         int &st_pos);
 extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1,
-                                     Eigen::Map<tVectorXf> &buffer, int &st_pos);
+                                     Eigen::Map<tVectorXf> &buffer,
+                                     int &st_pos);
 extern void CalcEdgeDrawBufferSingle(const tVector &v0, const tVector &v1,
-                                     Eigen::Map<tVectorXf> &buffer, int &st_pos);
+                                     Eigen::Map<tVectorXf> &buffer,
+                                     int &st_pos);
 
 void cPBDScene::CalcTriangleDrawBuffer()
 {
     mTriangleDrawBuffer.fill(std::nan(""));
     int st = 0;
-    Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data(), mTriangleDrawBuffer.size());
+    Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data(),
+                              mTriangleDrawBuffer.size());
     for (auto &x : mTriangleArray)
     {
-        CalcTriangleDrawBufferSingle(
-            mVertexArray[x->mId0], mVertexArray[x->mId1], mVertexArray[x->mId2],
-            ref, st);
+        CalcTriangleDrawBufferSingle(mVertexArray[x->mId0],
+                                     mVertexArray[x->mId1],
+                                     mVertexArray[x->mId2], ref, st);
     }
 }
 
@@ -136,14 +141,14 @@ void cPBDScene::CalcEdgesDrawBuffer()
     //           << std::endl;
     for (auto &x : mRayArray)
     {
-        CalcEdgeDrawBufferSingle(x->mOrigin, x->mOrigin + x->mDir * 10,
-                                 ref, st);
+        CalcEdgeDrawBufferSingle(x->mOrigin, x->mOrigin + x->mDir * 10, ref,
+                                 st);
     }
 }
 
 /**
  * \brief           Update substeps
-*/
+ */
 void cPBDScene::UpdateSubstep()
 {
     // std::cout << "[before update] x = " << mXcur.transpose() << std::endl;
@@ -169,8 +174,8 @@ void cPBDScene::UpdateSubstep()
 }
 
 /**
- * \brief           Update the unconstrained vel and pos 
-*/
+ * \brief           Update the unconstrained vel and pos
+ */
 void cPBDScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
 {
     // std::cout << "fext = " << fext.transpose() << std::endl;
@@ -190,7 +195,7 @@ void cPBDScene::UpdateVelAndPosUnconstrained(const tVectorXd &fext)
 /**
  * \brief           solve the stretch (spring) constraint for PBD
  * \param final_k   the determined constraint stiffness
-*/
+ */
 void cPBDScene::StretchConstraintProcessPBD(double final_k)
 {
 
@@ -209,16 +214,13 @@ void cPBDScene::StretchConstraintProcessPBD(double final_k)
         double w1 = mInvMassMatrixDiag[3 * e->mId0],
                w2 = mInvMassMatrixDiag[3 * e->mId1];
         double w_sum = w1 + w2;
-        double coef1 = -w1 / w_sum * final_k,
-               coef2 = w2 / w_sum * final_k;
+        double coef1 = -w1 / w_sum * final_k, coef2 = w2 / w_sum * final_k;
         if (w_sum == 0)
         {
             continue;
         }
-        const tVector3d &delta_p1 =
-                            coef1 * (dist - raw) * (p1 - p2) / dist,
-                        &delta_p2 =
-                            coef2 * (dist - raw) * (p1 - p2) / dist;
+        const tVector3d &delta_p1 = coef1 * (dist - raw) * (p1 - p2) / dist,
+                        &delta_p2 = coef2 * (dist - raw) * (p1 - p2) / dist;
         {
             mXcur[3 * id0 + 0] += delta_p1[0];
             mXcur[3 * id0 + 1] += delta_p1[1];
@@ -231,8 +233,9 @@ void cPBDScene::StretchConstraintProcessPBD(double final_k)
     }
 }
 /**
- * \brief           given raw vertex vector p, solve the constraint and get the new p
-*/
+ * \brief           given raw vertex vector p, solve the constraint and get the
+ * new p
+ */
 void cPBDScene::ConstraintProcessPBD()
 {
     const int iters = mItersPBD;
@@ -254,9 +257,9 @@ void cPBDScene::ConstraintProcessPBD()
 }
 
 /**
- * \brief           process the bendign constraint 
+ * \brief           process the bendign constraint
  * \param final_k   determined PBD stiffness
-*/
+ */
 void cPBDScene::BendingConstraintProcessPBD(double final_k)
 {
     tMatrixXd K = tMatrixXd::Zero(3, 12);
@@ -269,31 +272,33 @@ void cPBDScene::BendingConstraintProcessPBD(double final_k)
             // for interior edges, calculate the nodal displacement "delta"
             /*
                 for a given interior edge (i.e. a pair of adjoint triangles),
-                the bending constraint C(x) = 0 is\in R^3 
+                the bending constraint C(x) = 0 is\in R^3
                 C(x) = [C_0, C_1, C_2] = [C_i], i = {0, 1, 2}
                 Here we solve C_i(x) \in R individually.
             */
-            int vid[4] = {e->mId0,
-                          e->mId1,
-                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId0], e->mId0, e->mId1),
-                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId1], e->mId0, e->mId1)};
+            int vid[4] = {e->mId0, e->mId1,
+                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId0],
+                                               e->mId0, e->mId1),
+                          SelectAnotherVerteix(mTriangleArray[e->mTriangleId1],
+                                               e->mId0, e->mId1)};
             tVectorXd x_total = tVectorXd::Zero(12);
 
             const tVector &K_vec = mBendingMatrixKArray[_i];
             for (int j = 0; j < 4; j++)
             {
-                K.block(0, 3 * j, 3, 3).noalias() = tMatrix3d::Identity() * K_vec[j];
-                x_total.segment(3 * j, 3).noalias() = mXcur.segment(vid[j] * 3, 3);
+                K.block(0, 3 * j, 3, 3).noalias() =
+                    tMatrix3d::Identity() * K_vec[j];
+                x_total.segment(3 * j, 3).noalias() =
+                    mXcur.segment(vid[j] * 3, 3);
             }
             // std::cout << "K = \n"
             //           << K << std::endl;
             // std::cout << "x_total = " << x_total.transpose() << std::endl;
             tVector inv_mass_vec = tVector(
-                mInvMassMatrixDiag[3 * vid[0]],
-                mInvMassMatrixDiag[3 * vid[1]],
-                mInvMassMatrixDiag[3 * vid[2]],
-                mInvMassMatrixDiag[3 * vid[3]]);
-            // std::cout << "inv mass vec = " << inv_mass_vec.transpose() << std::endl;
+                mInvMassMatrixDiag[3 * vid[0]], mInvMassMatrixDiag[3 * vid[1]],
+                mInvMassMatrixDiag[3 * vid[2]], mInvMassMatrixDiag[3 * vid[3]]);
+            // std::cout << "inv mass vec = " << inv_mass_vec.transpose() <<
+            // std::endl;
             for (int j = 0; j < 3; j++) // j is the constraint id in [0,2]
             {
                 /*
@@ -304,10 +309,9 @@ void cPBDScene::BendingConstraintProcessPBD(double final_k)
                 double C_j = K.row(j).dot(x_total);
                 // printf("[debug] C_%d = %.3f\n", j, C_j);
                 // 1. calculate \nabla_{x_k} C_j(x), k=[0, 1, 2, 3]
-                tVector3d DCj_Dxk[4] = {K.row(j).segment(3 * 0, 3),
-                                        K.row(j).segment(3 * 1, 3),
-                                        K.row(j).segment(3 * 2, 3),
-                                        K.row(j).segment(3 * 3, 3)};
+                tVector3d DCj_Dxk[4] = {
+                    K.row(j).segment(3 * 0, 3), K.row(j).segment(3 * 1, 3),
+                    K.row(j).segment(3 * 2, 3), K.row(j).segment(3 * 3, 3)};
 
                 // 2. calculate s_j
                 double s_j = 0;
@@ -321,8 +325,10 @@ void cPBDScene::BendingConstraintProcessPBD(double final_k)
                 for (int i = 0; i < 4; i++)
                 {
                     int id = vid[i];
-                    tVector3d delta = -s_j * inv_mass_vec[i] * DCj_Dxk[i] * final_k;
-                    // std::cout << "DC" << j << "Dx" << i << " = " << delta.transpose() << std::endl;
+                    tVector3d delta =
+                        -s_j * inv_mass_vec[i] * DCj_Dxk[i] * final_k;
+                    // std::cout << "DC" << j << "Dx" << i << " = " <<
+                    // delta.transpose() << std::endl;
                     mXcur.segment(id * 3, 3) += delta;
                 }
             }
@@ -330,8 +336,8 @@ void cPBDScene::BendingConstraintProcessPBD(double final_k)
     }
 }
 /**
- * \brief           
-*/
+ * \brief
+ */
 void cPBDScene::PostProcessPBD()
 {
     // SIM_WARN("PostProcessPBD hasn't been impled");
@@ -364,9 +370,12 @@ void cPBDScene::Init(const std::string &conf_path)
     mStiffnessPBD = cJsonUtil::ParseAsDouble("stiffness_pbd", pbd_config);
     mEnableParallelPBD =
         cJsonUtil::ParseAsBool("enable_parallel_pbd", pbd_config);
-    mEnableBendingPBD = cJsonUtil::ParseAsBool("enable_bending_pbd", pbd_config);
-    mBendingStiffnessPBD = cJsonUtil::ParseAsDouble("bending_stiffness_pbd", pbd_config);
-    printf("[pbd] enable bending %d, bendign stiffness %.4f\n", mEnableBendingPBD, mBendingStiffnessPBD);
+    mEnableBendingPBD =
+        cJsonUtil::ParseAsBool("enable_bending_pbd", pbd_config);
+    mBendingStiffnessPBD =
+        cJsonUtil::ParseAsDouble("bending_stiffness_pbd", pbd_config);
+    printf("[pbd] enable bending %d, bendign stiffness %.4f\n",
+           mEnableBendingPBD, mBendingStiffnessPBD);
 
     InitGeometry(root);
     InitRaycaster();
@@ -379,7 +388,7 @@ void cPBDScene::Init(const std::string &conf_path)
 
 /**
  * \brief               Update substep for projective dynamic
-*/
+ */
 void cPBDScene::UpdateSubstepProjDyn() {}
 
 bool SetColor(int edge_id, int num_of_colors, const int max_edge_id,
@@ -442,5 +451,6 @@ void cPBDScene::CalcExtForce(tVectorXd &ext_force) const
 {
     cSimScene::CalcExtForce(ext_force);
     ext_force += -mDamping * this->mVcur;
-    // std::cout << "damping = " << (-mDamping * this->mVcur).transpose() << std::endl;
+    // std::cout << "damping = " << (-mDamping * this->mVcur).transpose() <<
+    // std::endl;
 }

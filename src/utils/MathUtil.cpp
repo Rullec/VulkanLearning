@@ -638,7 +638,7 @@ double cMathUtil::QuatTheta(const tQuaternion &dq)
 
 /**
  * \brief               Calculate d(q1 * q0.conj) / dq0
-*/
+ */
 tMatrix cMathUtil::Calc_Dq1q0conj_Dq0(const tQuaternion &q0,
                                       const tQuaternion &q1)
 {
@@ -653,7 +653,7 @@ tMatrix cMathUtil::Calc_Dq1q0conj_Dq0(const tQuaternion &q0,
 
 /**
  * \brief           calculate d(Quaternion)/(daxis angle)
-*/
+ */
 tMatrix cMathUtil::Calc_DQuaternion_DAxisAngle(const tVector &aa)
 {
     double theta = aa.norm();
@@ -689,7 +689,7 @@ tMatrix cMathUtil::Calc_DQuaternion_DAxisAngle(const tVector &aa)
 
 /**
  * \brief           calculate d(quaternion)/d(euler_angles)
-*/
+ */
 tMatrixXd cMathUtil::Calc_DQuaterion_DEulerAngles(const tVector &euler_angles,
                                                   eRotationOrder order)
 {

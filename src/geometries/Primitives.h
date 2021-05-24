@@ -6,8 +6,8 @@ struct tVertex
     tVertex();
     double mMass;
     tVector mPos;
-    tVector2f
-        muv; // "texture" coordinate 2d, it means the plane coordinate for a vertex over a cloth, but now the texture in rendering
+    tVector2f muv; // "texture" coordinate 2d, it means the plane coordinate for
+                   // a vertex over a cloth, but now the texture in rendering
     tVector mColor;
 };
 
@@ -18,7 +18,9 @@ struct tEdge
     double mRawLength; // raw length of this edge
     bool mIsBoundary;  // does this edge locate in the boundary?
     int mTriangleId0,
-        mTriangleId1; // The indices of the two triangles to which this side belongs. If this edge is a boundary, the mTriangleId1 is -1
+        mTriangleId1; // The indices of the two triangles to which this side
+                      // belongs. If this edge is a boundary, the mTriangleId1
+                      // is -1
     double mK_spring; // stiffness for springs
 };
 
@@ -38,7 +40,7 @@ struct tTriangle
 
 /**
  * \brief       an origin + a directed ray
-*/
+ */
 struct tRay
 {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

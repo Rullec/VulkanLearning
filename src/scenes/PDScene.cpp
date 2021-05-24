@@ -1,19 +1,14 @@
 #include "PDScene.h"
-#include "utils/TimeUtil.hpp"
 #include "geometries/Primitives.h"
 #include "utils/JsonUtil.h"
+#include "utils/TimeUtil.hpp"
 #include <iostream>
 
 extern int SelectAnotherVerteix(tTriangle *tri, int v0, int v1);
-extern tVector CalculateCotangentCoeff(const tVector &x0,
-                                       tVector &x1,
-                                       tVector &x2,
-                                       tVector &x3);
+extern tVector CalculateCotangentCoeff(const tVector &x0, tVector &x1,
+                                       tVector &x2, tVector &x3);
 
-cPDScene::cPDScene()
-{
-    mMaxSteps_Opt = 0;
-}
+cPDScene::cPDScene() { mMaxSteps_Opt = 0; }
 
 void cPDScene::Init(const std::string &conf_path)
 {
@@ -37,8 +32,10 @@ void cPDScene::Init(const std::string &conf_path)
     InitVarsOptImplicitSparseFast();
     I_plus_dt2_Minv_L_sparse_solver.analyzePattern(I_plus_dt2_Minv_L_sparse);
     I_plus_dt2_Minv_L_sparse_solver.factorize(I_plus_dt2_Minv_L_sparse);
-    I_plus_dt2_Minv_L_sparse_fast_solver.analyzePattern(I_plus_dt2_Minv_L_sparse_fast);
-    I_plus_dt2_Minv_L_sparse_fast_solver.factorize(I_plus_dt2_Minv_L_sparse_fast);
+    I_plus_dt2_Minv_L_sparse_fast_solver.analyzePattern(
+        I_plus_dt2_Minv_L_sparse_fast);
+    I_plus_dt2_Minv_L_sparse_fast_solver.factorize(
+        I_plus_dt2_Minv_L_sparse_fast);
 }
 
 void cPDScene::InitGeometry(const Json::Value &conf)
@@ -52,7 +49,7 @@ void cPDScene::InitGeometry(const Json::Value &conf)
 }
 /**
  * \brief           initialize sparse variables for paper "fast simulation"
-*/
+ */
 void cPDScene::InitVarsOptImplicitSparse()
 {
     int num_of_sprs = GetNumOfEdges();
@@ -92,8 +89,8 @@ void cPDScene::InitVarsOptImplicitSparse()
           rowb:      -I   &   I
             ]
 
-            dt2 * Minv * L = 
-            k2 * 
+            dt2 * Minv * L =
+            k2 *
             [
                            cola:                   colb:
           rowa:      dt2 * Minva *k2I    &  -dt2 * Minva * k2I
@@ -132,7 +129,8 @@ void cPDScene::InitVarsOptImplicitSparse()
         std::cout << "[debug] add bending!\n";
         AddBendTriplet(I_plus_dt2_Minv_L);
         // I_plus_dt2_Minv_L.insert(I_plus_dt2_Minv_L.begin(),
-        //                          bending_triplet.begin(), bending_triplet.end());
+        //                          bending_triplet.begin(),
+        //                          bending_triplet.end());
     }
     // 4. init the matrices by triplets
     J_sparse.setFromTriplets(J_sparse_tri_lst.begin(), J_sparse_tri_lst.end());
@@ -148,45 +146,51 @@ void cPDScene::InitVarsOptImplicitSparseFast()
     std::vector<tTriplet> tri_lst(0);
     for (int k = 0; k < I_plus_dt2_Minv_L_sparse.outerSize(); k++)
     {
-        for (tSparseMat::InnerIterator it(I_plus_dt2_Minv_L_sparse, k); it; ++it)
+        for (tSparseMat::InnerIterator it(I_plus_dt2_Minv_L_sparse, k); it;
+             ++it)
         {
             // printf("row %d col %d value %.4f\n", it.row(),
             //        it.col(), it.value());
-            if (
-                (it.row() % 3 == 0) && (it.col() % 3 == 0))
+            if ((it.row() % 3 == 0) && (it.col() % 3 == 0))
             {
-                tri_lst.push_back(tTriplet(it.row() / 3, it.col() / 3, it.value()));
+                tri_lst.push_back(
+                    tTriplet(it.row() / 3, it.col() / 3, it.value()));
             }
         }
     }
-    I_plus_dt2_Minv_L_sparse_fast.setFromTriplets(tri_lst.begin(), tri_lst.end());
+    I_plus_dt2_Minv_L_sparse_fast.setFromTriplets(tri_lst.begin(),
+                                                  tri_lst.end());
     // std::cout << "old = \n " << I_plus_dt2_Minv_L_sparse << std::endl;
     // std::cout << "new = \n " << I_plus_dt2_Minv_L_sparse_fast << std::endl;
 
     // exit(0);
 }
 /**
- * \brief           calculat next position by optimization implciit method (fast simulation)
- * 
+ * \brief           calculat next position by optimization implciit method (fast
+ * simulation)
+ *
  *      1. set up the init solution, caluclate the b
  *      2. begin to do iteration
  *      3. return the result
-*/
+ */
 template <typename T>
-void SolveFast(
-    const tSparseMat &A,
-    const T &solver, tVectorXd &residual, tVectorXd &solution)
+void SolveFast(const tSparseMat &A, const T &solver, tVectorXd &residual,
+               tVectorXd &solution)
 {
     int size = residual.size();
     if (solution.size() != size)
         solution.resize(size);
-    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res0(residual.data(), size / 3);
-    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res1(residual.data() + 1, size / 3);
-    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res2(residual.data() + 2, size / 3);
+    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res0(residual.data(),
+                                                         size / 3);
+    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res1(residual.data() + 1,
+                                                         size / 3);
+    Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> res2(residual.data() + 2,
+                                                         size / 3);
 
-    // Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> sol0(solution.data(), size / 3);
-    // Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> sol1(solution.data() + 1, size / 3);
-    // Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> sol2(solution.data() + 2, size / 3);
+    // Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>> sol0(solution.data(),
+    // size / 3); Eigen::Map<tVectorXd, 0, Eigen::InnerStride<3>>
+    // sol1(solution.data() + 1, size / 3); Eigen::Map<tVectorXd, 0,
+    // Eigen::InnerStride<3>> sol2(solution.data() + 2, size / 3);
 
     const tVectorXd &sol0_solved = solver.solve(res0);
     const tVectorXd &sol1_solved = solver.solve(res1);
@@ -214,8 +218,8 @@ void SolveFast(
     // cTimeUtil::End("assign");
     // std::cout << "new sol0 = " << sol0_solved.transpose() << std::endl;
     // std::cout << "new res0 = " << res0.transpose() << std::endl;
-    // std::cout << "new err = " << (A * sol0_solved - res0).transpose() << std::endl;
-    // std::cout << "map sol0 = " << sol0.transpose() << std::endl;
+    // std::cout << "new err = " << (A * sol0_solved - res0).transpose() <<
+    // std::endl; std::cout << "map sol0 = " << sol0.transpose() << std::endl;
     // std::cout << "map res0 = " << res0.transpose() << std::endl;
     // std::cout << "map err = " << (A * sol0 - res0).transpose() << std::endl;
     // std::cout << "sol1 = " << sol1.transpose() << std::endl;
@@ -254,7 +258,8 @@ tVectorXd cPDScene::CalcNextPosition() const
             d = [d1, d2, ... dn]
             di = (x0^i - x1^i).normalized()
         */
-        // std::cout << "step " << i << " X = " << Xnext.transpose() << std::endl;
+        // std::cout << "step " << i << " X = " << Xnext.transpose() <<
+        // std::endl;
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
@@ -278,7 +283,8 @@ tVectorXd cPDScene::CalcNextPosition() const
         */
         // // // cTimeUtil::BeginLazy("fast simulation sparse solve");
         // cTimeUtil::Begin("calc_res");
-        tmp.noalias() = mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y;
+        tmp.noalias() =
+            mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y;
         // cTimeUtil::End("calc_res");
 
         // 70 percent
@@ -290,8 +296,10 @@ tVectorXd cPDScene::CalcNextPosition() const
         // std::cout << "A_fast = \n"
         //           << I_plus_dt2_Minv_L_sparse_fast << std::endl;
         // cTimeUtil::Begin("solve_fast");
-        // printf("[debug] A size = %d, nonzeros %d\n", Xnext.size(), I_plus_dt2_Minv_L_sparse.nonZeros());
-        SolveFast(I_plus_dt2_Minv_L_sparse_fast, I_plus_dt2_Minv_L_sparse_fast_solver, tmp, Xnext);
+        // printf("[debug] A size = %d, nonzeros %d\n", Xnext.size(),
+        // I_plus_dt2_Minv_L_sparse.nonZeros());
+        SolveFast(I_plus_dt2_Minv_L_sparse_fast,
+                  I_plus_dt2_Minv_L_sparse_fast_solver, tmp, Xnext);
         // cTimeUtil::End("solve_fast");
         // std::cout << "new sol = " << sol.transpose() << std::endl;
         // std::cout << "old sol = " << Xnext.transpose() << std::endl;
@@ -341,38 +349,34 @@ void cPDScene::Reset() { cSimScene::Reset(); }
 
 void cPDScene::Update(double dt) { cSimScene::Update(dt); }
 
-double CalcTriangleSquare(
-    const tVector &v0, const tVector &v1, const tVector &v2)
+double CalcTriangleSquare(const tVector &v0, const tVector &v1,
+                          const tVector &v2)
 {
-    tVector e0 = v1 - v0,
-            e1 = v2 - v0,
-            e2 = v2 - v1;
-    SIM_ASSERT(
-        std::fabs(e0[3]) < 1e-10 &&
-        std::fabs(e1[3]) < 1e-10 &&
-        std::fabs(e2[3]) < 1e-10);
-    double s = e2.norm() / std::sin(std::acos(
-                               e0.dot(e1) / (e0.norm() * e1.norm())));
+    tVector e0 = v1 - v0, e1 = v2 - v0, e2 = v2 - v1;
+    SIM_ASSERT(std::fabs(e0[3]) < 1e-10 && std::fabs(e1[3]) < 1e-10 &&
+               std::fabs(e2[3]) < 1e-10);
+    double s =
+        e2.norm() / std::sin(std::acos(e0.dot(e1) / (e0.norm() * e1.norm())));
     SIM_ASSERT(std::isnan(s) == false);
     return s;
 }
 double CalcTriangleSquare(tTriangle *tri, std::vector<tVertex *> v_array)
 {
-    return CalcTriangleSquare(
-        v_array[tri->mId0]->mPos,
-        v_array[tri->mId1]->mPos,
-        v_array[tri->mId2]->mPos);
+    return CalcTriangleSquare(v_array[tri->mId0]->mPos,
+                              v_array[tri->mId1]->mPos,
+                              v_array[tri->mId2]->mPos);
 }
 /**
  * \biref           calculate the bending system matrix contribution triplet
- * According to the note, we only need to add some more entries into the system matrix to support bending
- * These triplets are calcualted here
-*/
+ * According to the note, we only need to add some more entries into the system
+ * matrix to support bending These triplets are calcualted here
+ */
 void cPDScene::AddBendTriplet(tEigenArr<tTriplet> &old_lst) const
 {
     cTimeUtil::Begin("build bending triplet");
     printf("[debug] bending stiffness %.4f\n", mBendingStiffness);
-    double h2_coef = mIdealDefaultTimestep * mIdealDefaultTimestep * mBendingStiffness;
+    double h2_coef =
+        mIdealDefaultTimestep * mIdealDefaultTimestep * mBendingStiffness;
 
     int num_of_dof = GetNumOfFreedom();
     // 1. dense implemention
@@ -385,11 +389,15 @@ void cPDScene::AddBendTriplet(tEigenArr<tTriplet> &old_lst) const
     //         {
     //             int vid[4] = {e->mId0,
     //                           e->mId1,
-    //                           SelectAnotherVerteix(mTriangleArray[e->mTriangleId0], e->mId0, e->mId1),
-    //                           SelectAnotherVerteix(mTriangleArray[e->mTriangleId1], e->mId0, e->mId1)};
-    //             // printf("[debug] bending, tri %d and tri %d, shared edge: %d, total vertices: %d %d %d %d\n",
-    //             //        e->mTriangleId0, e->mTriangleId1, i, vid[0], vid[1], vid[2], vid[3]);
-    //             tVector cot_vec = CalculateCotangentCoeff(
+    //                           SelectAnotherVerteix(mTriangleArray[e->mTriangleId0],
+    //                           e->mId0, e->mId1),
+    //                           SelectAnotherVerteix(mTriangleArray[e->mTriangleId1],
+    //                           e->mId0, e->mId1)};
+    //             // printf("[debug] bending, tri %d and tri %d, shared edge:
+    //             %d, total vertices: %d %d %d %d\n",
+    //             //        e->mTriangleId0, e->mTriangleId1, i, vid[0],
+    //             vid[1], vid[2], vid[3]); tVector cot_vec =
+    //             CalculateCotangentCoeff(
     //                 mVertexArray[vid[0]]->mPos,
     //                 mVertexArray[vid[1]]->mPos,
     //                 mVertexArray[vid[2]]->mPos,
@@ -397,16 +405,20 @@ void cPDScene::AddBendTriplet(tEigenArr<tTriplet> &old_lst) const
     //             tMatrixXd KLi = tMatrixXd::Zero(3, num_of_dof);
     //             for (int j = 0; j < 4; j++)
     //             {
-    //                 KLi.block(0, 3 * vid[j], 3, 3).noalias() = tMatrix3d::Identity() * cot_vec[j];
+    //                 KLi.block(0, 3 * vid[j], 3, 3).noalias() =
+    //                 tMatrix3d::Identity() * cot_vec[j];
     //             }
-    //             double s = CalcTriangleSquare(mTriangleArray[e->mTriangleId0], mVertexArray) +
-    //                        CalcTriangleSquare(mTriangleArray[e->mTriangleId1], mVertexArray);
+    //             double s =
+    //             CalcTriangleSquare(mTriangleArray[e->mTriangleId0],
+    //             mVertexArray) +
+    //                        CalcTriangleSquare(mTriangleArray[e->mTriangleId1],
+    //                        mVertexArray);
     //             dense += s * KLi.transpose() * KLi;
     //         }
     //     }
     // }
-    // dense = h2_coef * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * dense;
-    // std::cout << "dense = \n"
+    // dense = h2_coef * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() *
+    // dense; std::cout << "dense = \n"
     //           << dense << std::endl;
     tEigenArr<tTriplet> sparse_tri(0);
     // 2. sparse implemention
@@ -416,32 +428,41 @@ void cPDScene::AddBendTriplet(tEigenArr<tTriplet> &old_lst) const
             const auto &e = mEdgeArray[i];
             if (e->mIsBoundary == false)
             {
-                int vid[4] = {e->mId0,
-                              e->mId1,
-                              SelectAnotherVerteix(mTriangleArray[e->mTriangleId0], e->mId0, e->mId1),
-                              SelectAnotherVerteix(mTriangleArray[e->mTriangleId1], e->mId0, e->mId1)};
-                // printf("[debug] bending, tri %d and tri %d, shared edge: %d, total vertices: %d %d %d %d\n",
-                //        e->mTriangleId0, e->mTriangleId1, i, vid[0], vid[1], vid[2], vid[3]);
+                int vid[4] = {
+                    e->mId0, e->mId1,
+                    SelectAnotherVerteix(mTriangleArray[e->mTriangleId0],
+                                         e->mId0, e->mId1),
+                    SelectAnotherVerteix(mTriangleArray[e->mTriangleId1],
+                                         e->mId0, e->mId1)};
+                // printf("[debug] bending, tri %d and tri %d, shared edge: %d,
+                // total vertices: %d %d %d %d\n",
+                //        e->mTriangleId0, e->mTriangleId1, i, vid[0], vid[1],
+                //        vid[2], vid[3]);
                 tVector cot_vec = CalculateCotangentCoeff(
-                    mVertexArray[vid[0]]->mPos,
-                    mVertexArray[vid[1]]->mPos,
-                    mVertexArray[vid[2]]->mPos,
-                    mVertexArray[vid[3]]->mPos);
-                double square = CalcTriangleSquare(mTriangleArray[e->mTriangleId0], mVertexArray) +
-                                CalcTriangleSquare(mTriangleArray[e->mTriangleId1], mVertexArray);
+                    mVertexArray[vid[0]]->mPos, mVertexArray[vid[1]]->mPos,
+                    mVertexArray[vid[2]]->mPos, mVertexArray[vid[3]]->mPos);
+                double square =
+                    CalcTriangleSquare(mTriangleArray[e->mTriangleId0],
+                                       mVertexArray) +
+                    CalcTriangleSquare(mTriangleArray[e->mTriangleId1],
+                                       mVertexArray);
                 for (int a = 0; a < 4; a++)
                     for (int b = 0; b < 4; b++)
                     {
                         for (int k = 0; k < 3; k++)
                         {
-                            double value = cot_vec[a] * cot_vec[b] * mInvMassMatrixDiag[3 * vid[a] + k] * h2_coef * square;
-                            sparse_tri.push_back(tTriplet(3 * vid[a] + k, 3 * vid[b] + k, value));
+                            double value = cot_vec[a] * cot_vec[b] *
+                                           mInvMassMatrixDiag[3 * vid[a] + k] *
+                                           h2_coef * square;
+                            sparse_tri.push_back(tTriplet(
+                                3 * vid[a] + k, 3 * vid[b] + k, value));
                         }
                     }
                 // tMatrixXd KLi = tMatrixXd::Zero(3, num_of_dof);
                 // for (int j = 0; j < 4; j++)
                 // {
-                //     KLi.block(0, 3 * vid[j], 3, 3).noalias() = tMatrix3d::Identity() * cot_vec[j];
+                //     KLi.block(0, 3 * vid[j], 3, 3).noalias() =
+                //     tMatrix3d::Identity() * cot_vec[j];
                 // }
 
                 // dense += s * KLi.transpose() * KLi;

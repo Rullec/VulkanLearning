@@ -20,11 +20,13 @@ void tPerturb::InitTangentRect(const tVector &plane_normal)
     // 1. calculate center pos
     tVector center_pos = CalcPerturbPos();
     mShiftPlaneEquation.segment(0, 3) = plane_normal.segment(0, 3);
-    mShiftPlaneEquation[3] = -plane_normal.segment(0, 3).dot(center_pos.segment(0, 3));
-    // std::cout << "[calc] center pos = " << center_pos.transpose() << std::endl;
-    // std::cout << "[calc] plane normal = " << plane_normal.transpose() << std::endl;
-    // std::cout << "[calc] shift plane equation = " << mShiftPlaneEquation.transpose() << std::endl;
-    // std::cout << "center pos = " << center_pos.transpose() << std::endl;
+    mShiftPlaneEquation[3] =
+        -plane_normal.segment(0, 3).dot(center_pos.segment(0, 3));
+    // std::cout << "[calc] center pos = " << center_pos.transpose() <<
+    // std::endl; std::cout << "[calc] plane normal = " <<
+    // plane_normal.transpose() << std::endl; std::cout << "[calc] shift plane
+    // equation = " << mShiftPlaneEquation.transpose() << std::endl; std::cout
+    // << "center pos = " << center_pos.transpose() << std::endl;
     // 2. calculate rectangle vertices
     // each row is a vector
     // tMatrixXd four_vectors = cMathUtil::ExpandFrictionCone(4, plane_normal);
@@ -49,10 +51,11 @@ void tPerturb::UpdatePerturb(const tVector &cur_camera_pos, const tVector &dir)
 {
     mGoalPos =
         cMathUtil::RayCastPlane(cur_camera_pos, dir, mShiftPlaneEquation);
-    // std::cout << "[perturb] shift plane equation = " << mShiftPlaneEquation.transpose() << std::endl;
-    // std::cout << "[perturb] ray ori = " << cur_camera_pos.transpose() << std::endl;
-    // std::cout << "[perturb] ray dir = " << dir.transpose() << std::endl;
-    // std::cout << "[perturb] inter pos = " << mGoalPos.transpose() << std::endl;
+    // std::cout << "[perturb] shift plane equation = " <<
+    // mShiftPlaneEquation.transpose() << std::endl; std::cout << "[perturb] ray
+    // ori = " << cur_camera_pos.transpose() << std::endl; std::cout <<
+    // "[perturb] ray dir = " << dir.transpose() << std::endl; std::cout <<
+    // "[perturb] inter pos = " << mGoalPos.transpose() << std::endl;
     if (mGoalPos.hasNaN() == true)
     {
         SIM_ERROR("ray has no intersection with the rect range, please "
@@ -69,10 +72,12 @@ void tPerturb::UpdatePerturb(const tVector &cur_camera_pos, const tVector &dir)
 tVector tPerturb::CalcPerturbPos() const
 {
     tVector center_pos = tVector::Zero();
-    // std::cout << "[calc perurb pos] bary = " << mBarycentricCoords.transpose() << std::endl;
+    // std::cout << "[calc perurb pos] bary = " <<
+    // mBarycentricCoords.transpose() << std::endl;
     for (int i = 0; i < 3; i++)
     {
-        // std::cout << "affected " << i << " = " << mAffectedVertices[i]->mPos.transpose() << std::endl;
+        // std::cout << "affected " << i << " = " <<
+        // mAffectedVertices[i]->mPos.transpose() << std::endl;
         center_pos += mAffectedVertices[i]->mPos * mBarycentricCoords[i];
     }
     center_pos[3] = 1;
@@ -81,7 +86,4 @@ tVector tPerturb::CalcPerturbPos() const
 
 tVector tPerturb::GetPerturbForce() const { return mPerturbForce; }
 
-tVector tPerturb::GetGoalPos() const
-{
-    return this->mGoalPos;
-}
+tVector tPerturb::GetGoalPos() const { return this->mGoalPos; }

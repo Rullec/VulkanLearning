@@ -1,10 +1,10 @@
 #pragma once
 #include "SimScene.h"
-#include <Eigen/SparseCholesky>
 #include <Eigen/IterativeLinearSolvers>
+#include <Eigen/SparseCholesky>
 /**
  * \brief           projective dynamic simulation (stretch + bending)
-*/
+ */
 class cPDScene : public cSimScene
 {
 public:
@@ -16,7 +16,7 @@ public:
 protected:
     int mMaxSteps_Opt; // iterations used in fast simulation
     bool mEnableBending;
-    double mBendingStiffness; //bending stiffness
+    double mBendingStiffness; // bending stiffness
     tVectorXd CalcNextPosition() const;
     // void InitVarsOptImplicit();
     void InitVarsOptImplicitSparse();
@@ -35,9 +35,10 @@ protected:
     // Eigen::SimplicialLDLT<tSparseMat> I_plus_dt2_Minv_L_sparse_solver;
     // Eigen::SimplicialLDLT<tSparseMat> I_plus_dt2_Minv_L_sparse_fast_solver;
     // Eigen::ConjugateGradient<tSparseMat> I_plus_dt2_Minv_L_sparse_solver;
-    // Eigen::ConjugateGradient<tSparseMat> I_plus_dt2_Minv_L_sparse_fast_solver;
-    // Eigen::BiCGSTAB<tSparseMat> I_plus_dt2_Minv_L_sparse_solver;
-    // Eigen::BiCGSTAB<tSparseMat> I_plus_dt2_Minv_L_sparse_fast_solver;
+    // Eigen::ConjugateGradient<tSparseMat>
+    // I_plus_dt2_Minv_L_sparse_fast_solver; Eigen::BiCGSTAB<tSparseMat>
+    // I_plus_dt2_Minv_L_sparse_solver; Eigen::BiCGSTAB<tSparseMat>
+    // I_plus_dt2_Minv_L_sparse_fast_solver;
 
     // fast impl
     tSparseMat I_plus_dt2_Minv_L_sparse_fast; // vars used in fast simulation

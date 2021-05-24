@@ -572,9 +572,8 @@ void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera,
     // 4. download the result and save it to .ppm image
 }
 
-extern float fov;
-tMatrix4f get_discrete_mat(int height, int width, const tMatrix4f &view_mat_inv,
-                           bool is_vulkan)
+tMatrix4f get_discrete_mat(double fov, int height, int width,
+                           const tMatrix4f &view_mat_inv, bool is_vulkan)
 {
     // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
 
@@ -659,8 +658,8 @@ void cOptixRaycaster::setCamera(const CameraBasePtr &camera)
     tMatrix4f view_mat_inv =
         Eigen::lookAt(camera->pos, camera->center, camera->up).inverse();
     tMatrix4f tmp =
-        get_discrete_mat(launchParams.frame.size[1], launchParams.frame.size[0],
-                         view_mat_inv, true);
+        get_discrete_mat(camera->fov, launchParams.frame.size[1],
+                         launchParams.frame.size[0], view_mat_inv, true);
     // std::cout << "tmp = \n" << tmp << std::endl;
     // exit(0);
     // tVector3f y_axis = tVector3f(0, 1, 0);

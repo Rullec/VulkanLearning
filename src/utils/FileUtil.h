@@ -1,9 +1,9 @@
 #pragma once
 
 #include "MathUtil.h"
+#include "utils/LogUtil.h"
 #include <fstream>
 #include <string>
-#include "utils/LogUtil.h"
 
 class cFileUtil
 {

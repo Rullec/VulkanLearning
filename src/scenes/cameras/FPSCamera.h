@@ -12,7 +12,8 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     FPSCamera();
 
-    FPSCamera(const tVector3f &pos, const tVector3f &centor, const tVector3f &up);
+    FPSCamera(const tVector3f &pos, const tVector3f &centor,
+              const tVector3f &up, float fov);
     virtual ~FPSCamera();
     virtual tMatrix4f ViewMatrix() override;
 
@@ -24,8 +25,9 @@ public:
     virtual void MoveDown() override;
 
     virtual void MouseMove(float mouse_x, float mouse_y) override;
+
 protected:
     void Init();
 };
 
-#endif //ROBOT_CAMERA_H
+#endif // ROBOT_CAMERA_H

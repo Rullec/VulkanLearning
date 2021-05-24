@@ -1,8 +1,8 @@
 // #ifdef USE_OPTIX
 #pragma once
 
-#include "utils/MathUtil.h"
 #include "optix7.h"
+#include "utils/MathUtil.h"
 
 struct MY_ALIGN(16) LaunchParams
 {

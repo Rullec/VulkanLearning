@@ -71,7 +71,8 @@ void InitGlfw()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(gWindowWidth, gWindowHeight, "Cloth Simulator", nullptr, nullptr);
+    window = glfwCreateWindow(gWindowWidth, gWindowHeight, "Cloth Simulator",
+                              nullptr, nullptr);
     glfwSetFramebufferSizeCallback(window, ResizeCallback);
     glfwSetCursorPosCallback(window, CursorPositionCallback);
     glfwSetMouseButtonCallback(window, MouseButtonCallback);
@@ -87,7 +88,8 @@ void SimDraw(const std::string &conf_path);
 void SimNoDraw(const std::string &conf_path);
 void ParseConfig(std::string conf);
 
-// extern bool SaveDepthEXR(const float *rgb, int width, int height, const char *outfilename);
+// extern bool SaveDepthEXR(const float *rgb, int width, int height, const char
+// *outfilename);
 int main(int argc, char **argv)
 {
 

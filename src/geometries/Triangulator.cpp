@@ -1,45 +1,50 @@
 #include "Triangulator.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
-void cTriangulator::BuildGeometry(const Json::Value &config, std::vector<tVertex *> &vertices_array,
+void cTriangulator::BuildGeometry(const Json::Value &config,
+                                  std::vector<tVertex *> &vertices_array,
                                   std::vector<tEdge *> &edges_array,
                                   std::vector<tTriangle *> &triangles_array)
 {
-    std::string geo_type = cJsonUtil::ParseAsString(cTriangulator::GEOMETRY_TYPE_KEY, config);
+    std::string geo_type =
+        cJsonUtil::ParseAsString(cTriangulator::GEOMETRY_TYPE_KEY, config);
     double width = cJsonUtil::ParseAsDouble("cloth_size", config);
     double mass = cJsonUtil::ParseAsDouble("cloth_mass", config);
     tVector cloth_init_pos = tVector::Zero();
     tVector cloth_init_orientation = tVector::Zero();
 
     {
-        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("cloth_init_pos", config), cloth_init_pos);
-        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("cloth_init_orientation", config), cloth_init_orientation);
+        cJsonUtil::ReadVectorJson(
+            cJsonUtil::ParseAsValue("cloth_init_pos", config), cloth_init_pos);
+        cJsonUtil::ReadVectorJson(
+            cJsonUtil::ParseAsValue("cloth_init_orientation", config),
+            cloth_init_orientation);
     }
-    // std::cout << "cloth init pos = " << cloth_init_pos.transpose() << std::endl;
-    // std::cout << "cloth init orientation = " << cloth_init_orientation.transpose() << std::endl;
-    tMatrix init_trans_mat = cMathUtil::TransformMat(cloth_init_pos, cloth_init_orientation);
+    // std::cout << "cloth init pos = " << cloth_init_pos.transpose() <<
+    // std::endl; std::cout << "cloth init orientation = " <<
+    // cloth_init_orientation.transpose() << std::endl;
+    tMatrix init_trans_mat =
+        cMathUtil::TransformMat(cloth_init_pos, cloth_init_orientation);
     // std::cout << init_trans_mat << std::endl;
     // exit(0);
     int subdivision = cJsonUtil::ParseAsInt("subdivision", config);
     if (geo_type == "uniform_square")
     {
-        SIM_ERROR("geo type uniform_square has been deprecated, because it doesn't support bending");
+        SIM_ERROR("geo type uniform_square has been deprecated, because it "
+                  "doesn't support bending");
         exit(0);
         cTriangulator::BuildGeometry_UniformSquare(
-            width, subdivision,
-            vertices_array, edges_array, triangles_array);
+            width, subdivision, vertices_array, edges_array, triangles_array);
     }
     else if (geo_type == "skew_triangle")
     {
         cTriangulator::BuildGeometry_SkewTriangle(
-            width, subdivision,
-            vertices_array, edges_array, triangles_array);
+            width, subdivision, vertices_array, edges_array, triangles_array);
     }
     else if (geo_type == "regular_triangle")
     {
         cTriangulator::BuildGeometry_UniformTriangle(
-            width, subdivision,
-            vertices_array, edges_array, triangles_array);
+            width, subdivision, vertices_array, edges_array, triangles_array);
     }
     else
     {
@@ -55,16 +60,20 @@ void cTriangulator::BuildGeometry(const Json::Value &config, std::vector<tVertex
     }
 
     // printf(
-    //     "[debug] init geometry type %s, create %d vertices, %d edges, %d triangles\n", geo_type.c_str(), vertices_array.size(), edges_array.size(), triangles_array.size());
+    //     "[debug] init geometry type %s, create %d vertices, %d edges, %d
+    //     triangles\n", geo_type.c_str(), vertices_array.size(),
+    //     edges_array.size(), triangles_array.size());
     // exit(0);
 }
 
 /**
- * \brief               Given geometry parameter, create a uniform mesh which is consist of small squares
-*/
-void cTriangulator::BuildGeometry_UniformSquare(double width, int subdivision, std::vector<tVertex *> &vertices_array,
-                                                std::vector<tEdge *> &edges_array,
-                                                std::vector<tTriangle *> &triangles_array)
+ * \brief               Given geometry parameter, create a uniform mesh which is
+ * consist of small squares
+ */
+void cTriangulator::BuildGeometry_UniformSquare(
+    double width, int subdivision, std::vector<tVertex *> &vertices_array,
+    std::vector<tEdge *> &edges_array,
+    std::vector<tTriangle *> &triangles_array)
 {
     // 1. clear all
     vertices_array.clear();
@@ -76,7 +85,8 @@ void cTriangulator::BuildGeometry_UniformSquare(double width, int subdivision, s
     int num_of_lines = (subdivision + 1); // = 3
     int num_of_vertices = num_of_lines * num_of_lines;
     SIM_ASSERT(num_of_vertices = vertices_array.size());
-    int num_of_edges = num_of_lines * subdivision * 2 + subdivision * subdivision;
+    int num_of_edges =
+        num_of_lines * subdivision * 2 + subdivision * subdivision;
     int num_of_triangles = num_of_lines * num_of_lines * 2;
     // 3. create edges
     double unit_edge_length = width / subdivision;
@@ -104,23 +114,31 @@ void cTriangulator::BuildGeometry_UniformSquare(double width, int subdivision, s
                 else if (row_id == subdivision)
                 {
                     edge->mIsBoundary = true;
-                    edge->mTriangleId0 = num_of_triangles_per_line * (subdivision - 1) + col_id * 2;
+                    edge->mTriangleId0 =
+                        num_of_triangles_per_line * (subdivision - 1) +
+                        col_id * 2;
                 }
                 else
                 {
                     edge->mIsBoundary = false;
-                    edge->mTriangleId0 = num_of_triangles_per_line * (row_id - 1) + 2 * col_id;
-                    edge->mTriangleId1 = num_of_triangles_per_line * row_id + 2 * col_id + 1;
+                    edge->mTriangleId0 =
+                        num_of_triangles_per_line * (row_id - 1) + 2 * col_id;
+                    edge->mTriangleId1 =
+                        num_of_triangles_per_line * row_id + 2 * col_id + 1;
                 }
                 edges_array.push_back(edge);
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //    edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d,
+                // triangle0 %d, triangle1 %d\n",
+                //    edges_array.size() - 1, edge->mId0, edge->mId1,
+                //    edge->mIsBoundary, edge->mTriangleId0,
+                //    edge->mTriangleId1);
             }
             if (row_id == subdivision)
                 break;
             // 3.2 add middle lines
 
-            for (int col_counting_id = 0; col_counting_id < 2 * subdivision + 1; col_counting_id++)
+            for (int col_counting_id = 0; col_counting_id < 2 * subdivision + 1;
+                 col_counting_id++)
             {
                 int col_id = col_counting_id / 2;
                 tEdge *edge = new tEdge();
@@ -128,7 +146,8 @@ void cTriangulator::BuildGeometry_UniformSquare(double width, int subdivision, s
                 {
                     // vertical line
                     edge->mId0 = row_id * num_of_vertices_per_line + col_id;
-                    edge->mId1 = (row_id + 1) * num_of_vertices_per_line + col_id;
+                    edge->mId1 =
+                        (row_id + 1) * num_of_vertices_per_line + col_id;
                     edge->mRawLength = unit_edge_length;
                     if (col_id == 0)
                     {
@@ -140,14 +159,17 @@ void cTriangulator::BuildGeometry_UniformSquare(double width, int subdivision, s
                     {
                         // right edge
                         edge->mIsBoundary = true;
-                        edge->mTriangleId0 = num_of_triangles_per_line * (row_id + 1) - 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * (row_id + 1) - 1;
                     }
                     else
                     {
                         // middle edges
                         edge->mIsBoundary = false;
-                        edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_id;
-                        edge->mTriangleId1 = num_of_triangles_per_line * row_id + col_id + 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * row_id + col_id;
+                        edge->mTriangleId1 =
+                            num_of_triangles_per_line * row_id + col_id + 1;
                     }
                 }
                 else
@@ -156,15 +178,18 @@ void cTriangulator::BuildGeometry_UniformSquare(double width, int subdivision, s
                     std::cout << "ignore skew edge\n";
                     // skew line
                     // edge->mId0 = num_of_vertices_per_line * row_id + col_id;
-                    // edge->mId1 = num_of_vertices_per_line * (row_id + 1) + col_id + 1;
-                    // edge->mIsBoundary = false;
-                    // edge->mRawLength = unit_edge_length * std::sqrt(2);
-                    // edge->mTriangleId0 = num_of_triangles * row_id + col_id * 2;
+                    // edge->mId1 = num_of_vertices_per_line * (row_id + 1) +
+                    // col_id + 1; edge->mIsBoundary = false; edge->mRawLength =
+                    // unit_edge_length * std::sqrt(2); edge->mTriangleId0 =
+                    // num_of_triangles * row_id + col_id * 2;
                     // edge->mTriangleId1 = edge->mTriangleId0 + 1;
                 }
                 edges_array.push_back(edge);
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //    edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d,
+                // triangle0 %d, triangle1 %d\n",
+                //    edges_array.size() - 1, edge->mId0, edge->mId1,
+                //    edge->mIsBoundary, edge->mTriangleId0,
+                //    edge->mTriangleId1);
             }
         }
     }
@@ -172,10 +197,11 @@ void cTriangulator::BuildGeometry_UniformSquare(double width, int subdivision, s
 
 /**
  * \brief           Create skew triangles
-*/
-void cTriangulator::BuildGeometry_SkewTriangle(double width, int subdivision, std::vector<tVertex *> &vertices_array,
-                                               std::vector<tEdge *> &edges_array,
-                                               std::vector<tTriangle *> &triangles_array)
+ */
+void cTriangulator::BuildGeometry_SkewTriangle(
+    double width, int subdivision, std::vector<tVertex *> &vertices_array,
+    std::vector<tEdge *> &edges_array,
+    std::vector<tTriangle *> &triangles_array)
 {
     // 1. clear all
     vertices_array.clear();
@@ -188,7 +214,8 @@ void cTriangulator::BuildGeometry_SkewTriangle(double width, int subdivision, st
     // 3. create triangles
     int num_of_lines = (subdivision + 1); // = 3
     int num_of_vertices = num_of_lines * num_of_lines;
-    int num_of_edges = num_of_lines * subdivision * 2 + subdivision * subdivision;
+    int num_of_edges =
+        num_of_lines * subdivision * 2 + subdivision * subdivision;
     int num_of_triangles = num_of_lines * num_of_lines * 2;
 
     // 1. init the triangles
@@ -197,13 +224,17 @@ void cTriangulator::BuildGeometry_SkewTriangle(double width, int subdivision, st
         for (int col_id = 0; col_id < subdivision; col_id++)
         {
             int up_left = row_id * num_of_lines + col_id;
-            auto tri1 = new tTriangle(up_left, up_left + num_of_lines, up_left + 1 + num_of_lines);
-            auto tri2 = new tTriangle(up_left, up_left + 1 + num_of_lines, up_left + 1);
+            auto tri1 = new tTriangle(up_left, up_left + num_of_lines,
+                                      up_left + 1 + num_of_lines);
+            auto tri2 =
+                new tTriangle(up_left, up_left + 1 + num_of_lines, up_left + 1);
 
             triangles_array.push_back(tri1);
-            // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
+            // printf("[debug] triangle %d vertices %d %d %d\n",
+            // triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
             triangles_array.push_back(tri2);
-            // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
+            // printf("[debug] triangle %d vertices %d %d %d\n",
+            // triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
         }
     }
     printf("[debug] create %d triangles done\n", triangles_array.size());
@@ -235,23 +266,31 @@ void cTriangulator::BuildGeometry_SkewTriangle(double width, int subdivision, st
                 else if (row_id == subdivision)
                 {
                     edge->mIsBoundary = true;
-                    edge->mTriangleId0 = num_of_triangles_per_line * (subdivision - 1) + col_id * 2;
+                    edge->mTriangleId0 =
+                        num_of_triangles_per_line * (subdivision - 1) +
+                        col_id * 2;
                 }
                 else
                 {
                     edge->mIsBoundary = false;
-                    edge->mTriangleId0 = num_of_triangles_per_line * (row_id - 1) + 2 * col_id;
-                    edge->mTriangleId1 = num_of_triangles_per_line * row_id + 2 * col_id + 1;
+                    edge->mTriangleId0 =
+                        num_of_triangles_per_line * (row_id - 1) + 2 * col_id;
+                    edge->mTriangleId1 =
+                        num_of_triangles_per_line * row_id + 2 * col_id + 1;
                 }
                 edges_array.push_back(edge);
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //    edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d,
+                // triangle0 %d, triangle1 %d\n",
+                //    edges_array.size() - 1, edge->mId0, edge->mId1,
+                //    edge->mIsBoundary, edge->mTriangleId0,
+                //    edge->mTriangleId1);
             }
             if (row_id == subdivision)
                 break;
             // 3.2 add middle lines
 
-            for (int col_counting_id = 0; col_counting_id < 2 * subdivision + 1; col_counting_id++)
+            for (int col_counting_id = 0; col_counting_id < 2 * subdivision + 1;
+                 col_counting_id++)
             {
                 int col_id = col_counting_id / 2;
                 tEdge *edge = new tEdge();
@@ -259,7 +298,8 @@ void cTriangulator::BuildGeometry_SkewTriangle(double width, int subdivision, st
                 {
                     // vertical line
                     edge->mId0 = row_id * num_of_vertices_per_line + col_id;
-                    edge->mId1 = (row_id + 1) * num_of_vertices_per_line + col_id;
+                    edge->mId1 =
+                        (row_id + 1) * num_of_vertices_per_line + col_id;
                     edge->mRawLength = unit_edge_length;
                     if (col_id == 0)
                     {
@@ -271,14 +311,17 @@ void cTriangulator::BuildGeometry_SkewTriangle(double width, int subdivision, st
                     {
                         // right edge
                         edge->mIsBoundary = true;
-                        edge->mTriangleId0 = num_of_triangles_per_line * (row_id + 1) - 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * (row_id + 1) - 1;
                     }
                     else
                     {
                         // middle edges
                         edge->mIsBoundary = false;
-                        edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_id;
-                        edge->mTriangleId1 = num_of_triangles_per_line * row_id + col_id + 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * row_id + col_id;
+                        edge->mTriangleId1 =
+                            num_of_triangles_per_line * row_id + col_id + 1;
                     }
                 }
                 else
@@ -287,23 +330,29 @@ void cTriangulator::BuildGeometry_SkewTriangle(double width, int subdivision, st
                     // std::cout << "ignore skew edge\n";
                     // skew line
                     edge->mId0 = num_of_vertices_per_line * row_id + col_id;
-                    edge->mId1 = num_of_vertices_per_line * (row_id + 1) + col_id + 1;
+                    edge->mId1 =
+                        num_of_vertices_per_line * (row_id + 1) + col_id + 1;
                     edge->mIsBoundary = false;
                     edge->mRawLength = unit_edge_length * std::sqrt(2);
-                    edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_id * 2;
+                    edge->mTriangleId0 =
+                        num_of_triangles_per_line * row_id + col_id * 2;
                     edge->mTriangleId1 = edge->mTriangleId0 + 1;
                 }
                 edges_array.push_back(edge);
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //    edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d,
+                // triangle0 %d, triangle1 %d\n",
+                //    edges_array.size() - 1, edge->mId0, edge->mId1,
+                //    edge->mIsBoundary, edge->mTriangleId0,
+                //    edge->mTriangleId1);
             }
         }
     }
     printf("[debug] create %d edges done\n", edges_array.size());
 }
-void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision, std::vector<tVertex *> &vertices_array,
-                                                  std::vector<tEdge *> &edges_array,
-                                                  std::vector<tTriangle *> &triangles_array)
+void cTriangulator::BuildGeometry_UniformTriangle(
+    double width, int subdivision, std::vector<tVertex *> &vertices_array,
+    std::vector<tEdge *> &edges_array,
+    std::vector<tTriangle *> &triangles_array)
 {
     // 1. clear all
     vertices_array.clear();
@@ -316,7 +365,8 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
     // 3. create triangles
     int num_of_lines = (subdivision + 1); // = 3
     int num_of_vertices = num_of_lines * num_of_lines;
-    int num_of_edges = num_of_lines * subdivision * 2 + subdivision * subdivision;
+    int num_of_edges =
+        num_of_lines * subdivision * 2 + subdivision * subdivision;
     int num_of_triangles = num_of_lines * num_of_lines * 2;
 
     // 1. init the triangles
@@ -329,24 +379,36 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
             if (col_id % 2 == 0)
             {
 
-                auto tri1 = new tTriangle(up_left, up_left + num_of_lines, up_left + 1 + num_of_lines);
-                auto tri2 = new tTriangle(up_left, up_left + 1 + num_of_lines, up_left + 1);
+                auto tri1 = new tTriangle(up_left, up_left + num_of_lines,
+                                          up_left + 1 + num_of_lines);
+                auto tri2 = new tTriangle(up_left, up_left + 1 + num_of_lines,
+                                          up_left + 1);
 
                 triangles_array.push_back(tri1);
-                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n",
+                // triangles_array.size() - 1, tri1->mId0, tri1->mId1,
+                // tri1->mId2);
                 triangles_array.push_back(tri2);
-                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n",
+                // triangles_array.size() - 1, tri2->mId0, tri2->mId1,
+                // tri2->mId2);
             }
             else
             {
                 // for odd number, from upright to downleft
-                auto tri1 = new tTriangle(up_left + 1, up_left, up_left + num_of_lines);
-                auto tri2 = new tTriangle(up_left + 1, up_left + num_of_lines, up_left + 1 + num_of_lines);
+                auto tri1 =
+                    new tTriangle(up_left + 1, up_left, up_left + num_of_lines);
+                auto tri2 = new tTriangle(up_left + 1, up_left + num_of_lines,
+                                          up_left + 1 + num_of_lines);
 
                 triangles_array.push_back(tri1);
-                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri1->mId0, tri1->mId1, tri1->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n",
+                // triangles_array.size() - 1, tri1->mId0, tri1->mId1,
+                // tri1->mId2);
                 triangles_array.push_back(tri2);
-                // printf("[debug] triangle %d vertices %d %d %d\n", triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
+                // printf("[debug] triangle %d vertices %d %d %d\n",
+                // triangles_array.size() - 1, tri2->mId0, tri2->mId1,
+                // tri2->mId2);
             }
         }
     }
@@ -391,11 +453,15 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                     if (col_id % 2 == 0)
                     {
 
-                        edge->mTriangleId0 = num_of_triangles_per_line * (subdivision - 1) + col_id * 2;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * (subdivision - 1) +
+                            col_id * 2;
                     }
                     else
                     {
-                        edge->mTriangleId0 = num_of_triangles_per_line * (subdivision - 1) + col_id * 2 + 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * (subdivision - 1) +
+                            col_id * 2 + 1;
                     }
                 }
                 else
@@ -404,24 +470,34 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                     if (col_id % 2 == 0)
                     {
 
-                        edge->mTriangleId0 = num_of_triangles_per_line * (row_id - 1) + 2 * col_id;
-                        edge->mTriangleId1 = num_of_triangles_per_line * row_id + 2 * col_id + 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * (row_id - 1) +
+                            2 * col_id;
+                        edge->mTriangleId1 =
+                            num_of_triangles_per_line * row_id + 2 * col_id + 1;
                     }
                     else
                     {
-                        edge->mTriangleId0 = num_of_triangles_per_line * (row_id - 1) + 2 * col_id + 1;
-                        edge->mTriangleId1 = num_of_triangles_per_line * row_id + 2 * col_id;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * (row_id - 1) +
+                            2 * col_id + 1;
+                        edge->mTriangleId1 =
+                            num_of_triangles_per_line * row_id + 2 * col_id;
                     }
                 }
                 edges_array.push_back(edge);
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //        edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d,
+                // triangle0 %d, triangle1 %d\n",
+                //        edges_array.size() - 1, edge->mId0, edge->mId1,
+                //        edge->mIsBoundary, edge->mTriangleId0,
+                //        edge->mTriangleId1);
             }
             if (row_id == subdivision)
                 break;
             // 3.2 add middle lines
 
-            for (int col_counting_id = 0; col_counting_id < 2 * subdivision + 1; col_counting_id++)
+            for (int col_counting_id = 0; col_counting_id < 2 * subdivision + 1;
+                 col_counting_id++)
             {
                 int col_id = col_counting_id / 2;
                 tEdge *edge = new tEdge();
@@ -430,7 +506,8 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                 {
                     // vertical line
                     edge->mId0 = row_id * num_of_vertices_per_line + col_id;
-                    edge->mId1 = (row_id + 1) * num_of_vertices_per_line + col_id;
+                    edge->mId1 =
+                        (row_id + 1) * num_of_vertices_per_line + col_id;
                     edge->mRawLength = unit_edge_length;
                     if (col_id == 0)
                     {
@@ -442,13 +519,16 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                     {
                         // right edge
                         edge->mIsBoundary = true;
-                        edge->mTriangleId0 = num_of_triangles_per_line * (row_id + 1) - 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * (row_id + 1) - 1;
                     }
                     else
                     {
                         // middle edges
                         edge->mIsBoundary = false;
-                        edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_counting_id - 1;
+                        edge->mTriangleId0 =
+                            num_of_triangles_per_line * row_id +
+                            col_counting_id - 1;
                         edge->mTriangleId1 = edge->mTriangleId0 + 1;
                     }
                 }
@@ -460,22 +540,29 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
                     if (col_id % 2 == 0)
                     {
                         edge->mId0 = num_of_vertices_per_line * row_id + col_id;
-                        edge->mId1 = num_of_vertices_per_line * (row_id + 1) + col_id + 1;
+                        edge->mId1 = num_of_vertices_per_line * (row_id + 1) +
+                                     col_id + 1;
                     }
                     else
                     {
-                        edge->mId0 = num_of_vertices_per_line * row_id + col_id + 1;
-                        edge->mId1 = num_of_vertices_per_line * (row_id + 1) + col_id;
+                        edge->mId0 =
+                            num_of_vertices_per_line * row_id + col_id + 1;
+                        edge->mId1 =
+                            num_of_vertices_per_line * (row_id + 1) + col_id;
                     }
                     edge->mIsBoundary = false;
                     edge->mRawLength = unit_edge_length * std::sqrt(2);
-                    edge->mTriangleId0 = num_of_triangles_per_line * row_id + col_id * 2;
+                    edge->mTriangleId0 =
+                        num_of_triangles_per_line * row_id + col_id * 2;
                     edge->mTriangleId1 = edge->mTriangleId0 + 1;
                 }
                 edges_array.push_back(edge);
 
-                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d, triangle0 %d, triangle1 %d\n",
-                //        edges_array.size() - 1, edge->mId0, edge->mId1, edge->mIsBoundary, edge->mTriangleId0, edge->mTriangleId1);
+                // printf("[debug] edge %d v0 %d v1 %d, is boundary %d,
+                // triangle0 %d, triangle1 %d\n",
+                //        edges_array.size() - 1, edge->mId0, edge->mId1,
+                //        edge->mIsBoundary, edge->mTriangleId0,
+                //        edge->mTriangleId1);
             }
         }
     }
@@ -485,10 +572,9 @@ void cTriangulator::BuildGeometry_UniformTriangle(double width, int subdivision,
 
 /**
  * \brief                   create vertices as a uniform, square vertices
-*/
-void cTriangulator::BuildSquareVertices(
-    double width, int subdivision,
-    std::vector<tVertex *> &vertices_array)
+ */
+void cTriangulator::BuildSquareVertices(double width, int subdivision,
+                                        std::vector<tVertex *> &vertices_array)
 {
     vertices_array.clear();
     int gap = subdivision + 1;
@@ -499,13 +585,12 @@ void cTriangulator::BuildSquareVertices(
         {
             tVertex *v = new tVertex();
 
-            v->mPos =
-                tVector(unit_edge_length * j - width / 2, width - unit_edge_length * i - width / 2, 0, 1);
+            v->mPos = tVector(unit_edge_length * j - width / 2,
+                              width - unit_edge_length * i - width / 2, 0, 1);
             v->mPos[3] = 1;
             v->mColor = tVector(0, 196.0 / 255, 1, 0);
             vertices_array.push_back(v);
-            v->muv =
-                tVector2f(i * 1.0 / subdivision, j * 1.0 / subdivision);
+            v->muv = tVector2f(i * 1.0 / subdivision, j * 1.0 / subdivision);
             // std::cout << "uv = " << v->muv.transpose() << std::endl;
             // printf("create vertex %d at (%.3f, %.3f), uv (%.3f, %.3f)\n",
             //        vertices_array.size() - 1, v->mPos[0], v->mPos[1],
@@ -516,9 +601,7 @@ void cTriangulator::BuildSquareVertices(
 
 bool ConfirmVertexInTriangles(tTriangle *tri, int vid)
 {
-    return (tri->mId0 == vid) ||
-           (tri->mId1 == vid) ||
-           (tri->mId2 == vid);
+    return (tri->mId0 == vid) || (tri->mId1 == vid) || (tri->mId2 == vid);
 };
 void cTriangulator::ValidateGeometry(std::vector<tVertex *> &vertices_array,
                                      std::vector<tEdge *> &edges_array,
@@ -531,12 +614,11 @@ void cTriangulator::ValidateGeometry(std::vector<tVertex *> &vertices_array,
         if (e->mTriangleId0 != -1)
         {
             auto tri = triangles_array[e->mTriangleId0];
-            if (
-                (
-                    ConfirmVertexInTriangles(tri, e->mId0) &&
-                    ConfirmVertexInTriangles(tri, e->mId1)) == false)
+            if ((ConfirmVertexInTriangles(tri, e->mId0) &&
+                 ConfirmVertexInTriangles(tri, e->mId1)) == false)
             {
-                printf("[error] validate geometry adjoint edge %d failed between tri%d - tri%d\n",
+                printf("[error] validate geometry adjoint edge %d failed "
+                       "between tri%d - tri%d\n",
                        i, e->mTriangleId0, e->mTriangleId1);
                 exit(0);
             }
@@ -544,12 +626,11 @@ void cTriangulator::ValidateGeometry(std::vector<tVertex *> &vertices_array,
         if (e->mTriangleId1 != -1)
         {
             auto tri = triangles_array[e->mTriangleId1];
-            if (
-                (
-                    ConfirmVertexInTriangles(tri, e->mId0) &&
-                    ConfirmVertexInTriangles(tri, e->mId1)) == false)
+            if ((ConfirmVertexInTriangles(tri, e->mId0) &&
+                 ConfirmVertexInTriangles(tri, e->mId1)) == false)
             {
-                printf("[error] validate geometry adjoint edge %d failed between tri%d - tri%d\n",
+                printf("[error] validate geometry adjoint edge %d failed "
+                       "between tri%d - tri%d\n",
                        i, e->mTriangleId1, e->mTriangleId1);
                 exit(0);
             }
@@ -559,9 +640,9 @@ void cTriangulator::ValidateGeometry(std::vector<tVertex *> &vertices_array,
 
 /**
  * \brief           Given the geometry info, save them to the given "path"
- * 
+ *
  *          Only save a basic info
-*/
+ */
 void cTriangulator::SaveGeometry(std::vector<tVertex *> &vertices_array,
                                  std::vector<tEdge *> &edges_array,
                                  std::vector<tTriangle *> &triangles_array,
@@ -608,11 +689,12 @@ void cTriangulator::LoadGeometry(std::vector<tVertex *> &vertices_array,
     for (int i = 0; i < num_of_vertices; i++)
     {
         vertices_array.push_back(new tVertex());
-        vertices_array[vertices_array.size() - 1]->mColor = tVector(0, 196.0 / 255, 1, 0);
+        vertices_array[vertices_array.size() - 1]->mColor =
+            tVector(0, 196.0 / 255, 1, 0);
     }
 
-    const tVectorXd &edge_info =
-        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue(EDGE_ARRAY_KEY, root));
+    const tVectorXd &edge_info = cJsonUtil::ReadVectorJson(
+        cJsonUtil::ParseAsValue(EDGE_ARRAY_KEY, root));
 
     for (int i = 0; i < edge_info.size() / 2; i++)
     {
@@ -622,7 +704,8 @@ void cTriangulator::LoadGeometry(std::vector<tVertex *> &vertices_array,
         edges_array.push_back(edge);
     }
 
-    const Json::Value &tri_json = cJsonUtil::ParseAsValue(TRIANGLE_ARRAY_KEY, root);
+    const Json::Value &tri_json =
+        cJsonUtil::ParseAsValue(TRIANGLE_ARRAY_KEY, root);
     for (int i = 0; i < tri_json.size(); i++)
     {
         tTriangle *tri = new tTriangle();
@@ -631,9 +714,8 @@ void cTriangulator::LoadGeometry(std::vector<tVertex *> &vertices_array,
         tri->mId2 = tri_json[i][2].asInt();
         triangles_array.push_back(tri);
     }
-    printf("[debug] Load Geometry from %s done, vertices %d, edges %d, triangles %d\n",
-           path.c_str(),
-           vertices_array.size(),
-           edges_array.size(),
+    printf("[debug] Load Geometry from %s done, vertices %d, edges %d, "
+           "triangles %d\n",
+           path.c_str(), vertices_array.size(), edges_array.size(),
            triangles_array.size());
 }

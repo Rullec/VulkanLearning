@@ -1,5 +1,5 @@
-#include "MathUtil.h"
 #include "LogUtil.h"
+#include "MathUtil.h"
 #include <iostream>
 #include <time.h>
 
@@ -682,10 +682,10 @@ void cMathUtil::ThresholdOp(tVectorXd &v, double threshold)
     v = (threshold < v.array().abs()).select(v, 0.0f);
 }
 
-tVector cMathUtil::CalcAxisAngleFromOneVectorToAnother(const tVector &v0_, const tVector &v1_)
+tVector cMathUtil::CalcAxisAngleFromOneVectorToAnother(const tVector &v0_,
+                                                       const tVector &v1_)
 {
-    tVector v0 = v0_.normalized(),
-            v1 = v1_.normalized();
+    tVector v0 = v0_.normalized(), v1 = v1_.normalized();
 
     tVector rot_axis = v0.cross3(v1);
     double theta = std::asin(rot_axis.norm()); //[-pi/2, pi/2]
@@ -693,11 +693,10 @@ tVector cMathUtil::CalcAxisAngleFromOneVectorToAnother(const tVector &v0_, const
     // if the angle between v0 and v1 > 90
     if (v0.dot(v1) < 0)
     {
-        theta =
-            theta > 0 ? (theta + (M_PI / 2 - theta) * 2)
-                      : (theta + (-M_PI / 2 - theta) * 2);
+        theta = theta > 0 ? (theta + (M_PI / 2 - theta) * 2)
+                          : (theta + (-M_PI / 2 - theta) * 2);
     }
-    rot_axis = rot_axis.normalized() *  std::fabs(theta);
+    rot_axis = rot_axis.normalized() * std::fabs(theta);
     return rot_axis;
 }
 
@@ -891,13 +890,13 @@ tVector cMathUtil::RayCastTri(const tVector &ori, const tVector &dir,
     return inter;
 }
 
-tVector cMathUtil::RayCastPlane(const tVector &ray_ori,
-                                const tVector &ray_dir, const tVector &plane_equation,
+tVector cMathUtil::RayCastPlane(const tVector &ray_ori, const tVector &ray_dir,
+                                const tVector &plane_equation,
                                 double eps /*= 1e-10*/)
 {
-    double t =
-        -(plane_equation.segment(0, 3).dot(ray_ori.segment(0, 3)) + plane_equation[3]) /
-        (plane_equation.segment(0, 3).dot(ray_dir.segment(0, 3)));
+    double t = -(plane_equation.segment(0, 3).dot(ray_ori.segment(0, 3)) +
+                 plane_equation[3]) /
+               (plane_equation.segment(0, 3).dot(ray_dir.segment(0, 3)));
     if (t < eps)
     {
         return tVector::Ones() * std::nan("");
@@ -907,17 +906,20 @@ tVector cMathUtil::RayCastPlane(const tVector &ray_ori,
         return ray_ori + ray_dir * t;
     }
 }
-tMatrix cMathUtil::TransformMat(const tVector &translation, const tVector &euler_xyz_orientation)
+tMatrix cMathUtil::TransformMat(const tVector &translation,
+                                const tVector &euler_xyz_orientation)
 {
-    tMatrix mat = cMathUtil::EulerAnglesToRotMat(euler_xyz_orientation, eRotationOrder::XYZ);
+    tMatrix mat = cMathUtil::EulerAnglesToRotMat(euler_xyz_orientation,
+                                                 eRotationOrder::XYZ);
     mat.block(0, 3, 3, 1) = translation.segment(0, 3);
     return mat;
 }
 
 /**
  * \brief               cartesian product for sets
-*/
-tMatrixXd cMathUtil::CartesianProduct(const std::vector<std::vector<double>> &lists)
+ */
+tMatrixXd
+cMathUtil::CartesianProduct(const std::vector<std::vector<double>> &lists)
 {
     std::vector<std::vector<double>> result = CartesianProductVec(lists);
 
@@ -932,7 +934,8 @@ tMatrixXd cMathUtil::CartesianProduct(const std::vector<std::vector<double>> &li
     return eigen_res;
 }
 
-std::vector<std::vector<double>> cMathUtil::CartesianProductVec(const std::vector<std::vector<double>> &lists)
+std::vector<std::vector<double>>
+cMathUtil::CartesianProductVec(const std::vector<std::vector<double>> &lists)
 {
     std::vector<std::vector<double>> result(0);
     if (std::find_if(std::begin(lists), std::end(lists),
@@ -964,18 +967,22 @@ std::vector<std::vector<double>> cMathUtil::CartesianProductVec(const std::vecto
 
 /**
  * \brief           calcualte the distance between a point to a line
-*/
-double cMathUtil::CalcDistanceFromPointToLine(const tVector3d &point, const tVector3d &line_origin, const tVector3d &line_end)
+ */
+double cMathUtil::CalcDistanceFromPointToLine(const tVector3d &point,
+                                              const tVector3d &line_origin,
+                                              const tVector3d &line_end)
 {
     tVector3d origin_2_point = point - line_origin;
-    // std::cout << "origin_2_point = " << origin_2_point.transpose() << std::endl;
+    // std::cout << "origin_2_point = " << origin_2_point.transpose() <<
+    // std::endl;
     tVector3d origin_2_end = (line_end - line_origin).normalized();
     // std::cout << "origin_2_end = " << origin_2_end.transpose() << std::endl;
     double length = origin_2_point.dot(origin_2_end);
 
     // std::cout << "length = " << length << std::endl;
     tVector3d origin_2_point_proj = length * origin_2_end;
-    // std::cout << "origin_2_point_proj = " << origin_2_point_proj.transpose() << std::endl;
+    // std::cout << "origin_2_point_proj = " << origin_2_point_proj.transpose()
+    // << std::endl;
     tVector3d res = origin_2_point - origin_2_point_proj;
     return res.norm();
 }
@@ -1021,8 +1028,9 @@ tVector cMathUtil::SampleFromPlane(const tVector &plane_equation)
 };
 
 /**
- * \brief           Calculate normal by given plane equaiton "ax + by + cz + d = 0"
-*/
+ * \brief           Calculate normal by given plane equaiton "ax + by + cz + d =
+ * 0"
+ */
 tVector cMathUtil::CalcNormalFromPlane(const tVector &plane_equation)
 {
     tVector res = tVector::Zero();

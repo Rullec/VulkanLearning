@@ -1,7 +1,7 @@
+#include "VideoManager.h"
+#include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/eigen.h>
-#include "VideoManager.h"
 
 namespace py = pybind11;
 PYBIND11_MODULE(video_manager, m)
@@ -11,6 +11,7 @@ PYBIND11_MODULE(video_manager, m)
         .def("GetDepthImage", &cVideoManager::GetDepthImage)
         .def("GetDepthUnit_mm", &cVideoManager::GetDepthUnit_mm)
         .def("GetIrImage", &cVideoManager::GetIrImage)
-        .def("GetDepthIntrinsicDistCoef", &cVideoManager::GetDepthIntrinsicDistCoef)
+        .def("GetDepthIntrinsicDistCoef",
+             &cVideoManager::GetDepthIntrinsicDistCoef)
         .def("GetDepthIntrinsicMtx", &cVideoManager::GetDepthIntrinsicMtx);
 }

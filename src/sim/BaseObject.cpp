@@ -2,16 +2,11 @@
 #include "utils/LogUtil.h"
 #include "utils/MathUtil.h"
 #include <string>
-std::string gObjectTypeStr[eObjectType::NUM_OBJ_TYPES] = {
-    "Rigidbody", "Cloth"};
+std::string gObjectTypeStr[eObjectType::NUM_OBJ_TYPES] = {"Rigidbody", "Cloth"};
 
-cBaseObject::cBaseObject(eObjectType type) : mType(type)
-{
-}
+cBaseObject::cBaseObject(eObjectType type) : mType(type) {}
 
-cBaseObject::~cBaseObject()
-{
-}
+cBaseObject::~cBaseObject() {}
 
 eObjectType cBaseObject::BuildObjectType(std::string str)
 {

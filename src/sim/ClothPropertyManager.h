@@ -4,7 +4,7 @@
 #include <utility>
 namespace Json
 {
-    class Value;
+class Value;
 };
 SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
 class tPhyPropertyManager
@@ -26,10 +26,9 @@ protected:
     };
     eSampleMode mSampleMode;
     tMatrixXd mAllPropertyFeatures;
-    std::vector<std::pair<int , int >> mExchangeablePairs;
-    void InitExchangeablePairs(const Json::Value & conf);
+    std::vector<std::pair<int, int>> mExchangeablePairs;
+    void InitExchangeablePairs(const Json::Value &conf);
     void InitFeatures();
     std::vector<double> CalcPropertyDiscreteRange(int idx) const;
-
 };
 #endif

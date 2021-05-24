@@ -1,7 +1,8 @@
 #define TINYEXR_IMPLEMENTATION
 #include "tinyexr.h"
 
-bool SaveDepthEXR(const float *rgb, int width, int height, const char *outfilename)
+bool SaveDepthEXR(const float *rgb, int width, int height,
+                  const char *outfilename)
 {
     EXRHeader header;
     InitEXRHeader(&header);
@@ -35,9 +36,10 @@ bool SaveDepthEXR(const float *rgb, int width, int height, const char *outfilena
     image.height = height;
 
     header.num_channels = 1;
-    header.channels = (EXRChannelInfo *)malloc(sizeof(EXRChannelInfo) * header.num_channels);
-    // Must be (A)BGR order, since most of EXR viewers expect this channel order.
-    // strncpy(header.channels[0].name, "B", 255);
+    header.channels =
+        (EXRChannelInfo *)malloc(sizeof(EXRChannelInfo) * header.num_channels);
+    // Must be (A)BGR order, since most of EXR viewers expect this channel
+    // order. strncpy(header.channels[0].name, "B", 255);
     // header.channels[0].name[strlen("B")] = '\0';
     // strncpy(header.channels[1].name, "G", 255);
     // header.channels[1].name[strlen("G")] = '\0';
@@ -45,12 +47,17 @@ bool SaveDepthEXR(const float *rgb, int width, int height, const char *outfilena
     header.channels[0].name[strlen("Z")] = '\0';
 
     header.pixel_types = (int *)malloc(sizeof(int) * header.num_channels);
-    header.requested_pixel_types = (int *)malloc(sizeof(int) * header.num_channels);
+    header.requested_pixel_types =
+        (int *)malloc(sizeof(int) * header.num_channels);
     for (int i = 0; i < header.num_channels; i++)
     {
-        header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
-        // header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
-        header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of output image to be stored in .EXR
+        header.pixel_types[i] =
+            TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
+        // header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel
+        // type of output image to be stored in .EXR
+        header.requested_pixel_types[i] =
+            TINYEXR_PIXELTYPE_FLOAT; // pixel type of output image to be stored
+                                     // in .EXR
     }
 
     const char *err = NULL; // or nullptr in C++11 or later.

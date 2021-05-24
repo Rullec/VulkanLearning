@@ -1,7 +1,7 @@
 #pragma once
+#include "utils/MathUtil.h"
 #include <string>
 #include <vector>
-#include "utils/MathUtil.h"
 
 struct tTriangle;
 struct tEdge;
@@ -9,7 +9,7 @@ struct tVertex;
 
 /**
  * \brief           handle everything about obj
-*/
+ */
 class cObjUtil
 {
 public:
@@ -22,12 +22,11 @@ public:
                         std::vector<tVertex *> &mVertexArray,
                         std::vector<tEdge *> &mEdgeArray,
                         std::vector<tTriangle *> &mTriangleArray);
-    static void BuildPlaneGeometryData(
-        const double scale,
-        const tVector &plane_equation,
-        std::vector<tVertex *> &mVertexArray,
-        std::vector<tEdge *> &mEdgeArray,
-        std::vector<tTriangle *> &mTriangleArray);
+    static void
+    BuildPlaneGeometryData(const double scale, const tVector &plane_equation,
+                           std::vector<tVertex *> &mVertexArray,
+                           std::vector<tEdge *> &mEdgeArray,
+                           std::vector<tTriangle *> &mTriangleArray);
 
 protected:
     static void BuildEdge(const std::vector<tVertex *> &mVertexArray,

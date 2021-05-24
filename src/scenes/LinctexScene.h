@@ -5,13 +5,13 @@
 
 /**
  * \brief              support style3d engine
-*/
+ */
 namespace StyleEngine
 {
-    class SePiece;
-    class SeScene;
-    class SeDraggedPoints;
-};
+class SePiece;
+class SeScene;
+class SeDraggedPoints;
+}; // namespace StyleEngine
 SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
 
 class cLinctexScene : public cSimScene
@@ -27,20 +27,21 @@ public:
     // external cloth property settings
     virtual void SetSimProperty(const tPhyPropertyPtr &prop);
     // virtual void ApplyTransform(const tMatrix &trans);
-    virtual void ApplyNoise(bool enable_y_random_rotation, double &rotation_angle, bool enable_y_random_pos, const double random_ypos_std);
-    virtual void ApplyFoldNoise(const tVector3d &principle_noise, const double a);
+    virtual void ApplyNoise(bool enable_y_random_rotation,
+                            double &rotation_angle, bool enable_y_random_pos,
+                            const double random_ypos_std);
+    virtual void ApplyFoldNoise(const tVector3d &principle_noise,
+                                const double a);
     virtual void ApplyMultiFoldsNoise(int num_of_folds);
     virtual tPhyPropertyPtr GetSimProperty() const;
     virtual const tVectorXd &GetClothFeatureVector() const;
     virtual int GetClothFeatureSize() const;
-    static void DumpSimulationData(
-        const tVectorXd &simualtion_result,
-        const tVectorXd &simulation_property,
-        const std::string &filename);
-    static void LoadSimulationData(
-        tVectorXd &simualtion_result,
-        tVectorXd &simulation_property,
-        const std::string &filename);
+    static void DumpSimulationData(const tVectorXd &simualtion_result,
+                                   const tVectorXd &simulation_property,
+                                   const std::string &filename);
+    static void LoadSimulationData(tVectorXd &simualtion_result,
+                                   tVectorXd &simulation_property,
+                                   const std::string &filename);
     virtual void Key(int key, int scancode, int action, int mods);
     virtual tVector CalcCOM() const;
     virtual void End();
@@ -66,14 +67,22 @@ protected:
     tPhyPropertyPtr mClothProp; // cloth property
     bool mEngineStart;          // start the engine or not
 
-    bool mEnableNetworkInferenceMode;     // if it's true, the simulation is running for the DNN 's inference proceduce
-    double mNetworkInfer_ConvThreshold;   // used in network inference mode, the convergence threshold for diff norm between nodal positions
-    std::string mNetworkInfer_OutputPath; // used in network inference mode, output path of simulation result (nodal positions)
-    int mNetworkInfer_MinIter;            // used in network inference mode, the minimium iteration times before convergence
-    int mNetworkInfer_CurIter;            // used in network inference mode, cur iterations
-    tVectorXd mPreviosFeature;            // used in network inference mode, previous nodal position vector
+    bool mEnableNetworkInferenceMode; // if it's true, the simulation is running
+                                      // for the DNN 's inference proceduce
+    double mNetworkInfer_ConvThreshold; // used in network inference mode, the
+                                        // convergence threshold for diff norm
+                                        // between nodal positions
+    std::string
+        mNetworkInfer_OutputPath; // used in network inference mode, output path
+                                  // of simulation result (nodal positions)
+    int mNetworkInfer_MinIter; // used in network inference mode, the minimium
+                               // iteration times before convergence
+    int mNetworkInfer_CurIter; // used in network inference mode, cur iterations
+    tVectorXd mPreviosFeature; // used in network inference mode, previous nodal
+                               // position vector
 
-    bool mEnableDumpGeometryInfo;      // if true, we save the geometry information after the initialization
+    bool mEnableDumpGeometryInfo; // if true, we save the geometry information
+                                  // after the initialization
     std::string mDumpGeometryInfoPath; // save path for initial geometry
 };
 #endif

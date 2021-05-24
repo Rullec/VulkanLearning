@@ -1,11 +1,11 @@
 #pragma once
 #include "Scene.h"
-#include "utils/MathUtil.h"
 #include "utils/DefUtil.h"
+#include "utils/MathUtil.h"
 
 namespace Json
 {
-    class Value;
+class Value;
 };
 
 enum eSceneType
@@ -13,12 +13,15 @@ enum eSceneType
     // MS means mass-spring system
     SCENE_SEMI_IMPLICIT = 0,
     SCENE_IMPLICIT,
-    SCENE_PROJECTIVE_DYNAMIC,     // see Liu Et al, "Fast simulation of mass spring system", equivalent to "optimization implicit euler"
+    SCENE_PROJECTIVE_DYNAMIC, // see Liu Et al, "Fast simulation of mass spring
+                              // system", equivalent to "optimization implicit
+                              // euler"
     SCENE_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
-    SCENE_BARAFF,                 // trimesh modeling, baraff 98 siggraph "large step for cloth simulation"
-    SCENE_SE,                     // style 3d engine
-    SCENE_SYN_DATA,               // synthetic train scene
-    SCENE_PROCESS_DATA,           // process train scene
+    SCENE_BARAFF, // trimesh modeling, baraff 98 siggraph "large step for cloth
+                  // simulation"
+    SCENE_SE,     // style 3d engine
+    SCENE_SYN_DATA,     // synthetic train scene
+    SCENE_PROCESS_DATA, // process train scene
     NUM_OF_SCENE_TYPES
 };
 
@@ -27,7 +30,7 @@ struct tEdge;
 struct tTriangle;
 struct tRay;
 struct tPerturb;
-class cDrawScene;
+// class cDrawScene;
 SIM_DECLARE_CLASS_AND_PTR(cKinematicBody)
 SIM_DECLARE_CLASS_AND_PTR(cRaycaster)
 class cSimScene : public cScene
@@ -51,9 +54,9 @@ public:
     static eSceneType BuildSceneType(const std::string &str);
     virtual bool CreatePerturb(tRay *ray);
     virtual void ReleasePerturb();
-    virtual void CursorMove(cDrawScene *draw_scene, int xpos, int ypos);
-    virtual void MouseButton(cDrawScene *draw_scene, int button, int action,
-                             int mods);
+    virtual void UpdatePerturb(const tVector &camera_pos, const tVector &dir);
+    virtual void CursorMove(int xpos, int ypos);
+    virtual void MouseButton(int button, int action, int mods);
     virtual void Key(int key, int scancode, int action, int mods);
     void RayCastScene(const tRay *ray, tTriangle **selected_triangle,
                       int &selected_triangle_id,
@@ -67,9 +70,10 @@ protected:
     std::string mGeometryType;
     eSceneType mSceneType;
     bool mEnableProfiling;
-    bool mEnableObstacle;                         // using obstacle?
-    std::vector<cKinematicBodyPtr> mObstacleList; // obstacle for cloth simulation
-    cRaycasterPtr mRaycaster;                     // raycaster
+    bool mEnableObstacle; // using obstacle?
+    std::vector<cKinematicBodyPtr>
+        mObstacleList;        // obstacle for cloth simulation
+    cRaycasterPtr mRaycaster; // raycaster
     // double mClothWidth;           // a square cloth
     // double mClothMass;            // cloth mass
     // tVector mClothInitPos;        //
@@ -77,7 +81,8 @@ protected:
     double mDamping;              // damping coeff
     double mIdealDefaultTimestep; // default substep dt
     tVectorXf mTriangleDrawBuffer,
-        mEdgesDrawBuffer; // buffer to triangle buffer drawing (should use index buffer to improve the velocity)
+        mEdgesDrawBuffer; // buffer to triangle buffer drawing (should use index
+                          // buffer to improve the velocity)
     std::vector<tRay *> mRayArray;
     std::vector<tVertex *> mVertexArray;     // vertices info
     std::vector<tEdge *> mEdgeArray;         // springs info
@@ -86,7 +91,7 @@ protected:
     tVectorXd mExtForce;                     // external force
     tVectorXd mDampingForce;                 // external force
 
-    tVectorXd mXpre, mXcur;          // previous node position & current node position
+    tVectorXd mXpre, mXcur; // previous node position & current node position
     std::vector<int> mFixedPointIds; // fixed constraint point
     tVectorXd mClothInitPos;         // init position of the cloth
     // base methods
@@ -96,7 +101,8 @@ protected:
     virtual void InitGeometry(
         const Json::Value &conf); // discretazation from square cloth to
     void ClearForce();            // clear all forces
-    virtual void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const;
+    virtual void CalcIntForce(const tVectorXd &xcur,
+                              tVectorXd &int_force) const;
     virtual void CalcExtForce(tVectorXd &ext_force) const;
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //
@@ -113,5 +119,5 @@ protected:
 
     virtual void CreateObstacle(const Json::Value &conf);
     bool mPauseSim;
-    virtual void PauseSim() ;
+    virtual void PauseSim();
 };

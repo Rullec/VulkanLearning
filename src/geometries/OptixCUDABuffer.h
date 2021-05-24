@@ -19,17 +19,14 @@
 
 #include "optix7.h"
 // common std stuff
-#include <vector>
 #include <assert.h>
+#include <vector>
 
 /*! simple wrapper for creating, and managing a device-side CUDA
       buffer */
 struct CUDABuffer
 {
-    inline CUdeviceptr d_pointer() const
-    {
-        return (CUdeviceptr)d_ptr;
-    }
+    inline CUdeviceptr d_pointer() const { return (CUdeviceptr)d_ptr; }
 
     //! re-size buffer to given number of bytes
     void resize(size_t size)
@@ -59,29 +56,26 @@ struct CUDABuffer
         sizeInBytes = 0;
     }
 
-    template <typename T>
-    void alloc_and_upload(const std::vector<T> &vt)
+    template <typename T> void alloc_and_upload(const std::vector<T> &vt)
     {
         alloc(vt.size() * sizeof(T));
         upload((const T *)vt.data(), vt.size());
     }
 
-    template <typename T>
-    void upload(const T *t, size_t count)
+    template <typename T> void upload(const T *t, size_t count)
     {
         assert(d_ptr != nullptr);
         assert(sizeInBytes == count * sizeof(T));
-        CUDA_CHECK(Memcpy(d_ptr, (void *)t,
-                          count * sizeof(T), cudaMemcpyHostToDevice));
+        CUDA_CHECK(Memcpy(d_ptr, (void *)t, count * sizeof(T),
+                          cudaMemcpyHostToDevice));
     }
 
-    template <typename T>
-    void download(T *t, size_t count)
+    template <typename T> void download(T *t, size_t count)
     {
         assert(d_ptr != nullptr);
         assert(sizeInBytes == count * sizeof(T));
-        CUDA_CHECK(Memcpy((void *)t, d_ptr,
-                          count * sizeof(T), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(Memcpy((void *)t, d_ptr, count * sizeof(T),
+                          cudaMemcpyDeviceToHost));
     }
 
     size_t sizeInBytes{0};

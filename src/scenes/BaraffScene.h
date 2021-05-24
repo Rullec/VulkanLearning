@@ -3,7 +3,7 @@
 
 /**
  * \brief               Baraff 98 SIGGRAPH "large step of cloth simulation"
-*/
+ */
 class cBaraffScene : public cSimScene
 {
 public:

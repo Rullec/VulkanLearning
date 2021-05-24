@@ -8,9 +8,10 @@
 FPSCamera::FPSCamera() : CameraBase(eCameraType::FPS_CAMERA) { Init(); }
 FPSCamera::~FPSCamera() {}
 FPSCamera::FPSCamera(const tVector3f &pos_, const tVector3f &centor_,
-                     const tVector3f &up_)
+                     const tVector3f &up_, float fov_)
     : CameraBase(eCameraType::FPS_CAMERA)
 {
+    fov = fov_;
     pos = pos_;
     center = centor_;
     up = up_;

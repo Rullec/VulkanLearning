@@ -2,15 +2,14 @@
 #include "Perturb.h"
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
-#include "scenes/DrawScene.h"
+// #include "scenes/DrawScene.h"
 #include "sim/KinematicBody.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
 
-std::string
-    gSceneTypeStr[eSceneType::NUM_OF_SCENE_TYPES] = {
-        "semi_implicit", "implicit", "projective_dynamic", "pbd",
-        "tri_baraff", "se", "data_synthesis", "data_process"};
+std::string gSceneTypeStr[eSceneType::NUM_OF_SCENE_TYPES] = {
+    "semi_implicit", "implicit", "projective_dynamic", "pbd",
+    "tri_baraff",    "se",       "data_synthesis",     "data_process"};
 
 eSceneType cSimScene::BuildSceneType(const std::string &str)
 {
@@ -44,21 +43,23 @@ void cSimScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
 
-    mGeometryType = cJsonUtil::ParseAsString(cTriangulator::GEOMETRY_TYPE_KEY, root);
+    mGeometryType =
+        cJsonUtil::ParseAsString(cTriangulator::GEOMETRY_TYPE_KEY, root);
     mDamping = cJsonUtil::ParseAsDouble(cSimScene::DAMPING_KEY, root);
-    mEnableProfiling = cJsonUtil::ParseAsBool(cSimScene::ENABLE_PROFLINE_KEY, root);
-    mIdealDefaultTimestep = cJsonUtil::ParseAsDouble(cSimScene::DEFAULT_TIMESTEP_KEY, root);
+    mEnableProfiling =
+        cJsonUtil::ParseAsBool(cSimScene::ENABLE_PROFLINE_KEY, root);
+    mIdealDefaultTimestep =
+        cJsonUtil::ParseAsDouble(cSimScene::DEFAULT_TIMESTEP_KEY, root);
     mSceneType = BuildSceneType(
         cJsonUtil::ParseAsString(cSimScene::SCENE_TYPE_KEY, root));
-    mEnableObstacle = cJsonUtil::ParseAsBool(cSimScene::ENABLE_OBSTACLE_KEY, root);
+    mEnableObstacle =
+        cJsonUtil::ParseAsBool(cSimScene::ENABLE_OBSTACLE_KEY, root);
     if (mEnableObstacle)
-        CreateObstacle(cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, root));
+        CreateObstacle(
+            cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, root));
 }
 
-void cSimScene::PauseSim()
-{
-    mPauseSim = !mPauseSim;
-}
+void cSimScene::PauseSim() { mPauseSim = !mPauseSim; }
 
 void cSimScene::InitDrawBuffer()
 {
@@ -71,14 +72,15 @@ void cSimScene::InitDrawBuffer()
         {
             num_of_triangles_obstacle += x->GetDrawNumOfTriangles();
         }
-        int num_of_triangles = num_of_triangles_cloth + num_of_triangles_obstacle;
+        int num_of_triangles =
+            num_of_triangles_cloth + num_of_triangles_obstacle;
         int num_of_vertices = num_of_triangles * 3;
         int size_per_vertices = RENDERING_SIZE_PER_VERTICE;
         int cloth_trinalge_size = num_of_vertices * size_per_vertices;
 
         mTriangleDrawBuffer.resize(cloth_trinalge_size);
-        // std::cout << "triangle draw buffer size = " << mTriangleDrawBuffer.size() << std::endl;
-        // exit(0);
+        // std::cout << "triangle draw buffer size = " <<
+        // mTriangleDrawBuffer.size() << std::endl; exit(0);
     }
     {
         int num_of_edges_cloth = mEdgeArray.size();
@@ -97,9 +99,9 @@ void cSimScene::InitDrawBuffer()
 
 /**
  * \brief           Init the raycasting strucutre
-*/
-#include "geometries/Raycaster.h"
+ */
 #include "geometries/OptixRaycaster.h"
+#include "geometries/Raycaster.h"
 void cSimScene::InitRaycaster()
 {
     // auto total_triangle_array = mTriangleArray;
@@ -124,11 +126,12 @@ void cSimScene::InitRaycaster()
         auto obstacle_triangle_array = x->GetTriangleArray();
         mRaycaster->AddResources(obstacle_triangle_array, obstacle_v_array);
     }
-    std::cout << "[debug] add resources to raycaster done, num of obstacles = " << mObstacleList.size() << std::endl;
+    std::cout << "[debug] add resources to raycaster done, num of obstacles = "
+              << mObstacleList.size() << std::endl;
 }
 /**
  * \brief           Update the simulation procedure
-*/
+ */
 #include "utils/TimeUtil.hpp"
 void cSimScene::Update(double delta_time)
 {
@@ -158,7 +161,7 @@ void cSimScene::Update(double delta_time)
 
 /**
  * \brief           Reset the whole scene
-*/
+ */
 void cSimScene::Reset()
 {
     cScene::Reset();
@@ -167,12 +170,12 @@ void cSimScene::Reset()
 
 /**
  * \brief           Get number of vertices
-*/
+ */
 int cSimScene::GetNumOfVertices() const { return mVertexArray.size(); }
 
 /**
  * \brief       clear all forces
-*/
+ */
 void cSimScene::ClearForce()
 {
     int dof = GetNumOfFreedom();
@@ -194,7 +197,7 @@ void cSimScene::UpdateCurNodalPosition(const tVectorXd &newpos)
 }
 /**
  * \brief           add damping forces
-*/
+ */
 void cSimScene::CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const
 {
     damping.noalias() = -vel * mDamping;
@@ -207,7 +210,8 @@ int cSimScene::GetNumOfFreedom() const { return GetNumOfVertices() * 3; }
 void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
                                   Eigen::Map<tVectorXf> &buffer, int &st_pos)
 {
-    // std::cout << "buffer size " << buffer.size() << " st pos " << st_pos << std::endl;
+    // std::cout << "buffer size " << buffer.size() << " st pos " << st_pos <<
+    // std::endl;
     buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
     buffer.segment(st_pos + 3, 3) = v0->mColor.segment(0, 3).cast<float>();
     st_pos += RENDERING_SIZE_PER_VERTICE;
@@ -221,7 +225,7 @@ void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
 int cSimScene::GetNumOfEdges() const { return mEdgeArray.size(); }
 /**
  * \brief       external force
-*/
+ */
 extern const tVector gGravity;
 void cSimScene::CalcExtForce(tVectorXd &ext_force) const
 {
@@ -236,15 +240,18 @@ void cSimScene::CalcExtForce(tVectorXd &ext_force) const
     }
 
     // std::cout << "add ext noise\n";
-    // ext_force.segment(3 * (mVertexArray.size() - 1), 3) += tVector3d(0, 0, 10);
+    // ext_force.segment(3 * (mVertexArray.size() - 1), 3) += tVector3d(0, 0,
+    // 10);
 
     //  2. add perturb force
     if (mPerturb != nullptr)
     {
         tVector perturb_force = mPerturb->GetPerturbForce();
         // printf(
-        //     "[debug] perturb vid %d %d %d, ", mPerturb->mAffectedVerticesId[0],
-        //     mPerturb->mAffectedVerticesId[1], mPerturb        // std::cout << "perturb force = " << perturb_force.transpose()
+        //     "[debug] perturb vid %d %d %d, ",
+        //     mPerturb->mAffectedVerticesId[0],
+        //     mPerturb->mAffectedVerticesId[1], mPerturb        // std::cout <<
+        //     "perturb force = " << perturb_force.transpose()
         //           << std::endl;->mAffectedVerticesId[2]);
 
         ext_force.segment(mPerturb->mAffectedVerticesId[0] * 3, 3) +=
@@ -258,8 +265,8 @@ void cSimScene::CalcExtForce(tVectorXd &ext_force) const
     }
 }
 
-void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1, Eigen::Map<tVectorXf> &buffer,
-                              int &st_pos)
+void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1,
+                              Eigen::Map<tVectorXf> &buffer, int &st_pos)
 {
 
     buffer.segment(st_pos, 3) = v0->mPos.segment(0, 3).cast<float>();
@@ -286,14 +293,15 @@ const tVectorXf &cSimScene::GetTriangleDrawBuffer()
 }
 /**
  * \brief           Calculate vertex rendering data
-*/
+ */
 void cSimScene::CalcTriangleDrawBuffer()
 {
     mTriangleDrawBuffer.fill(std::nan(""));
     // 1. calculate for cloth triangle
     int st = 0;
     {
-        Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data(), mTriangleDrawBuffer.size());
+        Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data(),
+                                  mTriangleDrawBuffer.size());
         // counter clockwise
         int subdivision = std::sqrt(mVertexArray.size()) - 1;
         int gap = subdivision + 1;
@@ -306,19 +314,20 @@ void cSimScene::CalcTriangleDrawBuffer()
                 int left_down = left_up + gap;
                 int right_down = right_up + gap;
                 // mVertexArray[left_up]->mPos *= (1 + 1e-3);
-                CalcTriangleDrawBufferSingle(
-                    mVertexArray[right_down], mVertexArray[left_up],
-                    mVertexArray[left_down], ref, st);
-                CalcTriangleDrawBufferSingle(
-                    mVertexArray[right_down], mVertexArray[right_up],
-                    mVertexArray[left_up], ref, st);
+                CalcTriangleDrawBufferSingle(mVertexArray[right_down],
+                                             mVertexArray[left_up],
+                                             mVertexArray[left_down], ref, st);
+                CalcTriangleDrawBufferSingle(mVertexArray[right_down],
+                                             mVertexArray[right_up],
+                                             mVertexArray[left_up], ref, st);
             }
     }
     // 2. calculate for obstacle triangle
     {
         for (auto &x : mObstacleList)
         {
-            Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data() + st, mTriangleDrawBuffer.size() - st);
+            Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data() + st,
+                                      mTriangleDrawBuffer.size() - st);
             x->CalcTriangleDrawBuffer(ref);
             st += x->GetDrawNumOfTriangles() * 3 * RENDERING_SIZE_PER_VERTICE;
         }
@@ -338,7 +347,8 @@ void cSimScene::CalcEdgesDrawBuffer()
     mEdgesDrawBuffer.fill(std::nan(""));
     int st = 0;
     // 1. for cloth draw buffer
-    Eigen::Map<tVectorXf> cloth_ref(mEdgesDrawBuffer.data(), mEdgesDrawBuffer.size());
+    Eigen::Map<tVectorXf> cloth_ref(mEdgesDrawBuffer.data(),
+                                    mEdgesDrawBuffer.size());
     for (auto &e : mEdgeArray)
     {
         CalcEdgeDrawBufferSingle(mVertexArray[e->mId0], mVertexArray[e->mId1],
@@ -348,11 +358,14 @@ void cSimScene::CalcEdgesDrawBuffer()
     {
         if (mObstacleList.empty() == false)
         {
-            // std::cout << "[debug] calc edge draw buffer obstacle, size = " << ref.size() << std::endl;
+            // std::cout << "[debug] calc edge draw buffer obstacle, size = " <<
+            // ref.size() << std::endl;
             for (auto &x : mObstacleList)
             {
-                int size = x->GetDrawNumOfEdges() * RENDERING_SIZE_PER_VERTICE * 2;
-                Eigen::Map<tVectorXf> ref(mEdgesDrawBuffer.data() + st, mEdgesDrawBuffer.size() - st);
+                int size =
+                    x->GetDrawNumOfEdges() * RENDERING_SIZE_PER_VERTICE * 2;
+                Eigen::Map<tVectorXf> ref(mEdgesDrawBuffer.data() + st,
+                                          mEdgesDrawBuffer.size() - st);
                 x->CalcEdgeDrawBuffer(ref);
                 st += size;
             }
@@ -390,7 +403,8 @@ void cSimScene::InitConstraint(const Json::Value &root)
                                             fixed_cons[i][1].asDouble());
         }
 
-        // 2. iterate over all vertices to find which point should be finally fixed
+        // 2. iterate over all vertices to find which point should be finally
+        // fixed
         mFixedPointIds.resize(num_of_fixed_pts, -1);
         std::vector<double> SelectedFixedPointApproxDist(num_of_fixed_pts,
                                                          std::nan(""));
@@ -445,43 +459,36 @@ cSimScene::~cSimScene()
 
 /**
  * \brief               Event response (add perturb)
-*/
-void cSimScene::CursorMove(cDrawScene *draw_scene, int xpos, int ypos)
+ */
+void cSimScene::CursorMove(int xpos, int ypos) {}
+
+void cSimScene::UpdatePerturb(const tVector &camera_pos, const tVector &dir)
 {
     if (mPerturb != nullptr)
     {
-        // update perturb
-        tVector camera_pos = draw_scene->GetCameraPos();
-        tVector dir = draw_scene->CalcCursorPointWorldPos() - camera_pos;
-        dir[3] = 0;
-        dir.normalize();
         mPerturb->UpdatePerturb(camera_pos, dir);
-        // std::cout << "now perturb force = "
-        //           << mPerturb->GetPerturbForce().transpose() << std::endl;
     }
 }
-
 /**
  * \brief               Event response (add perturb)
-*/
-void cSimScene::MouseButton(cDrawScene *draw_scene, int button, int action,
-                            int mods)
+ */
+void cSimScene::MouseButton(int button, int action, int mods)
 {
-    if (cDrawScene::IsMouseRightButton(button) == true)
-    {
-        if (cDrawScene::IsPress(action) == true)
-        {
-            tVector tar_pos = draw_scene->CalcCursorPointWorldPos();
-            tVector camera_pos = draw_scene->GetCameraPos();
-            tRay *ray = new tRay(camera_pos, tar_pos);
-            CreatePerturb(ray);
-        }
-        else if (cDrawScene::IsRelease(action) == true)
-        {
+    // if (cDrawScene::IsMouseRightButton(button) == true)
+    // {
+    //     if (cDrawScene::IsPress(action) == true)
+    //     {
+    //         tVector tar_pos = draw_scene->CalcCursorPointWorldPos();
+    //         tVector camera_pos = draw_scene->GetCameraPos();
+    //         tRay *ray = new tRay(camera_pos, tar_pos);
+    //         CreatePerturb(ray);
+    //     }
+    //     else if (cDrawScene::IsRelease(action) == true)
+    //     {
 
-            ReleasePerturb();
-        }
-    }
+    //         ReleasePerturb();
+    //     }
+    // }
 }
 #include "GLFW/glfw3.h"
 void cSimScene::Key(int key, int scancode, int action, int mods)
@@ -525,7 +532,8 @@ bool cSimScene::CreatePerturb(tRay *ray)
         return false;
     else
     {
-        std::cout << "[debug] add perturb on triangle " << selected_tri_id << std::endl;
+        std::cout << "[debug] add perturb on triangle " << selected_tri_id
+                  << std::endl;
     }
 
     // 2. we have a triangle to track
@@ -560,7 +568,7 @@ bool cSimScene::CreatePerturb(tRay *ray)
 
 /**
  * \brief       internal force
-*/
+ */
 void cSimScene::CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const
 {
     // std::vector<std::atomic<double>> int_force_atomic(int_force.size());
@@ -589,8 +597,11 @@ void cSimScene::CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const
         // tVector3d force1 = -force0;
         // const tVectorXd &inf_force_0 = int_force.segment(3 * id0, 3);
         // const tVectorXd &inf_force_1 = int_force.segment(3 * id1, 3);
-        //         std::cout << "spring " << i << " force = " << force0.transpose() << ", dist " << dist << ", v0 " << id0 << " v1 " << id1 << std::endl;
-        // std::cout << "spring " << i << ", v0 = " << id0 << " v1 = " << id1 << std::endl;
+        //         std::cout << "spring " << i << " force = " <<
+        //         force0.transpose() << ", dist " << dist << ", v0 " << id0 <<
+        //         " v1 " << id1 << std::endl;
+        // std::cout << "spring " << i << ", v0 = " << id0 << " v1 = " << id1 <<
+        // std::endl;
         // 2. add force
         {
 #ifdef USE_OPENMP
@@ -628,12 +639,9 @@ void cSimScene::ReleasePerturb()
     if (mPerturb != nullptr)
     {
         // restore the color
-        mPerturb->mAffectedVertices[0]->mColor =
-            tVector(0, 196.0 / 255, 1, 0);
-        mPerturb->mAffectedVertices[1]->mColor =
-            tVector(0, 196.0 / 255, 1, 0);
-        mPerturb->mAffectedVertices[2]->mColor =
-            tVector(0, 196.0 / 255, 1, 0);
+        mPerturb->mAffectedVertices[0]->mColor = tVector(0, 196.0 / 255, 1, 0);
+        mPerturb->mAffectedVertices[1]->mColor = tVector(0, 196.0 / 255, 1, 0);
+        mPerturb->mAffectedVertices[2]->mColor = tVector(0, 196.0 / 255, 1, 0);
         delete mPerturb;
         mPerturb = nullptr;
     }
@@ -662,10 +670,9 @@ void cSimScene::CreateObstacle(const Json::Value &conf)
  * @param selected_tri:     a reference to selected triangle pointer
  * @param selected_tri_id:  a reference to selected triangle id
  * @param raycast_point:    a reference to intersection point
-*/
+ */
 void cSimScene::RayCastScene(const tRay *ray, tTriangle **selected_tri,
-                             int &selected_tri_id,
-                             tVector &raycast_point) const
+                             int &selected_tri_id, tVector &raycast_point) const
 {
     SIM_ASSERT(mRaycaster != nullptr);
     mRaycaster->RayCast(ray, selected_tri, selected_tri_id, raycast_point);

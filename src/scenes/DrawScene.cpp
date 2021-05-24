@@ -51,7 +51,7 @@ bool enableValidationLayers = true;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-float fov = 45.0f;
+// float fov = 45.0f;
 float near_plane_dist = 1e-6f;
 float far_plane_dist = 100.0f;
 
@@ -67,11 +67,13 @@ VkVertexInputBindingDescription tVkVertex::getBindingDescription()
 }
 
 /**
- * \brief       describe the description of the attributes. 
- *      
- *      we have two attributes, the position and color, we need to describe them individualy, use two strucutre.
- *      The first strucutre describe the first attribute (inPosition), we give the binding, location of this attribute, and the offset
- * 
+ * \brief       describe the description of the attributes.
+ *
+ *      we have two attributes, the position and color, we need to describe them
+ * individualy, use two strucutre. The first strucutre describe the first
+ * attribute (inPosition), we give the binding, location of this attribute, and
+ * the offset
+ *
  */
 std::array<VkVertexInputAttributeDescription, 3>
 tVkVertex::getAttributeDescriptions()
@@ -134,8 +136,9 @@ bool cDrawScene::IsRelease(int glfw_action)
 
 bool cDrawScene::IsPress(int glfw_action) { return GLFW_PRESS == glfw_action; }
 
-tVector CalcCursorPointWorldPos_tool(double xpos, double ypos, int height,
-                                     int width, const tMatrix &view_mat_inv)
+tVector CalcCursorPointWorldPos_tool(float fov, double xpos, double ypos,
+                                     int height, int width,
+                                     const tMatrix &view_mat_inv)
 {
     // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
 
@@ -178,7 +181,8 @@ tVector CalcCursorPointWorldPos_tool(double xpos, double ypos, int height,
     tMatrix mat4 = view_mat_inv;
     // std::cout << "after 4, vec = "
     //           << (test = mat4 * test).transpose() << std::endl;
-    // std::cout <<"dir = " <<  (test - mCamera->GetCameraPos()).normalized().transpose() << std::endl;
+    // std::cout <<"dir = " <<  (test -
+    // mCamera->GetCameraPos()).normalized().transpose() << std::endl;
     mat = mat4 * mat3 * mat2 * mat1;
     // exit(1);
 
@@ -197,9 +201,10 @@ tVector cDrawScene::CalcCursorPointWorldPos() const
 {
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
-    // return CalcCursorPointWorldPos_tool(xpos, ypos, mSwapChainExtent.height, mSwapChainExtent.width, mCamera->ViewMatrix().inverse().cast<double>());
+    // return CalcCursorPointWorldPos_tool(xpos, ypos, mSwapChainExtent.height,
+    // mSwapChainExtent.width, mCamera->ViewMatrix().inverse().cast<double>());
     return CalcCursorPointWorldPos_tool(
-        xpos, ypos, gWindowHeight, gWindowWidth,
+        mCameraInitFov, xpos, ypos, gWindowHeight, gWindowWidth,
         mCamera->ViewMatrix().inverse().cast<double>());
 }
 
@@ -250,7 +255,7 @@ void cDrawScene::CleanVulkan()
 
 /**
  * \brief               Create Graphcis Pipeline
-*/
+ */
 #include "utils/FileUtil.h"
 std::vector<char> ReadFile(const std::string &filename)
 {
@@ -356,9 +361,10 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
     raster_info.sType =
         VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     raster_info.depthClampEnable =
-        VK_FALSE; // clamp the data outside of the near-far plane insteand of deleting them
+        VK_FALSE; // clamp the data outside of the near-far plane insteand of
+                  // deleting them
     raster_info.rasterizerDiscardEnable =
-        VK_FALSE;                                   // disable the rasterization, it certainly should be disable
+        VK_FALSE; // disable the rasterization, it certainly should be disable
     raster_info.polygonMode = VK_POLYGON_MODE_FILL; // normal
     raster_info.lineWidth =
         1.0f; // if not 1.0, we need to enable the GPU "line_width" feature
@@ -366,7 +372,8 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
     // raster_info.cullMode = VK_CULL_MODE_NONE; // don't cull
     raster_info.cullMode = VK_CULL_MODE_BACK_BIT; // back cull
     raster_info.frontFace =
-        VK_FRONT_FACE_COUNTER_CLOCKWISE; // define the vertex order for front-facing
+        VK_FRONT_FACE_COUNTER_CLOCKWISE; // define the vertex order for
+                                         // front-facing
 
     // setting for possible shadow map
     raster_info.depthBiasEnable = VK_FALSE;
@@ -385,8 +392,8 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
     multisampling_info.alphaToCoverageEnable = VK_FALSE;
     multisampling_info.alphaToOneEnable = VK_FALSE;
 
-    // setting for color blending: the interaction between framebuffer and the output of fragment shader
-    // configuration for each individual frame buffer
+    // setting for color blending: the interaction between framebuffer and the
+    // output of fragment shader configuration for each individual frame buffer
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
     // which channels will be effected?
     colorBlendAttachmentState.colorWriteMask =
@@ -478,7 +485,7 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
 
 /**
  * \brief       Init vulkan and other stuff
-*/
+ */
 void cDrawScene::Init(const std::string &conf_path)
 {
     // init camera pos
@@ -499,15 +506,15 @@ void cDrawScene::Init(const std::string &conf_path)
         mCameraInitPos = tVector3f(camera_pos_json[0].asFloat(),
                                    camera_pos_json[1].asFloat(),
                                    camera_pos_json[2].asFloat());
-        fov = cJsonUtil::ParseAsFloat("fov", camera_json);
+        mCameraInitFov = cJsonUtil::ParseAsFloat("fov", camera_json);
         near_plane_dist = cJsonUtil::ParseAsFloat("near", camera_json);
         far_plane_dist = cJsonUtil::ParseAsFloat("far", camera_json);
         SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(),
                  mCameraInitFocus.transpose());
     }
 
-    mCamera = std::make_shared<cArcBallCamera>(mCameraInitPos, mCameraInitFocus,
-                                               tVector3f(0, 1, 0));
+    mCamera = std::make_shared<cArcBallCamera>(
+        mCameraInitPos, mCameraInitFocus, tVector3f(0, 1, 0), mCameraInitFov);
     mSimScene = cSceneBuilder::BuildSimScene(conf_path);
 
     mSimScene->Init(conf_path);
@@ -515,14 +522,15 @@ void cDrawScene::Init(const std::string &conf_path)
     InitVulkan();
 
     // uint32_t extensionCount = 0;
-    // vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+    // vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
+    // nullptr);
 
     // std::cout << extensionCount << " extensions supported" << std::endl;
 }
 
 /**
  * \brief           Update the render
-*/
+ */
 void cDrawScene::Update(double dt)
 {
     // cTimeUtil::Begin("sim_step");
@@ -540,12 +548,28 @@ void cDrawScene::CursorMove(int xpos, int ypos)
     {
         mCamera->MouseMove(xpos, ypos);
     }
-    mSimScene->CursorMove(this, xpos, ypos);
+
+    // update the perturb
+    if (mSimScene != nullptr)
+    {
+        // update perturb
+        tVector camera_pos = this->GetCameraPos();
+        tVector dir = this->CalcCursorPointWorldPos() - camera_pos;
+        dir[3] = 0;
+        dir.normalize();
+        // mPerturb->UpdatePerturb(camera_pos, dir);
+        mSimScene->UpdatePerturb(camera_pos, dir);
+        // std::cout << "now perturb force = "
+        //           << mPerturb->GetPerturbForce().transpose() << std::endl;
+    }
+
+    mSimScene->CursorMove(xpos, ypos);
     // std::cout << "camera mouse move to " << xpos << " " << ypos << std::endl;
 }
 
 void cDrawScene::MouseButton(int button, int action, int mods)
 {
+    // 1. track the click
     if (button == GLFW_MOUSE_BUTTON_1)
     {
         if (action == GLFW_RELEASE)
@@ -559,8 +583,25 @@ void cDrawScene::MouseButton(int button, int action, int mods)
             mLeftButtonPress = true;
         }
     }
-    mSimScene->MouseButton(this, button, action, mods);
+
+    // 2. if simulation scene is enabled, check perturb
+    if (cDrawScene::IsMouseRightButton(button) == true)
+    {
+        if (cDrawScene::IsPress(action) == true)
+        {
+            tVector tar_pos = this->CalcCursorPointWorldPos();
+            tVector camera_pos = this->GetCameraPos();
+            tRay *ray = new tRay(camera_pos, tar_pos);
+            mSimScene->CreatePerturb(ray);
+        }
+        else if (cDrawScene::IsRelease(action) == true)
+        {
+            mSimScene->ReleasePerturb();
+        }
+    }
+    mSimScene->MouseButton(button, action, mods);
 }
+
 void cDrawScene::Key(int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
@@ -586,7 +627,7 @@ void cDrawScene::Scroll(double xoff, double yoff)
 
 /**
  * \brief           Reset the whole scene
-*/
+ */
 #include "scenes/LinctexScene.h"
 void cDrawScene::Reset()
 {
@@ -616,7 +657,7 @@ void cDrawScene::Reset()
 
 /**
  * \brief           Do initialization for vulkan
-*/
+ */
 void cDrawScene::InitVulkan()
 {
     CreateInstance();
@@ -668,7 +709,8 @@ void cDrawScene::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
     VkMemoryRequirements mem_reqs{};
     vkGetBufferMemoryRequirements(mDevice, buffer, &mem_reqs);
     // mem_reqs
-    //     .size; // the size of required amount of memorys in bytes, may differ from the "bufferInfo.size"
+    //     .size; // the size of required amount of memorys in bytes, may differ
+    //     from the "bufferInfo.size"
     // mem_reqs.alignment;      // the beginning address of this buffer
     // mem_reqs.memoryTypeBits; // unknown
 
@@ -740,7 +782,8 @@ void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
     // VkCommandBufferBeginInfo begin_info{};
     // begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     // begin_info.flags =
-    //     VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we only use this command buffer for a single time
+    //     VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we only use this
+    //     command buffer for a single time
     // vkBeginCommandBuffer(cmd_buffer, &begin_info);
 
     // 3. copy from src to dst buffer
@@ -762,8 +805,8 @@ void cDrawScene::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
 
     // vkQueueSubmit(mGraphicsQueue, 1, &submit_info, VK_NULL_HANDLE);
 
-    // // wait, till the queue is empty (which means all commands have been finished)
-    // vkQueueWaitIdle(mGraphicsQueue);
+    // // wait, till the queue is empty (which means all commands have been
+    // finished) vkQueueWaitIdle(mGraphicsQueue);
 
     // // 6. deconstruct
     // vkFreeCommandBuffers(mDevice, mCommandPool, 1, &cmd_buffer);
@@ -807,10 +850,13 @@ void cDrawScene::CreateVertexBufferCloth()
 /**
  * \brief           draw a single frame
         1. get an image from the swap chain
-        2. executate the command buffer with that image as attachment in the framebuffer
+        2. executate the command buffer with that image as attachment in the
+ framebuffer
         3. return the image to the swap chain for presentation
-    These 3 actions, ideally shvould be executed asynchronously. but the function calls will return before the operations are actually finished.
-    So the order of execution is undefined. we need "fences" ans "semaphores" to synchronizing swap chain
+    These 3 actions, ideally shvould be executed asynchronously. but the
+ function calls will return before the operations are actually finished. So the
+ order of execution is undefined. we need "fences" ans "semaphores" to
+ synchronizing swap chain
 
 */
 void cDrawScene::DrawFrame()
@@ -917,7 +963,8 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device)
         std::cout << "physical device lack extension " << x << std::endl;
     }
 
-    // if required extensions are empty, means that all requred extensions are supported, return true;
+    // if required extensions are empty, means that all requred extensions are
+    // supported, return true;
     return requiredExtensions.empty();
 }
 
@@ -962,8 +1009,10 @@ struct MVPUniformBufferObject
 
 /**
  * \brief           Create Descriptor set layout
- *      The descriptor is used to store the uniform object used in the shader, we needs to spepcifiy how much uniform objects(descriptors), which is extacly "layout"
-*/
+ *      The descriptor is used to store the uniform object used in the shader,
+ * we needs to spepcifiy how much uniform objects(descriptors), which is extacly
+ * "layout"
+ */
 void cDrawScene::CreateDescriptorSetLayout()
 {
     // given the binding: offer the same info in C++ side as the shaders
@@ -972,7 +1021,7 @@ void cDrawScene::CreateDescriptorSetLayout()
     mvpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     mvpLayoutBinding.descriptorCount = 1;
     mvpLayoutBinding.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT;                // we use the descriptor in vertex shader
+        VK_SHADER_STAGE_VERTEX_BIT; // we use the descriptor in vertex shader
     mvpLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
     // sampler
@@ -984,9 +1033,9 @@ void cDrawScene::CreateDescriptorSetLayout()
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    // std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, };
-    // VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    // layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    // std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding,
+    // }; VkDescriptorSetLayoutCreateInfo layoutInfo{}; layoutInfo.sType =
+    // VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     // layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     // layoutInfo.pBindings = bindings.data();
 
@@ -1008,7 +1057,7 @@ void cDrawScene::CreateDescriptorSetLayout()
 
 /**
  * \brief       Create buffer for uniform objects
-*/
+ */
 void cDrawScene::CreateMVPUniformBuffer()
 {
     // check the size of uniform buffer object
@@ -1030,9 +1079,9 @@ void cDrawScene::CreateMVPUniformBuffer()
 
 /**
  * \brief           Update the uniform value
- * 
+ *
  *  calculate the new uniform value and set them to the uniform buffer
-*/
+ */
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -1058,7 +1107,7 @@ void cDrawScene::UpdateMVPUniformValue(int image_idx)
     ubo.model = glm::mat4(1.0f);
     tMatrix4f eigen_view = mCamera->ViewMatrix();
     ubo.view = E2GLM(eigen_view);
-    ubo.proj = glm::perspective(glm::radians(fov),
+    ubo.proj = glm::perspective(glm::radians(mCameraInitFov),
                                 mSwapChainExtent.width /
                                     (float)mSwapChainExtent.height,
                                 near_plane_dist, far_plane_dist);
@@ -1107,12 +1156,13 @@ void cDrawScene::UpdateVertexBufferCloth(int image_idx)
 
 /**
  * \brief           connect the vkBuffer with the descriptor pool
-*/
+ */
 void cDrawScene::CreateDescriptorPool()
 {
     // VkDescriptorPoolSize poolSize{};
     // poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    // poolSize.descriptorCount = static_cast<uint32_t>(mSwapChainImages.size());
+    // poolSize.descriptorCount =
+    // static_cast<uint32_t>(mSwapChainImages.size());
 
     // VkDescriptorPoolCreateInfo poolInfo{};
     // poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1121,7 +1171,8 @@ void cDrawScene::CreateDescriptorPool()
 
     // poolInfo.maxSets = static_cast<uint32_t>(mSwapChainImages.size());
 
-    // if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS)
+    // if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool)
+    // != VK_SUCCESS)
     // {
     //     throw std::runtime_error("failed to create descriptor pool!");
     // }
@@ -1211,7 +1262,7 @@ void cDrawScene::CreateDescriptorSets()
 
 /**
  * \brief           Create and fill the command buffer
-*/
+ */
 void cDrawScene::CreateCommandBuffers()
 {
     // 1. create the command buffers

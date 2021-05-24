@@ -4,14 +4,14 @@
 
 /**
  * \brief               hard to understand, what's this?
-*/
+ */
 void insertImageMemoryBarrier(
     VkCommandBuffer cmdbuffer, VkImage image, VkAccessFlags srcAccessMask,
     VkAccessFlags dstAccessMask, VkImageLayout oldImageLayout,
     VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask,
     VkPipelineStageFlags dstStageMask, VkImageSubresourceRange subresourceRange)
 {
-    
+
     VkImageMemoryBarrier imageMemoryBarrier{};
     {
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -65,14 +65,17 @@ void cDrawScene::flushCommandBuffer(VkCommandBuffer commandBuffer,
 
 /**
  * \brief           Take a screenshot from the color buffer
- * 
+ *
  *      imitating the code from Sachas Williems
  * Take a screenshort from the current swapchain image
- * Using a blit from the swapchain image, to a linear image whose memory content is then saved as a ppm image
- * the original swapchain image cannot be saved as an image directly, because they are stored in an implemention depentdent optimal tilling format
- * 
- * This requires the swapchain images to be created with the VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-*/
+ * Using a blit from the swapchain image, to a linear image whose memory content
+ * is then saved as a ppm image the original swapchain image cannot be saved as
+ * an image directly, because they are stored in an implemention depentdent
+ * optimal tilling format
+ *
+ * This requires the swapchain images to be created with the
+ * VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+ */
 extern uint32_t findMemoryType(VkPhysicalDevice physicalDevice,
                                uint32_t typeFilter,
                                VkMemoryPropertyFlags properties);
@@ -95,7 +98,8 @@ void cDrawScene::ScreenShotDraw(std::string filename)
     vkGetPhysicalDeviceFormatProperties(mPhysicalDevice,
                                         VK_FORMAT_B8G8R8A8_SRGB, &formatProps);
 
-    // check if the device support blitting from optimal images (the swapchain images are in optimal format)
+    // check if the device support blitting from optimal images (the swapchain
+    // images are in optimal format)
     if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
     {
         std::cerr << "Device does not support blitting from optimal tilling "
@@ -120,7 +124,8 @@ void cDrawScene::ScreenShotDraw(std::string filename)
     // std::cout << "images = " << num_of_images << std::endl;
     VkImage srcImage = mSwapChainImages[id];
 
-    // create the linear tiled destination image to copy to and to read the memory from
+    // create the linear tiled destination image to copy to and to read the
+    // memory from
     VkImageCreateInfo imageCreateCI{};
     imageCreateCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCreateCI.imageType = VK_IMAGE_TYPE_2D;
@@ -156,7 +161,8 @@ void cDrawScene::ScreenShotDraw(std::string filename)
     SIM_ASSERT(vkBindImageMemory(mDevice, dstImage, dstImageMemory, 0) ==
                VK_SUCCESS);
 
-    // do the actual blit from the swapchain image to our host visible destination image
+    // do the actual blit from the swapchain image to our host visible
+    // destination image
     VkCommandBuffer copyCmd = CreateCommandBufferTool(
         VK_COMMAND_BUFFER_LEVEL_PRIMARY, mCommandPool, true);
 
@@ -174,7 +180,8 @@ void cDrawScene::ScreenShotDraw(std::string filename)
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
-    // If source and destination support blit, we'll blit as this also does automatic format conversion (e.g. from BGR to RGB)
+    // If source and destination support blit, we'll blit as this also does
+    // automatic format conversion (e.g. from BGR to RGB)
     if (supportBlit)
     {
         // Define the region to blit (we will blit the whold swap chain image)
@@ -213,7 +220,8 @@ void cDrawScene::ScreenShotDraw(std::string filename)
                        &imageCopyRegion);
     }
 
-    // transition destination iamge to general layout, which is the required layout for mapping the image memory later on
+    // transition destination iamge to general layout, which is the required
+    // layout for mapping the image memory later on
     insertImageMemoryBarrier(
         copyCmd, dstImage, VK_ACCESS_TRANSFER_WRITE_BIT,
         VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -250,15 +258,15 @@ void cDrawScene::ScreenShotDraw(std::string filename)
         std::ofstream file(filename, std::ios::out | std::ios::binary);
 
         // ppm header
-        file << "P6\n"
-             << width << "\n"
-             << height << "\n"
-             << 255 << "\n";
+        file << "P6\n" << width << "\n" << height << "\n" << 255 << "\n";
 
-        // If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
+        // If source is BGR (destination is always RGB) and we can't use blit
+        // (which does automatic conversion), we'll have to manually swizzle
+        // color components
         bool colorSwizzle = false;
         // Check if source is BGR
-        // Note: Not complete, only contains most common and basic BGR surface formats for demonstration purposes
+        // Note: Not complete, only contains most common and basic BGR surface
+        // formats for demonstration purposes
         if (!supportBlit)
         {
             std::vector<VkFormat> formatsBGR = {VK_FORMAT_B8G8R8A8_SRGB,
@@ -302,8 +310,8 @@ void cDrawScene::ScreenShotDraw(std::string filename)
 
 /**
  * \brief           a helper function to create the command buffer
- * \param 
-*/
+ * \param
+ */
 
 VkCommandBuffer cDrawScene::CreateCommandBufferTool(VkCommandBufferLevel level,
                                                     VkCommandPool pool,
@@ -401,9 +409,11 @@ VkCommandBuffer cDrawScene::CreateCommandBufferTool(VkCommandBufferLevel level,
 //     VkBuffer dstBuffer;
 //     VkDeviceMemory dstMemory;
 //     CreateBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-//                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-//                  dstBuffer, dstMemory);
-//     VkCommandBuffer copyCmd = CreateCommandBufferTool(VK_COMMAND_BUFFER_LEVEL_PRIMARY, mCommandPool, true);
+//                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+//                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, dstBuffer, dstMemory);
+//     VkCommandBuffer copyCmd =
+//     CreateCommandBufferTool(VK_COMMAND_BUFFER_LEVEL_PRIMARY, mCommandPool,
+//     true);
 
 //     VkBufferImageCopy region = {};
 //     region.bufferOffset = 0;
@@ -414,19 +424,20 @@ VkCommandBuffer cDrawScene::CreateCommandBufferTool(VkCommandBufferLevel level,
 //     region.imageSubresource.baseArrayLayer = 0;
 //     region.imageSubresource.layerCount = 1;
 //     region.imageOffset = VkOffset3D{0, 0, 0};
-//     region.imageExtent = VkExtent3D{mSwapChainExtent.width, mSwapChainExtent.height, 1};
+//     region.imageExtent = VkExtent3D{mSwapChainExtent.width,
+//     mSwapChainExtent.height, 1};
 
 //     // insert barrier
 //     {
 //         /*
-        
+
 // VkCommandBuffer cmdbuffer, VkImage image, VkAccessFlags srcAccessMask,
 // VkAccessFlags dstAccessMask, VkImageLayout oldImageLayout,
 // VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask,
 // VkPipelineStageFlags dstStageMask, VkImageSubresourceRange subresourceRange
 //         */
 //         insertImageMemoryBarrier(
-//             copyCmd, mDepthImage, 
+//             copyCmd, mDepthImage,
 //         );
 //     }
 //     vkCmdCopyImageToBuffer(
@@ -459,7 +470,8 @@ VkCommandBuffer cDrawScene::CreateCommandBufferTool(VkCommandBufferLevel level,
 //     {
 //         tMatrixXf eigen_mat = tMatrixXf::Zero(height, width);
 //         float *f_data = (float *)(data);
-//         // std::cout << "sizeof(float) bytes = " << sizeof(float) << std::endl;
+//         // std::cout << "sizeof(float) bytes = " << sizeof(float) <<
+//         std::endl;
 
 //         // and the value should be [0, 1]
 //         for (uint32_t y = 0; y < height; y++)
@@ -483,7 +495,8 @@ VkCommandBuffer cDrawScene::CreateCommandBufferTool(VkCommandBufferLevel level,
 //             file.write((char *)row, 1);
 //             file.write((char *)row, 1);
 //             file.write((char *)row, 1);
-//             // eigen_mat(y, x) = static_cast<int>(static_cast<char>((((char *)row)[0])));
+//             // eigen_mat(y, x) = static_cast<int>(static_cast<char>((((char
+//             *)row)[0])));
 //             // (unsigned int)(row[0])
 //             row++;
 //         }

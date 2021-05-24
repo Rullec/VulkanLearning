@@ -27,7 +27,7 @@ tVectorXd tPhyProperty::BuildFullFeatureVector() const
 
 /**
  * \brief           Given a name, return the feature value
-*/
+ */
 double tPhyProperty::GetFeature(std::string name) const
 {
     if (name == "stretch_warp")
@@ -60,7 +60,7 @@ double tPhyProperty::GetFeature(std::string name) const
 
 /**
  * \brief           Given a name, get feature index
-*/
+ */
 int tPhyProperty::GetFeatureIdx(std::string name)
 {
     if (name == "stretch_warp")
@@ -91,8 +91,9 @@ int tPhyProperty::GetFeatureIdx(std::string name)
     return -1;
 }
 /**
- * \brief           Given a full feature vector, load its value from vector to discrete values
-*/
+ * \brief           Given a full feature vector, load its value from vector to
+ * discrete values
+ */
 void tPhyProperty::ReadFeatureVector(const tVectorXd &vec)
 {
     SIM_ASSERT(mNumOfProperties == vec.size());
@@ -105,8 +106,9 @@ void tPhyProperty::ReadFeatureVector(const tVectorXd &vec)
 
 /**
  * \brief           Given a json value and a bool vector, init the property
-*/
-void tBatchProperty::SetVisilibities(std::vector<bool> visibilities, const tVectorXi &visible_faeture_index)
+ */
+void tBatchProperty::SetVisilibities(std::vector<bool> visibilities,
+                                     const tVectorXi &visible_faeture_index)
 {
     SIM_ASSERT(visibilities.size() == mNumOfProperties);
     for (int i = 0; i < mNumOfProperties; i++)
@@ -143,7 +145,7 @@ void tBatchProperty::SetVisilibities(std::vector<bool> visibilities, const tVect
 
 /**
  * \brief           Build visible feature vector
-*/
+ */
 tVectorXd tPhyProperty::BuildVisibleFeatureVector() const
 {
     SIM_ASSERT(false && "unsupported vec");

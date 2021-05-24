@@ -33,8 +33,9 @@ extern GLFWwindow *window;
 extern bool enableValidationLayers;
 
 /**
- * \brief           the details about the support for swapchain, on current surface and physical device
-*/
+ * \brief           the details about the support for swapchain, on current
+ * surface and physical device
+ */
 struct SwapChainSupportDetails
 {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -44,7 +45,7 @@ struct SwapChainSupportDetails
 
 /**
  * \brief           check whehter swap chain is supported and how it's supported
-*/
+ */
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,
                                               VkSurfaceKHR surface)
 {
@@ -78,12 +79,13 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,
 struct QueueFamilyIndices
 {
     std::optional<uint32_t>
-        graphicsFamily; // here we use optional, because any unit value would be valid and we need to distinguish from non-value case
+        graphicsFamily; // here we use optional, because any unit value would be
+                        // valid and we need to distinguish from non-value case
     std::optional<uint32_t>
         presentFamily; // the ability to show the image to the screen
     /**
      * \brief           Judge: can we use this queue family?
-    */
+     */
     bool IsComplete() const
     {
         return graphicsFamily.has_value() && presentFamily.has_value();
@@ -91,10 +93,10 @@ struct QueueFamilyIndices
 };
 
 /**
- * \brief       Given an physical device, find whehter all queue families we want is in it
- *      If an queue family is supported, it has an value
- *      otherwise, its value is <optional>::novalue
-*/
+ * \brief       Given an physical device, find whehter all queue families we
+ * want is in it If an queue family is supported, it has an value otherwise, its
+ * value is <optional>::novalue
+ */
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
                                      VkSurfaceKHR surface)
 {
@@ -104,7 +106,9 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
     // 1. get all queue faimilies on this physical device
     vkGetPhysicalDeviceQueueFamilyProperties(device, &num_of_families, nullptr);
     std::vector<VkQueueFamilyProperties> families(
-        num_of_families); // storage the properties of each queue on this physical device. such as maximium number of queues, types of queues...
+        num_of_families); // storage the properties of each queue on this
+                          // physical device. such as maximium number of queues,
+                          // types of queues...
 
     vkGetPhysicalDeviceQueueFamilyProperties(device, &num_of_families,
                                              families.data());
@@ -113,7 +117,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
     for (int i = 0; i < families.size(); i++)
     {
         const auto &x = families[i];
-        //std::cout << i << " queue flags = " << x.queueFlags << std::endl;
+        // std::cout << i << " queue flags = " << x.queueFlags << std::endl;
         if (x.queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
             indices.graphicsFamily = i;
@@ -122,7 +126,8 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface,
                                              &presentSupport);
-        //vkGetPhysicalDeviceSurfaceSupportKHR(device, i, mSurface, &presentSupport);
+        // vkGetPhysicalDeviceSurfaceSupportKHR(device, i, mSurface,
+        // &presentSupport);
         if (presentSupport == true)
         {
             indices.presentFamily = i;
@@ -138,7 +143,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
 
 /**
  * \brief       select the best surface format(color channels and types)
-*/
+ */
 VkSurfaceFormatKHR
 chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> availableFormats)
 {
@@ -153,9 +158,10 @@ chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> availableFormats)
 
 /**
  * \brief       choose the swapchain present mode
- * 
- *          the author thought the "mailbox" which can support the triple buffering is the best option
-*/
+ *
+ *          the author thought the "mailbox" which can support the triple
+ * buffering is the best option
+ */
 VkPresentModeKHR
 chooseSwapPresentKHR(const std::vector<VkPresentModeKHR> &modes)
 {
@@ -171,8 +177,8 @@ chooseSwapPresentKHR(const std::vector<VkPresentModeKHR> &modes)
 
 /**
  * \brief       choose the swap extent (framebuffer size)
- * 
-*/
+ *
+ */
 VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities)
 {
     if (capabilities.currentExtent.width != UINT32_MAX)
@@ -201,7 +207,7 @@ extern bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 /**
  * \brief       Check whether an device is suitable for us
  *      Devices are not equal
-*/
+ */
 bool IsDeviceSuitable(VkPhysicalDevice &dev, VkSurfaceKHR surface)
 {
     // VkPhysicalDeviceProperties props;
@@ -211,9 +217,9 @@ bool IsDeviceSuitable(VkPhysicalDevice &dev, VkSurfaceKHR surface)
     // vkGetPhysicalDeviceFeatures(dev, &feas);
 
     // // discrete GPU and geo shader support?
-    // return props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && feas.geometryShader;
-    // return true;
-    // is graphics queue (or any queue we want) families supported on this dev?
+    // return props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+    // feas.geometryShader; return true; is graphics queue (or any queue we
+    // want) families supported on this dev?
     QueueFamilyIndices indices = findQueueFamilies(dev, surface);
 
     // if some extensions are not supported, it cannot be a suitable device
@@ -231,14 +237,15 @@ bool IsDeviceSuitable(VkPhysicalDevice &dev, VkSurfaceKHR surface)
     // std::cout << "indices complete " << indices.IsComplete() << std::endl;
     // std::cout << "extensions support " << extensionsSupported << std::endl;
     // std::cout << "swapChainAdequate " << swapChainAdequate << std::endl;
-    // std::cout << "supportedFeatures.samplerAnisotropy " << supportedFeatures.samplerAnisotropy << std::endl;
+    // std::cout << "supportedFeatures.samplerAnisotropy " <<
+    // supportedFeatures.samplerAnisotropy << std::endl;
     return indices.IsComplete() && extensionsSupported && swapChainAdequate &&
            supportedFeatures.samplerAnisotropy;
 }
 
 /**
  * \brief       rating a physical device
-*/
+ */
 int RateDeviceSutability(VkPhysicalDevice &dev, VkSurfaceKHR surface)
 {
     int score = 0;
@@ -267,7 +274,7 @@ int RateDeviceSutability(VkPhysicalDevice &dev, VkSurfaceKHR surface)
 /**
  * \brief           Create Vulkan Instance
  *      create the application appInfo struct and write down some value
-*/
+ */
 void cDrawScene::CreateInstance()
 {
     // 1. check validation layer enable & supported?
@@ -287,16 +294,17 @@ void cDrawScene::CreateInstance()
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
-    // Lots' of information are passed by structure instead of function parameters
-    // tell the Vulkan driver whcih global extensions and vlidation layers we want to use
-    // it effects the entire program.
+    // Lots' of information are passed by structure instead of function
+    // parameters tell the Vulkan driver whcih global extensions and vlidation
+    // layers we want to use it effects the entire program.
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO; // create appInfo
     createInfo.pApplicationInfo = &appInfo;
     // createInfo.pApplicationInfo = nullptr;
 
     {
-        // vulkan is platform agnostic, we need to know what extension glfw init, in order to pass it to the vulkan
+        // vulkan is platform agnostic, we need to know what extension glfw
+        // init, in order to pass it to the vulkan
         uint32_t glfwExtensionCount = 0;
         const char **glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -335,13 +343,13 @@ void cDrawScene::CreateInstance()
     SIM_ASSERT(vkCreateInstance(&createInfo, nullptr, &mInstance) ==
                VK_SUCCESS);
     SIM_INFO("CreateInstance succ");
-    //CheckAvaliableExtensions();
+    // CheckAvaliableExtensions();
     // exit(0);
 }
 
 /**
  * \brief           Check avaiable extensions
-*/
+ */
 void cDrawScene::CheckAvaliableExtensions() const
 {
     uint32_t size;
@@ -358,7 +366,7 @@ void cDrawScene::CheckAvaliableExtensions() const
 
 /**
  * \brief           Check whether validation layer is supported
-*/
+ */
 bool cDrawScene::CheckValidationLayerSupport() const
 {
     // 1. get all supported layers
@@ -372,14 +380,14 @@ bool cDrawScene::CheckValidationLayerSupport() const
     bool supported = false;
     for (auto &support_name : props)
     {
-        //std::cout << "supported = " << support_name.layerName << std::endl;
+        // std::cout << "supported = " << support_name.layerName << std::endl;
         for (auto &requrested : validationLayers)
         {
 
             if (strcmp(support_name.layerName, requrested) == 0)
             {
                 supported = true;
-                //std::cout << "validation supported";
+                // std::cout << "validation supported";
                 break;
             }
         }
@@ -387,19 +395,21 @@ bool cDrawScene::CheckValidationLayerSupport() const
 
     // 3. return the result
     return supported;
-    //return false;
+    // return false;
 }
 
 /**
  * \brief           set the messege callback for validation layer (not impl yet)
-*/
+ */
 void cDrawScene::SetupDebugMessenger() {}
 
 /**
- * \brief           After the initializetion of device, create and select a physical device
- * 
- *      the physical device will be stored in the `VkPhysicalDevice`. they will be released along with the `VkDevice`, do not need to release manually
-*/
+ * \brief           After the initializetion of device, create and select a
+ * physical device
+ *
+ *      the physical device will be stored in the `VkPhysicalDevice`. they will
+ * be released along with the `VkDevice`, do not need to release manually
+ */
 #include <map>
 void cDrawScene::PickPhysicalDevice()
 {
@@ -420,31 +430,32 @@ void cDrawScene::PickPhysicalDevice()
     {
         auto x = devices[i];
         int score = RateDeviceSutability(x, mSurface);
-        //std::cout << "device " << i << " score " << score << std::endl;
+        // std::cout << "device " << i << " score " << score << std::endl;
         candidates.insert(std::make_pair(RateDeviceSutability(x, mSurface), x));
     }
     SIM_ASSERT(candidates.size() > 0);
     // fetch the highest score physical device
     SIM_ASSERT(candidates.begin()->first > 0);
-    //std::cout << candidates.begin()->first << std::endl;
+    // std::cout << candidates.begin()->first << std::endl;
     mPhysicalDevice = candidates.begin()->second;
-    //std::cout << "[debug] pick up physical device done, device =  " << mPhysicalDevice << " score = " << candidates.begin()->first << std::endl;
+    // std::cout << "[debug] pick up physical device done, device =  " <<
+    // mPhysicalDevice << " score = " << candidates.begin()->first << std::endl;
     SIM_ASSERT(mPhysicalDevice != VK_NULL_HANDLE);
 }
 
 /**
  * \brief           Create the logical device from the given physical device
- * 
+ *
  *      write the member "VkDevice mDevice"
-*/
+ */
 
 void cDrawScene::CreateLogicalDevice()
 {
     // 1. fetch all supported queue families from the physical device
     QueueFamilyIndices indices = findQueueFamilies(mPhysicalDevice, mSurface);
-    //std::cout << "physical score = " << RateDeviceSutability(mPhysicalDevice) << std::endl;
-    //std::cout << "has value = " << indices.graphicsFamily.has_value() << std::endl;
-    //exit(0);
+    // std::cout << "physical score = " << RateDeviceSutability(mPhysicalDevice)
+    // << std::endl; std::cout << "has value = " <<
+    // indices.graphicsFamily.has_value() << std::endl; exit(0);
 
     // 2. set the queue family info into the physical device
     std::vector<VkDeviceQueueCreateInfo> queueCreateinfos;
@@ -509,7 +520,7 @@ void cDrawScene::CreateLogicalDevice()
 
 /**
  * \brief       Create window surface for display
-*/
+ */
 
 void cDrawScene::CreateSurface()
 {
@@ -522,10 +533,10 @@ void cDrawScene::CreateSurface()
 
 /**
  * \brief       create the swap chain
-*/
+ */
 void cDrawScene::CreateSwapChain()
 {
-    //std::cout << "begin to create swap chain\n";
+    // std::cout << "begin to create swap chain\n";
     // 1. fetch the details from physical device
     auto details = querySwapChainSupport(mPhysicalDevice, mSurface);
     // 2. set the format
@@ -553,7 +564,8 @@ void cDrawScene::CreateSwapChain()
     // we also use the swapchan image as the source images when screenshoting
     create_info.imageUsage =
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // we use swap chain image for directly rendering, namely color attachment
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // we use swap chain image for directly
+                                         // rendering, namely color attachment
 
     create_info.presentMode = mode;
 
@@ -567,7 +579,8 @@ void cDrawScene::CreateSwapChain()
                                      indices.graphicsFamily.value()};
     if (indices.graphicsFamily == indices.presentFamily)
     {
-        // the present, and graphics queue are the same, we can use the exclusive mode because the ownership can never be changed
+        // the present, and graphics queue are the same, we can use the
+        // exclusive mode because the ownership can never be changed
         create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         create_info.queueFamilyIndexCount = 0;     // don't know
         create_info.pQueueFamilyIndices = nullptr; // don't know
@@ -596,7 +609,7 @@ void cDrawScene::CreateSwapChain()
     {
         SIM_ERROR("create swap chain failed");
     }
-    //std::cout << "succ to create swap chain\n";
+    // std::cout << "succ to create swap chain\n";
     uint32_t swapchain_image_count = 0;
     vkGetSwapchainImagesKHR(mDevice, mSwapChain, &swapchain_image_count,
                             nullptr);
@@ -610,7 +623,7 @@ void cDrawScene::CreateSwapChain()
 
 /**
  * \brief           Create image view
-*/
+ */
 VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format,
                             VkImageAspectFlags aspectFlags)
 {
@@ -636,7 +649,7 @@ VkImageView CreateImageView(VkDevice device, VkImage image, VkFormat format,
 
 /**
  * \brief           create "view" for swap chain images
- * 
+ *
  *          Frankly, we need to know how the SwapChainImages is accessed
  * */
 void cDrawScene::CreateImageViews()
@@ -663,8 +676,9 @@ VkShaderModule cDrawScene::CreateShaderModule(const std::vector<char> &code)
 }
 
 /**
- * \brief           Given physical device and tiling/feature requirements, select the cnadidates VkFormat used for depth attachment.
-*/
+ * \brief           Given physical device and tiling/feature requirements,
+ * select the cnadidates VkFormat used for depth attachment.
+ */
 VkFormat findSupportedFormat(VkPhysicalDevice mPhyDevice,
                              const std::vector<VkFormat> &candidates,
                              VkImageTiling tiling,
@@ -711,18 +725,23 @@ VkFormat findDepthFormat(VkPhysicalDevice phy_device)
 
 void cDrawScene::CreateRenderPass()
 {
-    // describe the renderpass setting: an attachment is an image used in a framebuffer.
+    // describe the renderpass setting: an attachment is an image used in a
+    // framebuffer.
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = mSwapChainImageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
     colorAttachment.loadOp =
-        VK_ATTACHMENT_LOAD_OP_CLEAR; // what to do with the data in the attachement before rendering: preserve, clear, don't care
+        VK_ATTACHMENT_LOAD_OP_CLEAR; // what to do with the data in the
+                                     // attachement before rendering: preserve,
+                                     // clear, don't care
     colorAttachment.storeOp =
-        VK_ATTACHMENT_STORE_OP_STORE;                                  // what to do ... after rendering: preserve, don't care
+        VK_ATTACHMENT_STORE_OP_STORE; // what to do ... after rendering:
+                                      // preserve, don't care
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;   //
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; //
     colorAttachment.initialLayout =
-        VK_IMAGE_LAYOUT_UNDEFINED; // which layout will the image have, before render pass
+        VK_IMAGE_LAYOUT_UNDEFINED; // which layout will the image have, before
+                                   // render pass
     colorAttachment.finalLayout =
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // which ... after render pass
 
@@ -824,7 +843,7 @@ void cDrawScene::CreateCommandPool()
 const int MAX_FRAMES_IN_FLIGHT = 2;
 /**
  * \brief           Create (two) semaphores
-*/
+ */
 void cDrawScene::CreateSemaphores()
 {
     mImageAvailableSemaphore.resize(MAX_FRAMES_IN_FLIGHT);
@@ -853,7 +872,7 @@ void cDrawScene::CreateSemaphores()
 
 /**
  * \brief           recreate the swap chain when the window is resized
-*/
+ */
 void cDrawScene::RecreateSwapChain()
 {
     // wait
@@ -894,7 +913,8 @@ void cDrawScene::CreateLineCommandBuffers(int i)
     vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                       mLinesGraphicsPipeline);
 
-    // SIM_ERROR("VkBuffer mLineBuffer; vkDeviceMemory mLineBufferMemory; need to be inited");
+    // SIM_ERROR("VkBuffer mLineBuffer; vkDeviceMemory mLineBufferMemory; need
+    // to be inited");
     VkBuffer lineBuffers[] = {mLineBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, lineBuffers, offsets);
@@ -942,7 +962,7 @@ void cDrawScene::UpdateLineBuffer(int idx)
 
 /**
  * \brief       judge whether a format contains the stencil buffer
-*/
+ */
 bool HasStencilComponent(VkFormat format)
 {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
@@ -970,7 +990,7 @@ uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 
 /**
  * \brief           create image
-*/
+ */
 void CreateImage(VkDevice device, VkPhysicalDevice phy_device, uint32_t width,
                  uint32_t height, VkFormat format, VkImageTiling tiling,
                  VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -1095,20 +1115,20 @@ void transitionImageLayout(VkDevice device, VkQueue graphicsQueue,
 
 /**
  * \brief           create depth resource
-*/
+ */
 void cDrawScene::CreateDepthResources()
 {
     // 1. select a suitable depth format
     VkFormat depth_format = findDepthFormat(mPhysicalDevice);
     // std::cout << "[good] depth format = " << depth_format << std::endl;
     // create depth image
-    CreateImage(mDevice, mPhysicalDevice, mSwapChainExtent.width,
-                mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL,
-                // mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_LINEAR,
-                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage,
-                mDepthImageMemory);
+    CreateImage(
+        mDevice, mPhysicalDevice, mSwapChainExtent.width,
+        mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_OPTIMAL,
+        // mSwapChainExtent.height, depth_format, VK_IMAGE_TILING_LINEAR,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthImage, mDepthImageMemory);
 
     // create image view
     mDepthImageView = CreateImageView(mDevice, mDepthImage, depth_format,
@@ -1122,7 +1142,7 @@ void cDrawScene::CreateDepthResources()
 
 /**
  * \brief               Create Image texture
-*/
+ */
 #define STB_IMAGE_IMPLEMENTATION
 #include "utils/FileUtil.h"
 #include "utils/stb_image.h"
@@ -1208,7 +1228,7 @@ void cDrawScene::CreateTextureImage()
 
 /**
  * \brief           create image view for texture
-*/
+ */
 void cDrawScene::CreateTextureImageView()
 {
     mTextureImageView =
@@ -1219,7 +1239,7 @@ void cDrawScene::CreateTextureImageView()
 
 /**
  * \biref           create texture sampler and set this sampler
-*/
+ */
 void cDrawScene::CreateTextureSampler()
 {
     VkSamplerCreateInfo samplerInfo{};

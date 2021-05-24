@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
 #include "utils/MathUtil.h"
+#include <string>
 enum eObjectType
 {
     KINEMATICBODY_TYPE,
@@ -12,11 +12,11 @@ enum eObjectType
 
 /**
  * \brief           base object class
- * 
-*/
+ *
+ */
 namespace Json
 {
-    class Value;
+class Value;
 };
 
 class cBaseObject

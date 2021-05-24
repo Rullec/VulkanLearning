@@ -7,7 +7,7 @@
 
 namespace Json
 {
-    class Value;
+class Value;
 };
 class cJsonUtil
 {

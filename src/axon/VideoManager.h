@@ -14,6 +14,7 @@ public:
     virtual tMatrixXi GetIrImage();
     virtual tMatrix3d GetDepthIntrinsicMtx() const;
     virtual tVectorXd GetDepthIntrinsicDistCoef() const;
+
 protected:
     virtual void Init();
     openni::VideoFrameRef m_depthFrame;

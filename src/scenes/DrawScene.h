@@ -15,7 +15,7 @@ struct tVkVertex
 };
 /**
  * \brief			Main Vulkan Draw Scene for cloth simulator
-*/
+ */
 class cSimScene;
 class cArcBallCamera;
 class cDrawScene : public cScene
@@ -44,8 +44,7 @@ protected:
     void DrawFrame();
     void CleanVulkan();
     VkCommandBuffer CreateCommandBufferTool(VkCommandBufferLevel level,
-                                            VkCommandPool pool,
-                                            bool begin);
+                                            VkCommandPool pool, bool begin);
     void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue,
                             VkCommandPool pool, bool free = true);
     void ScreenShotDraw(std::string path);
@@ -104,10 +103,10 @@ private:
     std::vector<VkImageView> mSwapChainImageViews;
     VkFormat mSwapChainImageFormat;
     VkExtent2D mSwapChainExtent;
-    VkDescriptorSetLayout
-        mDescriptorSetLayout; // descriptors (uniform objects) layout used in the shader
-    VkPipelineLayout mPipelineLayout; // uniform values in the shader
-    VkRenderPass mRenderPass;         // special settings for a render pass
+    VkDescriptorSetLayout mDescriptorSetLayout; // descriptors (uniform objects)
+                                                // layout used in the shader
+    VkPipelineLayout mPipelineLayout;           // uniform values in the shader
+    VkRenderPass mRenderPass; // special settings for a render pass
     VkPipeline mTriangleGraphicsPipeline, mLinesGraphicsPipeline;
     std::vector<VkFramebuffer> mSwapChainFramebuffers; //
     VkCommandPool mCommandPool;
@@ -115,9 +114,12 @@ private:
         mCommandBuffers; // each command buffer(queue) serves a frame buffer
 
     std::vector<VkSemaphore>
-        mImageAvailableSemaphore; // the image acquired from the swap chain is ready to be rendered to
+        mImageAvailableSemaphore; // the image acquired from the swap chain is
+                                  // ready to be rendered to
     std::vector<VkSemaphore>
-        mRenderFinishedSemaphore; // the rendering done, the image can be sent back to the swap chain for presentation on the screen.
+        mRenderFinishedSemaphore; // the rendering done, the image can be sent
+                                  // back to the swap chain for presentation on
+                                  // the screen.
     std::vector<VkFence>
         minFlightFences; // fences to do CPU-GPU synchronization
     std::vector<VkFence> mImagesInFlight;
@@ -154,4 +156,5 @@ private:
 
     bool mLeftButtonPress;
     tVector3f mCameraInitPos, mCameraInitFocus;
+    float mCameraInitFov;
 };

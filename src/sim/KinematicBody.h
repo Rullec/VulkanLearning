@@ -19,14 +19,13 @@ class cKinematicBody : public cBaseObject
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    inline const static std::string
-        TYPE_KEY = "type",
-        MESH_PATH_KEY = "mesh_path",
-        TARGET_AABB_KEY = "target_aabb",
-        TRANSLATION_KEY = "translation",
-        ORIENTATION_KEY = "orientation",
-        PLANE_EQUATION_KEY = "equation",
-        PLANE_SCALE_KEY = "plane_scale";
+    inline const static std::string TYPE_KEY = "type",
+                                    MESH_PATH_KEY = "mesh_path",
+                                    TARGET_AABB_KEY = "target_aabb",
+                                    TRANSLATION_KEY = "translation",
+                                    ORIENTATION_KEY = "orientation",
+                                    PLANE_EQUATION_KEY = "equation",
+                                    PLANE_SCALE_KEY = "plane_scale";
     cKinematicBody();
     virtual ~cKinematicBody();
     virtual void Init(const Json::Value &conf) override;
@@ -36,8 +35,10 @@ public:
 
     virtual int GetDrawNumOfTriangles() const override final;
     virtual int GetDrawNumOfEdges() const override final;
-    virtual void CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res) const override final;
-    virtual void CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res) const override final;
+    virtual void
+    CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res) const override final;
+    virtual void
+    CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res) const override final;
 
     const std::vector<tVertex *> &GetVertexArray() const;
     const std::vector<tEdge *> &GetEdgeArray() const;

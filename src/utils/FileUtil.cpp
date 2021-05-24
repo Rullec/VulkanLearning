@@ -579,7 +579,8 @@ bool cFileUtil::AddLock(const std::string &path)
     // }
     // write_descriptor[path_lock] = desc;
     // // if "path" this file has been locked by other process, then this flock
-    // // will block this process untill it gets the lock. But if flock return <0,
+    // // will block this process untill it gets the lock. But if flock return
+    // <0,
     // // some errors must occur.
     // if (flock(desc, LOCK_EX) < 0)
     // {

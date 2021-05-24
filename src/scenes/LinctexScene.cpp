@@ -1,21 +1,20 @@
 #ifdef _WIN32
 #include "LinctexScene.h"
-#include "utils/LogUtil.h"
-#include "utils/FileUtil.h"
-#include "SeScene.h"
-#include "SePhysicalProperties.h"
-#include "SeSimulationProperties.h"
-#include "SeScene.h"
-#include "SePiece.h"
-#include "geometries/Primitives.h"
 #include "Core/SeLogger.h"
-#include "SeSimParameters.h"
+#include "SePhysicalProperties.h"
+#include "SePiece.h"
+#include "SeScene.h"
 #include "SeSceneOptions.h"
-#include "sim/ClothProperty.h"
+#include "SeSimParameters.h"
+#include "SeSimulationProperties.h"
+#include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
+#include "sim/ClothProperty.h"
+#include "utils/FileUtil.h"
+#include "utils/LogUtil.h"
+#include <chrono> // std::chrono::seconds
 #include <iostream>
 #include <thread> // std::this_thread::sleep_for
-#include <chrono> // std::chrono::seconds
 SE_USING_NAMESPACE
 cLinctexScene::cLinctexScene()
 {
@@ -30,14 +29,9 @@ cLinctexScene::cLinctexScene()
     // exit(0);
 }
 
-cLinctexScene::~cLinctexScene()
-{
-}
+cLinctexScene::~cLinctexScene() {}
 
-void cLinctexScene::UpdateSubstep()
-{
-    SIM_ERROR("should not be called");
-}
+void cLinctexScene::UpdateSubstep() { SIM_ERROR("should not be called"); }
 
 void cLinctexScene::InitConstraint(const Json::Value &value)
 {
@@ -48,7 +42,8 @@ void cLinctexScene::InitConstraint(const Json::Value &value)
 #include "utils/MathUtil.h"
 extern const tVector gGravity;
 
-void logging(const char *a, const char *b, int c, SeLogger::Level d, const char *e)
+void logging(const char *a, const char *b, int c, SeLogger::Level d,
+             const char *e)
 {
     if (d != SeLogger::Level::Error)
         return;
@@ -98,25 +93,33 @@ void cLinctexScene::Init(const std::string &path)
         mClothProp->Init(root);
     }
     {
-        mEnableNetworkInferenceMode = cJsonUtil::ParseAsBool("enable_network_inference_mode", root);
+        mEnableNetworkInferenceMode =
+            cJsonUtil::ParseAsBool("enable_network_inference_mode", root);
         if (mEnableNetworkInferenceMode == true)
         {
             mNetworkInfer_ConvThreshold = 0;
             mNetworkInfer_OutputPath = "";
-            mNetworkInfer_ConvThreshold = cJsonUtil::ParseAsDouble("network_inference_convergence_threshold", root);
-            mNetworkInfer_OutputPath = cJsonUtil::ParseAsString("network_inference_output_path", root);
-            mNetworkInfer_MinIter = cJsonUtil::ParseAsInt("network_inference_min_iter", root);
+            mNetworkInfer_ConvThreshold = cJsonUtil::ParseAsDouble(
+                "network_inference_convergence_threshold", root);
+            mNetworkInfer_OutputPath =
+                cJsonUtil::ParseAsString("network_inference_output_path", root);
+            mNetworkInfer_MinIter =
+                cJsonUtil::ParseAsInt("network_inference_min_iter", root);
             mPreviosFeature.resize(0);
             mNetworkInfer_CurIter = 0;
-            std::cout << "[NN] output path = " << mNetworkInfer_OutputPath << std::endl;
-            std::cout << "[NN] conv threshold = " << mNetworkInfer_ConvThreshold << std::endl;
+            std::cout << "[NN] output path = " << mNetworkInfer_OutputPath
+                      << std::endl;
+            std::cout << "[NN] conv threshold = " << mNetworkInfer_ConvThreshold
+                      << std::endl;
             // exit(0);
         }
 
-        mEnableDumpGeometryInfo = cJsonUtil::ParseAsBool("enable_dump_geometry_info", root);
+        mEnableDumpGeometryInfo =
+            cJsonUtil::ParseAsBool("enable_dump_geometry_info", root);
         if (mEnableDumpGeometryInfo)
         {
-            mDumpGeometryInfoPath = cJsonUtil::ParseAsString("dump_triangle_info_path", root);
+            mDumpGeometryInfoPath =
+                cJsonUtil::ParseAsString("dump_triangle_info_path", root);
         }
     }
 
@@ -140,7 +143,8 @@ void cLinctexScene::Init(const std::string &path)
     auto cloth_sim_prop = mCloth->GetSimulationProperties();
     // cloth_sim_prop->SetCollisionThickness(0);
     mCloth->GetPhysicalProperties()->SetThickness(0);
-    std::cout << "[debug] se col thickness = " << cloth_sim_prop->GetCollisionThickness() << std::endl;
+    std::cout << "[debug] se col thickness = "
+              << cloth_sim_prop->GetCollisionThickness() << std::endl;
     // exit(0);
     // mSeScene->GetOptions(
     // {
@@ -163,8 +167,10 @@ void cLinctexScene::NetworkInferenceFunction()
     else
     {
         double cur_norm = (mPreviosFeature - mClothFeature).norm();
-        std::cout << "iter " << mNetworkInfer_CurIter << " cur norm = " << cur_norm << std::endl;
-        if (cur_norm > mNetworkInfer_ConvThreshold || mNetworkInfer_CurIter < mNetworkInfer_MinIter)
+        std::cout << "iter " << mNetworkInfer_CurIter
+                  << " cur norm = " << cur_norm << std::endl;
+        if (cur_norm > mNetworkInfer_ConvThreshold ||
+            mNetworkInfer_CurIter < mNetworkInfer_MinIter)
         {
             convergence = false;
         }
@@ -172,13 +178,13 @@ void cLinctexScene::NetworkInferenceFunction()
     mPreviosFeature = mClothFeature;
     if (convergence)
     {
-        std::cout << "exit, save current result to " << mNetworkInfer_OutputPath << std::endl;
-        cLinctexScene::DumpSimulationData(
-            mClothFeature,
-            mClothProp->BuildFullFeatureVector(),
-            // tVector::Zero(),
-            // tVector::Zero(),
-            mNetworkInfer_OutputPath);
+        std::cout << "exit, save current result to " << mNetworkInfer_OutputPath
+                  << std::endl;
+        cLinctexScene::DumpSimulationData(mClothFeature,
+                                          mClothProp->BuildFullFeatureVector(),
+                                          // tVector::Zero(),
+                                          // tVector::Zero(),
+                                          mNetworkInfer_OutputPath);
         exit(0);
     }
     mNetworkInfer_CurIter++;
@@ -217,18 +223,15 @@ void cLinctexScene::Update(double dt)
         for (int i = 0; i < mVertexArray.size(); i++)
         {
             mVertexArray[i]->mPos.noalias() =
-                tVector(
-                    pos[i][0],
-                    pos[i][1],
-                    pos[i][2], 1);
+                tVector(pos[i][0], pos[i][1], pos[i][2], 1);
         }
         UpdateClothFeatureVector();
 
         if (mEnableNetworkInferenceMode == true)
             NetworkInferenceFunction();
     }
-    // std::cout << "[debug] cloth feature norm = " << GetClothFeatureVector().norm() << std::endl;
-    // else
+    // std::cout << "[debug] cloth feature norm = " <<
+    // GetClothFeatureVector().norm() << std::endl; else
     // {
     //     std::cout << "doesn't capture\n";
     //     exit(0);
@@ -261,7 +264,8 @@ SePiecePtr SePiece::Create(const std::vector<Int3> & triangles,
         auto tri = mTriangleArray[i];
         indices.push_back(Int3(tri->mId0, tri->mId1, tri->mId2));
         // triangle_array_se[i] = ;
-        // printf("[debug] triangle %d: vertices: %d, %d, %d\n", i, tri->mId0, tri->mId1, tri->mId2);
+        // printf("[debug] triangle %d: vertices: %d, %d, %d\n", i, tri->mId0,
+        // tri->mId1, tri->mId2);
     }
 
     auto phyProp = SePhysicalProperties::Create();
@@ -275,9 +279,7 @@ SePiecePtr SePiece::Create(const std::vector<Int3> & triangles,
     }
 }
 
-void cLinctexScene::ReadVertexPosFromEngine()
-{
-}
+void cLinctexScene::ReadVertexPosFromEngine() {}
 
 #include "Perturb.h"
 bool cLinctexScene::CreatePerturb(tRay *ray)
@@ -289,10 +291,8 @@ bool cLinctexScene::CreatePerturb(tRay *ray)
         bary.coord = Vec3f(0.5, 0.5, 0.5);
         bary.index = mPerturb->mAffectedTriId;
         tVector tar_pos = mPerturb->GetGoalPos();
-        mDragPt = mCloth->AddDraggedPoint(bary, Float3(
-                                                    tar_pos[0],
-                                                    tar_pos[1],
-                                                    tar_pos[2]));
+        mDragPt = mCloth->AddDraggedPoint(
+            bary, Float3(tar_pos[0], tar_pos[1], tar_pos[2]));
         // 2. caclulate triangle id
         // 3. calculate target pos
         // 4. save the perturb}
@@ -315,23 +315,18 @@ void cLinctexScene::UpdatePerturb()
 {
     if (this->mDragPt != nullptr)
     {
-        // tVector target_pos = mPerturb->CalcPerturbPos() + mPerturb->GetPerturbForce() / 10;
+        // tVector target_pos = mPerturb->CalcPerturbPos() +
+        // mPerturb->GetPerturbForce() / 10;
         tVector target_pos = mPerturb->GetGoalPos();
 
         mDragPt->SetPositions(
-            {Float3(
-                target_pos[0],
-                target_pos[1],
-                target_pos[2])});
+            {Float3(target_pos[0], target_pos[1], target_pos[2])});
     }
 }
 
 #include "SeObstacle.h"
 #include "sim/KinematicBody.h"
-tVector CalcNormal(
-    const tVector &v0,
-    const tVector &v1,
-    const tVector &v2)
+tVector CalcNormal(const tVector &v0, const tVector &v1, const tVector &v2)
 {
 
     return ((v1 - v0).cross3(v2 - v1)).normalized();
@@ -356,14 +351,11 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
             //  init triangle and calculate vertex normal
             for (int i = 0; i < t_array.size(); i++)
             {
-                se_triangles.push_back(Int3(
-                    t_array[i]->mId0,
-                    t_array[i]->mId1,
-                    t_array[i]->mId2));
-                tVector f_normal = CalcNormal(
-                    v_array[t_array[i]->mId0]->mPos,
-                    v_array[t_array[i]->mId1]->mPos,
-                    v_array[t_array[i]->mId2]->mPos);
+                se_triangles.push_back(
+                    Int3(t_array[i]->mId0, t_array[i]->mId1, t_array[i]->mId2));
+                tVector f_normal = CalcNormal(v_array[t_array[i]->mId0]->mPos,
+                                              v_array[t_array[i]->mId1]->mPos,
+                                              v_array[t_array[i]->mId2]->mPos);
                 {
                     v_normal_array[t_array[i]->mId0] += f_normal;
                     v_normal_array[t_array[i]->mId1] += f_normal;
@@ -380,33 +372,32 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
             for (int i = 0; i < v_array.size(); i++)
             {
 
-                se_positions.push_back(
-                    Float3(
-                        v_array[i]->mPos[0],
-                        v_array[i]->mPos[1],
-                        v_array[i]->mPos[2]));
+                se_positions.push_back(Float3(v_array[i]->mPos[0],
+                                              v_array[i]->mPos[1],
+                                              v_array[i]->mPos[2]));
                 v_normal_array[i] /= v_normal_array_count[i];
-                se_normals.push_back(
-                    Float3(
-                        v_normal_array[i][0],
-                        v_normal_array[i][1],
-                        v_normal_array[i][2]));
-                // std::cout << "v = " << v_array[i]->mPos.transpose() << " n = " << v_normal_array[i].transpose() << std::endl;
+                se_normals.push_back(Float3(v_normal_array[i][0],
+                                            v_normal_array[i][1],
+                                            v_normal_array[i][2]));
+                // std::cout << "v = " << v_array[i]->mPos.transpose() << " n =
+                // " << v_normal_array[i].transpose() << std::endl;
             }
         }
-        // printf("[debug] obstacle %d, num of triangles %d\n", i, se_triangles.size());
-        auto obstacle = SeObstacle::Create(se_triangles,
-                                           se_positions,
-                                           se_normals);
-        // std::cout << "old obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
+        // printf("[debug] obstacle %d, num of triangles %d\n", i,
+        // se_triangles.size());
+        auto obstacle =
+            SeObstacle::Create(se_triangles, se_positions, se_normals);
+        // std::cout << "old obstacle offset = " << obstacle->GetSurfaceOffset()
+        // << std::endl;
         obstacle->SetSurfaceOffset(0);
         // mSeScene->GetSimulationParameters()->
         // this->mCloth->GetSimulationProperties()->
-        // std::cout << "new obstacle offset = " << obstacle->GetSurfaceOffset() << std::endl;
-        // exit(0);
+        // std::cout << "new obstacle offset = " << obstacle->GetSurfaceOffset()
+        // << std::endl; exit(0);
         mSeScene->AddObstacle(obstacle);
     }
-    std::cout << "[debug] add linctex obstacles succ, num = " << mObstacleList.size() << std::endl;
+    std::cout << "[debug] add linctex obstacles succ, num = "
+              << mObstacleList.size() << std::endl;
 }
 
 void cLinctexScene::SetSimProperty(const tPhyPropertyPtr &prop)
@@ -419,42 +410,35 @@ void cLinctexScene::SetSimProperty(const tPhyPropertyPtr &prop)
     phyProp->SetBendingWeft(mClothProp->mBendingWeft);
     phyProp->SetBendingBias(mClothProp->mBendingBias);
 }
-tPhyPropertyPtr cLinctexScene::GetSimProperty() const
-{
-    return mClothProp;
-}
+tPhyPropertyPtr cLinctexScene::GetSimProperty() const { return mClothProp; }
 
 /**
  * \brief           Get the feature vector of this cloth
- * 
+ *
  *  Current it's all nodal position of current time
-*/
+ */
 const tVectorXd &cLinctexScene::GetClothFeatureVector() const
 {
     return mClothFeature;
 }
 
-int cLinctexScene::GetClothFeatureSize() const
-{
-    return mClothFeature.size();
-}
+int cLinctexScene::GetClothFeatureSize() const { return mClothFeature.size(); }
 
 /**
  * \brief           Save current simulation correspondence
-*/
-void cLinctexScene::DumpSimulationData(
-    const tVectorXd &simualtion_result,
-    const tVectorXd &simulation_property,
-    // const tVector &init_rot_qua,
-    // const tVector &init_translation,
-    const std::string &filename)
+ */
+void cLinctexScene::DumpSimulationData(const tVectorXd &simualtion_result,
+                                       const tVectorXd &simulation_property,
+                                       // const tVector &init_rot_qua,
+                                       // const tVector &init_translation,
+                                       const std::string &filename)
 {
     Json::Value export_json;
     export_json["input"] = cJsonUtil::BuildVectorJson(simualtion_result);
     export_json["output"] = cJsonUtil::BuildVectorJson(simulation_property);
     // Json::Value extra_info;
-    // std::cout << "feature = " << props->BuildFullFeatureVector().transpose() << std::endl;
-    // std::cout << "trans = \n"
+    // std::cout << "feature = " << props->BuildFullFeatureVector().transpose()
+    // << std::endl; std::cout << "trans = \n"
     //           << init_trans << std::endl;
 
     // extra_info["init_rot"] = cJsonUtil::BuildVectorJson(init_rot_qua);
@@ -464,19 +448,20 @@ void cLinctexScene::DumpSimulationData(
     std::cout << "[debug] save data to " << filename << std::endl;
 }
 
-void cLinctexScene::LoadSimulationData(
-    tVectorXd &simualtion_result,
-    tVectorXd &simulation_property,
-    const std::string &filename)
+void cLinctexScene::LoadSimulationData(tVectorXd &simualtion_result,
+                                       tVectorXd &simulation_property,
+                                       const std::string &filename)
 {
     Json::Value root;
     cJsonUtil::LoadJson(filename, root);
-    simualtion_result = cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("input", root));
-    simulation_property = cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("output", root));
+    simualtion_result =
+        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("input", root));
+    simulation_property =
+        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("output", root));
 }
 /**
  * \brief               Init the feature vector
-*/
+ */
 void cLinctexScene::InitClothFeatureVector()
 {
     mClothFeature.noalias() = tVectorXd::Zero(mVertexArray.size() * 3);
@@ -485,18 +470,19 @@ void cLinctexScene::InitClothFeatureVector()
 
 /**
  * \brief               Calculate the feature vector of the cloth
-*/
+ */
 void cLinctexScene::UpdateClothFeatureVector()
 {
     for (int i = 0; i < mVertexArray.size(); i++)
     {
-        mClothFeature.segment(3 * i, 3).noalias() = mVertexArray[i]->mPos.segment(0, 3);
+        mClothFeature.segment(3 * i, 3).noalias() =
+            mVertexArray[i]->mPos.segment(0, 3);
     }
 }
 
 /**
  * \brief               Update nodal position from a vector
-*/
+ */
 void cLinctexScene::UpdateCurNodalPosition(const tVectorXd &xcur)
 {
     cSimScene::UpdateCurNodalPosition(xcur);
@@ -506,10 +492,7 @@ void cLinctexScene::UpdateCurNodalPosition(const tVectorXd &xcur)
         for (int i = 0; i < mVertexArray.size(); i++)
         {
             pos.push_back(
-                Float3(
-                    xcur[3 * i + 0],
-                    xcur[3 * i + 1],
-                    xcur[3 * i + 2]));
+                Float3(xcur[3 * i + 0], xcur[3 * i + 1], xcur[3 * i + 2]));
         }
         mCloth->SetPositions(pos);
     }
@@ -517,18 +500,19 @@ void cLinctexScene::UpdateCurNodalPosition(const tVectorXd &xcur)
 
 /**
  * \brief               Init the geometry and set the init positions
-*/
+ */
 void cLinctexScene::InitGeometry(const Json::Value &conf)
 {
     cSimScene::InitGeometry(conf);
-    std::string init_geo = cJsonUtil::ParseAsString("cloth_init_nodal_position", conf);
+    std::string init_geo =
+        cJsonUtil::ParseAsString("cloth_init_nodal_position", conf);
     bool is_illegal = true;
     if (cFileUtil::ExistsFile(init_geo) == true)
     {
         Json::Value value;
         cJsonUtil::LoadJson(init_geo, value);
-        tVectorXd vec = cJsonUtil::ReadVectorJson(
-            cJsonUtil::ParseAsValue("input", value));
+        tVectorXd vec =
+            cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("input", value));
         // std::cout << "vec size = " << vec.size();
         if (vec.size() == GetNumOfFreedom())
         {
@@ -550,21 +534,20 @@ void cLinctexScene::InitGeometry(const Json::Value &conf)
     // 1. check whehter it's illegal
     if (is_illegal)
     {
-        std::cout << "[warn] init geometry file " << init_geo << "is illegal, ignore\n";
+        std::cout << "[warn] init geometry file " << init_geo
+                  << "is illegal, ignore\n";
     }
 
     if (mEnableDumpGeometryInfo == true)
     {
-        cTriangulator::SaveGeometry(
-            this->mVertexArray,
-            this->mEdgeArray,
-            this->mTriangleArray,
-            this->mDumpGeometryInfoPath);
+        cTriangulator::SaveGeometry(this->mVertexArray, this->mEdgeArray,
+                                    this->mTriangleArray,
+                                    this->mDumpGeometryInfoPath);
     }
 }
 /**
  * \brief           apply the transform to the cloth
-*/
+ */
 // void cLinctexScene::ApplyTransform(const tMatrix &trans)
 // {
 //     for (int i = 0; i < mVertexArray.size(); i++)
@@ -582,18 +565,17 @@ void cLinctexScene::Key(int key, int scancode, int action, int mods)
     cSimScene::Key(key, scancode, action, mods);
     if (key == GLFW_KEY_S && action == GLFW_PRESS)
     {
-        cLinctexScene::DumpSimulationData(
-            GetClothFeatureVector(),
-            mClothProp->BuildFullFeatureVector(),
-            // tVector::Zero(),
-            // tVector::Zero(),
-            "tmp.json");
+        cLinctexScene::DumpSimulationData(GetClothFeatureVector(),
+                                          mClothProp->BuildFullFeatureVector(),
+                                          // tVector::Zero(),
+                                          // tVector::Zero(),
+                                          "tmp.json");
     }
 }
 
 /**
  * \brief           Calculate the center of mass
-*/
+ */
 tVector cLinctexScene::CalcCOM() const
 {
     tVector com = tVector::Zero();
@@ -609,17 +591,16 @@ tVector cLinctexScene::CalcCOM() const
     return com;
 }
 
-void cLinctexScene::End()
-{
-    this->mSeScene->End();
-}
-#include <math.h>
+void cLinctexScene::End() { this->mSeScene->End(); }
 #include <cmath>
+#include <math.h>
 
 /**
  * \brief           Apply random gaussian noise, point-wise
-*/
-void cLinctexScene::ApplyNoise(bool enable_y_random_rotation, double &rotation_angle, bool enable_y_random_pos, const double random_ypos_std)
+ */
+void cLinctexScene::ApplyNoise(bool enable_y_random_rotation,
+                               double &rotation_angle, bool enable_y_random_pos,
+                               const double random_ypos_std)
 {
     rotation_angle = 0;
     if (enable_y_random_rotation == true)
@@ -629,8 +610,7 @@ void cLinctexScene::ApplyNoise(bool enable_y_random_rotation, double &rotation_a
     }
 
     tMatrix mat = cMathUtil::EulerAnglesToRotMat(
-        tVector(0, rotation_angle, 0, 0),
-        eRotationOrder::XYZ);
+        tVector(0, rotation_angle, 0, 0), eRotationOrder::XYZ);
     for (int i = 0; i < mVertexArray.size(); i++)
     {
         // 1. apply rotation
@@ -656,37 +636,44 @@ void cLinctexScene::ApplyNoise(bool enable_y_random_rotation, double &rotation_a
 
 /**
  * s\brief          Apply fold noise by given an axis and the parabola coef "a"
-*/
-void cLinctexScene::ApplyFoldNoise(const tVector3d &principle_noise, const double a)
+ */
+void cLinctexScene::ApplyFoldNoise(const tVector3d &principle_noise,
+                                   const double a)
 {
     // tVector3d old_pos = tVector3d(0, 0, 0);
     // tVector3d dir_origin = tVector3d(0, 1, 1);
     // tVector3d dir_end = tVector3d(1, 1, 1);
-    // std::cout << "dist = " << cMathUtil::CalcDistanceFromPointToLine(old_pos, dir_origin, dir_end) << std::endl;
+    // std::cout << "dist = " << cMathUtil::CalcDistanceFromPointToLine(old_pos,
+    // dir_origin, dir_end) << std::endl;
     SIM_ASSERT(std::fabs(principle_noise.norm() - 1) < 1e-10);
     tVector3d COM = this->CalcCOM().segment(0, 3);
     // std::cout << "COM = " << COM.transpose() << std::endl;
-    // std::cout << "principle noise dir = " << principle_noise.transpose() << std::endl;
-    // int num_of_positive = 0, num_of_negative = 0;
+    // std::cout << "principle noise dir = " << principle_noise.transpose() <<
+    // std::endl; int num_of_positive = 0, num_of_negative = 0;
     for (int i = 0; i < mXcur.size() / 3; i++)
     {
         const tVector3d &old_pos = mXcur.segment(i * 3, 3);
         // std::cout << "old pos = " << old_pos.transpose() << std::endl;
         // 1. calculate distance between cur pos and the center line
         double dist = cMathUtil::CalcDistanceFromPointToLine(
-            old_pos,
-            COM,
-            COM + principle_noise);
+            old_pos, COM, COM + principle_noise);
         // std::cout << "dist = " << dist << std::endl;
-        // 2. calculate (x, y) pos on projected plane, defined by given principle noise vector
-        // 2.1 determine the positive or negative
+        // 2. calculate (x, y) pos on projected plane, defined by given
+        // principle noise vector 2.1 determine the positive or negative
         tVector3d com_2_pos = old_pos - COM;
         // std::cout << "com 2 pos = " << com_2_pos.transpose() << std::endl;
-        tVector3d com_2_pos_parallel_with_principle = com_2_pos.dot(principle_noise) * principle_noise;
-        // std::cout << "com_2_pos_parallel_with_principle = " << com_2_pos_parallel_with_principle.transpose() << std::endl;
-        tVector3d com_2_pos_proj = com_2_pos - com_2_pos_parallel_with_principle;
-        // std::cout << "com_2_pos_proj = " << com_2_pos_proj.transpose() << std::endl;
-        int sign = (tVector3d(0, 1, 0).cross(com_2_pos_proj)).dot(principle_noise) > 0 ? 1 : -1;
+        tVector3d com_2_pos_parallel_with_principle =
+            com_2_pos.dot(principle_noise) * principle_noise;
+        // std::cout << "com_2_pos_parallel_with_principle = " <<
+        // com_2_pos_parallel_with_principle.transpose() << std::endl;
+        tVector3d com_2_pos_proj =
+            com_2_pos - com_2_pos_parallel_with_principle;
+        // std::cout << "com_2_pos_proj = " << com_2_pos_proj.transpose() <<
+        // std::endl;
+        int sign =
+            (tVector3d(0, 1, 0).cross(com_2_pos_proj)).dot(principle_noise) > 0
+                ? 1
+                : -1;
         // std::cout << "sign = " << sign << std::endl;
 
         // 2.2
@@ -698,10 +685,8 @@ void cLinctexScene::ApplyFoldNoise(const tVector3d &principle_noise, const doubl
         // std::cout << "x = " << x << std::endl;
         // std::cout << "y = " << y << std::endl;
         tVector3d new_pos =
-            (x * x_dir +
-             y * tVector3d(0, 1, 0) + COM) // projected pos
-            +
-            com_2_pos_parallel_with_principle;
+            (x * x_dir + y * tVector3d(0, 1, 0) + COM) // projected pos
+            + com_2_pos_parallel_with_principle;
         // std::cout << "new_pos = " << new_pos.transpose() << std::endl;
         mXcur.segment(i * 3, 3) = new_pos;
         // exit(0);
@@ -714,7 +699,7 @@ void cLinctexScene::ApplyFoldNoise(const tVector3d &principle_noise, const doubl
 /**
  * \brief                   Apply multiple folds noise
  * \param num_of_folds      Given number of folds
-*/
+ */
 void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
 {
     SIM_ASSERT(num_of_folds >= 2 && num_of_folds <= 10);
@@ -741,22 +726,25 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
         // double amp = 0.1;
         double amp = cMathUtil::RandDouble(0, 0.15);
         // double amp = cMathUtil::RandDoubleNorm(0.1, 0.1);
-        tVector fold_dir = cMathUtil::AxisAngleToRotmat(tVector(0, 1, 0, 0) * angle) * tVector(1, 0, 0, 0);
+        tVector fold_dir =
+            cMathUtil::AxisAngleToRotmat(tVector(0, 1, 0, 0) * angle) *
+            tVector(1, 0, 0, 0);
         // printf("[debug] angle %d = %.3f, dir = ", i, angle);
         fold_st_angle_array.push_back(angle);
         fold_amp_array.push_back(amp);
         // project to XOZ plane
         fold_directions_array.push_back(tVector2d(fold_dir[0], fold_dir[2]));
         // printf("[info] angle %d = %.3f, amp = %.3f\n", i, angle, amp);
-        // std::cout << fold_directions_array[fold_directions_array.size() - 1].transpose() << std::endl;
+        // std::cout << fold_directions_array[fold_directions_array.size() -
+        // 1].transpose() << std::endl;
     }
 
     /*
         3. calculate the noise for each point
             3.1 for each point, calculate the pole coordinate
             3.2 confirm two fold direction
-            3.3 calculate the height field for these 2 fold. (clamped cos function)
-            3.4 averaging these 2 values, apply this height
+            3.3 calculate the height field for these 2 fold. (clamped cos
+       function) 3.4 averaging these 2 values, apply this height
     */
     auto calc_angle_distance = [](double first, double second)
     {
@@ -785,9 +773,10 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
         //         std::sin(theta), 0);
         node_vec[1] = 0;
         node_vec.normalize();
-        // std::cout << tVector(1, 0, 0, 0).cross3(tVector(0, 0, -1, 0)) << std::endl;
-        // exit(0);
-        tVector res = cMathUtil::CalcAxisAngleFromOneVectorToAnother(tVector(1, 0, 0, 0), node_vec);
+        // std::cout << tVector(1, 0, 0, 0).cross3(tVector(0, 0, -1, 0)) <<
+        // std::endl; exit(0);
+        tVector res = cMathUtil::CalcAxisAngleFromOneVectorToAnother(
+            tVector(1, 0, 0, 0), node_vec);
         if (res[1] < 0)
         {
             res = tVector(0, 2 * M_PI + res[1], 0, 0);
@@ -797,15 +786,16 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
         //     SIM_ASSERT(residual.norm() < 1e-6);
         //     if (residual.norm() > 1e-6)
         //     {
-        //         std::cout << "node_vec = " << node_vec.transpose() << std::endl;
-        //         std::cout << "res = " << res.transpose() << std::endl;
-        //         exit(1);
+        //         std::cout << "node_vec = " << node_vec.transpose() <<
+        //         std::endl; std::cout << "res = " << res.transpose() <<
+        //         std::endl; exit(1);
         //     }
         // }
         double cur_angle = cMathUtil::NormalizeAngle(res[1]);
         // double cur_angle = 3;
         // double cur_angle = 1.24081;
-        // std::cout << "for point " << node_vec.transpose() << " its angle = " << cur_angle << std::endl;
+        // std::cout << "for point " << node_vec.transpose() << " its angle = "
+        // << cur_angle << std::endl;
         int interval0 = -1, interval1 = -1;
         for (int i = 0; i < num_of_folds; i++)
         {
@@ -825,8 +815,7 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
             else
             {
                 double interval = calc_angle_distance(angle0, angle1);
-                if (
-                    calc_angle_distance(angle0, cur_angle) < interval &&
+                if (calc_angle_distance(angle0, cur_angle) < interval &&
                     calc_angle_distance(angle1, cur_angle) < interval)
                 {
                     interval0 = fold0_id;
@@ -838,7 +827,8 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
 
         if (interval0 == -1 || interval1 == -1)
         {
-            std::cout << "[error] for angle " << cur_angle << " failed to judge the interval. cur interval are:";
+            std::cout << "[error] for angle " << cur_angle
+                      << " failed to judge the interval. cur interval are:";
             for (auto &x : fold_st_angle_array)
                 std::cout << x << " ";
             std::cout << std::endl;
@@ -850,7 +840,8 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
 
             double amp0 = fold_amp_array[interval0],
                    amp1 = fold_amp_array[interval1];
-            double int_angle0 = fold_st_angle_array[interval0], int_angle1 = fold_st_angle_array[interval1];
+            double int_angle0 = fold_st_angle_array[interval0],
+                   int_angle1 = fold_st_angle_array[interval1];
             double angle_with0 = calc_angle_distance(cur_angle, int_angle0);
             double angle_with1 = calc_angle_distance(cur_angle, int_angle1);
             double bias = 0;
@@ -879,9 +870,11 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
             // tVector3d ref = mXcur.segment(3 * (v_id - 1), 3);
             // tVector3d cur = mXcur.segment(3 * (v_id), 3);
 
-            // mXcur.segment(3 * v_id, 3) = (cur - ref).normalized() * (v->mPos.segment(0, 3) - ref).norm() + ref.segment(0, 3);
+            // mXcur.segment(3 * v_id, 3) = (cur - ref).normalized() *
+            // (v->mPos.segment(0, 3) - ref).norm() + ref.segment(0, 3);
             // v->mPos[1] ;
-            // printf("[info] angle %.4f is in [%.3f, %.3f]\n", cur_angle, fold_st_angle_array[interval0],
+            // printf("[info] angle %.4f is in [%.3f, %.3f]\n", cur_angle,
+            // fold_st_angle_array[interval0],
             //        fold_st_angle_array[interval1]);
         }
     }

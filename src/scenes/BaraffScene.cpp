@@ -1,9 +1,7 @@
 
 #include "BaraffScene.h"
 
-cBaraffScene::cBaraffScene()
-{
-}
+cBaraffScene::cBaraffScene() {}
 
 void cBaraffScene::Init(const std::string &conf_path)
 {
@@ -11,10 +9,6 @@ void cBaraffScene::Init(const std::string &conf_path)
     InitRaycaster();
 }
 
-cBaraffScene::~cBaraffScene()
-{
-}
+cBaraffScene::~cBaraffScene() {}
 
-void cBaraffScene::UpdateSubstep()
-{
-}
+void cBaraffScene::UpdateSubstep() {}

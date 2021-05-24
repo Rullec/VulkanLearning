@@ -3,7 +3,7 @@
 
 /**
  * \brief           simulation scene for mass-spring system
-*/
+ */
 class cSemiImplicitScene : public cSimScene
 {
 public:
@@ -24,6 +24,7 @@ protected:
 
     tVectorXd
     CalcNextPositionSemiImplicit() const; // calculate xnext by semi implicit
-    virtual void CalcIntForce(const tVectorXd &xcur, tVectorXd &int_force) const override final;
+    virtual void CalcIntForce(const tVectorXd &xcur,
+                              tVectorXd &int_force) const override final;
     virtual void UpdateSubstep() override final;
 };
