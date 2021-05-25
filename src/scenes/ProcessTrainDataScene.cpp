@@ -26,6 +26,21 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
     mEnableClothGeometry =
         cJsonUtil::ParseAsBool(ENABLE_CLOTH_GEOMETRY_KEY, root);
     mCameraFov = cJsonUtil::ParseAsFloat(CAMERA_FOV_KEY, root);
+    mExportImageType = cProcessTrainDataScene::GetImageType(
+        cJsonUtil::ParseAsString(EXPORT_IMAGE_FORMAT_KEY, root));
+
+    // parse camera noise info
+    {
+        mEnableCameraNoise =
+            cJsonUtil::ParseAsBool(ENABLE_CAMERA_NOISE_KEY, root);
+        mCameraNoiseSamples =
+            cJsonUtil::ParseAsInt(CAMERA_NOISE_SAMPLES_KEY, root);
+
+        mCameraTranslationNoise =
+            cJsonUtil::ParseAsDouble(CAMERA_TRANSLATION_NOISE_KEY, root);
+        mCameraOrientationNoise =
+            cJsonUtil::ParseAsDouble(CAMERA_ORIENTATION_NOISE_KEY, root);
+    }
     // std::cout << "mEnableClothGeometry = " << mEnableClothGeometry <<
     // std::endl; exit(0);
     // 1. validate the input/output dir
@@ -71,18 +86,19 @@ void cProcessTrainDataScene::CalcDepthMapNoCloth()
     printf("[warn] calculate depth map without cloth geometry\n");
     cTimeUtil::Begin("depth_without_cloth");
     auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
-    std::vector<std::string> save_png_path_array(0);
-    // for (int i = 0; i < mCameraViews.size(); i++)
-    // {
-    int i = 0;
-    save_png_path_array.push_back(
-        cFileUtil::ConcatFilename(mGenDataDir, std::to_string(i) + ".exr"));
-    // }
-    std::vector<CameraBasePtr> cam_views(0);
-    cam_views.push_back(mCamera);
+    std::vector<std::string> save_img_path_array(0);
+    std::string suffix = this->GetImageSuffix(mExportImageType);
+    for (int i = 0; i < mCameraLst.size(); i++)
+    {
+        // int i = 0;
+        save_img_path_array.push_back(
+            cFileUtil::ConcatFilename(mGenDataDir, std::to_string(i) + suffix));
+    }
+    // std::vector<CameraBasePtr> cam_views(0);
+    // cam_views.push_back(mCamera);
 
-    ptr->CalcDepthMapMultiCamera(mHeight, mWidth, cam_views,
-                                 save_png_path_array);
+    ptr->CalcDepthMapMultiCamera(mHeight, mWidth, mCameraLst,
+                                 save_img_path_array);
     printf("[log] calculate depth map without cloth geometry done, output dir "
            "= %s, cost %.3f ms\n",
            mGenDataDir.c_str(), cTimeUtil::End("depth_without_cloth", true));
@@ -109,8 +125,8 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         // std::vector<std::string> image_name_array(0);
         // std::vector<std::string> feature_name_array(0);
         int camera_id = 0;
-        std::vector<CameraBasePtr> my_camera_views(0);
-        my_camera_views.push_back(mCamera);
+        // std::vector<CameraBasePtr> my_camera_views(0);
+        // my_camera_views.push_back(mCamera);
         // {
         //     std::string new_image_name =
         //     cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) +
@@ -138,8 +154,7 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         cTimeUtil::Begin("handle_image");
         std::string base_name = cFileUtil::RemoveExtension(
             cFileUtil::GetFilename(surface_geo_data));
-        CalcDepthMapMultiViews(surface_geo_data, base_name, my_camera_views,
-                               10);
+        CalcDepthMapMultiViews(surface_geo_data, base_name, mCameraLst, 10);
         printf("[log] handle image %d/%d, cost %.4f ms\n", i + 1,
                paths.size() + 1, cTimeUtil::End("handle_image", true));
     }
@@ -292,8 +307,36 @@ void cProcessTrainDataScene::InitCameraViews()
                         this->mCameraCenter.segment(0, 3).cast<float>(),
                     &camera_up = this->mCameraUp.segment(0, 3).cast<float>();
 
-    mCamera = std::make_shared<cArcBallCamera>(camera_pos, camera_center,
-                                               camera_up, mCameraFov);
+    auto cur_camera = std::make_shared<cArcBallCamera>(
+        camera_pos, camera_center, camera_up, mCameraFov);
+
+    mCameraLst.push_back(cur_camera);
+
+    if (this->mEnableCameraNoise == true)
+    {
+        // std::cout << "begin to apply the camera noise\n";
+        for (int i = 0; i < this->mCameraNoiseSamples; i++)
+        {
+            tVector3f cam_pos_noise =
+                          tVector3f::Random(3) * mCameraTranslationNoise,
+                      cam_focus_noise =
+                          tVector3f::Random(3) * mCameraTranslationNoise,
+                      cam_up_noise =
+                          tVector3f::Random(3) * mCameraOrientationNoise;
+            // std::cout << "cam pos noise = " << cam_pos_noise.transpose() *
+            // 1e2
+            //           << " cm\n";
+            // std::cout << "cam focus noise = "
+            //           << cam_focus_noise.transpose() * 1e2 << " cm\n";
+            // std::cout << "cam up noise = " << cam_up_noise.transpose() <<
+            // "\n";
+            auto new_camera = std::make_shared<cArcBallCamera>(
+                camera_pos + cam_pos_noise, camera_center + cam_focus_noise,
+                camera_up + cam_up_noise, mCameraFov);
+            mCameraLst.push_back(new_camera);
+        }
+    }
+    // exit(0);
 }
 
 void cProcessTrainDataScene::Update(double dt)
@@ -485,11 +528,43 @@ tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
 
     // 4.
     auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
-    ptr->CalcDepthMapMultiCamera(mHeight, mWidth, mCamera, mPixels);
+    ptr->CalcDepthMapMultiCamera(mHeight, mWidth, mCameraLst[0], mPixels);
     return mPixels;
 }
 
+/**
+ * \brief           Get Depth image shape
+ */
 std::pair<int, int> cProcessTrainDataScene::GetDepthImageShape() const
 {
     return std::pair<int, int>(mWidth, mHeight);
+}
+
+/**
+ * \brief           Given image type string, return the type
+ */
+cProcessTrainDataScene::eImageType
+cProcessTrainDataScene::GetImageType(const std::string name)
+{
+    for (int i = 0; i < eImageType::NUM_OF_TYPES; i++)
+    {
+        if (name == cProcessTrainDataScene::gImageSuffix[i])
+        {
+            return static_cast<eImageType>(i);
+        }
+    }
+
+    SIM_ERROR("unrecognized image type");
+    return eImageType::NUM_OF_TYPES;
+}
+
+/**
+ * \brief           Given image type enum, return the suffix
+ */
+std::string cProcessTrainDataScene::GetImageSuffix(eImageType type)
+{
+    int id = static_cast<int>(type);
+    SIM_ASSERT(id < eImageType::NUM_OF_TYPES);
+
+    return cProcessTrainDataScene::gImageSuffix[id];
 }

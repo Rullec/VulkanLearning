@@ -12,7 +12,7 @@ MathUtil2.cpp
 Rand.cpp
 TimeUtil.cpp
 ObjUtil.cpp
-DepthEXRSaver.cpp
+DepthImageSaver.cpp
 )
 target_link_libraries(utils_lib spdlog JSON)
 

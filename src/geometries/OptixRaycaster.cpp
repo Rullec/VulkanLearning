@@ -4,8 +4,6 @@
 #include "scenes/cameras/CameraBase.h"
 #include "utils/LogUtil.h"
 #include <iostream>
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "utils/stb_image_write.h"
 
 extern "C" char embedded_ptx_code[];
 
@@ -532,15 +530,17 @@ void cOptixRaycaster::BuildGeometryCudaHostBuffer()
     // std::cout << "vertices size = " << mVertexArray->size() << std::endl;
 }
 
-void save(const std::string fileName, int width, int height,
-          uint32_t h_pixels[])
-{
-    stbi_write_png(fileName.c_str(), width, height, 4, h_pixels,
-                   width * sizeof(uint32_t));
-}
+// void save(const std::string fileName, int width, int height,
+//           uint32_t h_pixels[])
+// {
+//     stbi_write_png(fileName.c_str(), width, height, 4, h_pixels,
+//                    width * sizeof(uint32_t));
+// }
 /**
  * \brief           Calculate the depth image
  */
+extern bool SavePNGDepthImage(const float *depth_pixels, int width, int height,
+                         const char *outfile_name);
 void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera,
                                    std::string path)
 {
@@ -564,10 +564,11 @@ void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera,
     render();
     // 3. launch the optix program
     // std::cout << "render done\n";
-    std::vector<uint32_t> pixels(width * height, 0);
+    std::vector<float> pixels(width * height, 0);
     this->downloadPixels(pixels.data());
     // std::cout << "download pixels done\n";
-    save(path, width, height, pixels.data());
+
+    SavePNGDepthImage(pixels.data(), width, height, path.c_str());
     // exit(0);
     // 4. download the result and save it to .ppm image
 }
@@ -716,7 +717,7 @@ void cOptixRaycaster::downloadPixels(float *h_pixels)
  * \brief           calculate depth image for multiple camera views
  */
 #include "utils/FileUtil.h"
-extern bool SaveDepthEXR(const float *rgb, int width, int height,
+extern bool SaveEXRDepthImage(const float *rgb, int width, int height,
                          const char *outfilename);
 void cOptixRaycaster::CalcDepthMapMultiCamera(
     int height, int width, std::vector<CameraBasePtr> camera_array,
@@ -757,8 +758,22 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
         this->downloadPixels(pixels.data());
         // std::cout << "download pixels done\n";
         // save(path_array[i], width, height, pixels.data());
-        SaveDepthEXR(pixels.data(), width, height, path_array[i].c_str());
-        // SaveDepthEXR(const float *rgb, int width, int height, const
+        std::string path = path_array[i];
+        std::string suffix = cFileUtil::GetExtension(path);
+
+        if (suffix == "exr")
+        {
+            SaveEXRDepthImage(pixels.data(), width, height, path.c_str());
+        }
+        else if (suffix == "png")
+        {
+            SavePNGDepthImage(pixels.data(), width, height, path.c_str());
+        }
+        else
+        {
+            SIM_ERROR("Unsupported image type {}", suffix);
+        }
+        // SaveEXRDepthImage(const float *rgb, int width, int height, const
         // char*outfilename)
     }
 }
@@ -792,7 +807,7 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width,
     downloadPixels(pixels_eigen.data());
     // std::cout << "download pixels done\n";
     // save(path_array[i], width, height, pixels.data());
-    // SaveDepthEXR(pixels.data(), width, height, path_array[i].c_str());
+    // SaveEXRDepthImage(pixels.data(), width, height, path_array[i].c_str());
     // SaveDepthEXR(const float *rgb, int width, int height, const
     // char*outfilename)
 }

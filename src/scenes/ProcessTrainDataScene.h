@@ -17,18 +17,37 @@ public:
                                   const tVector &cam_focus, float fov);
 
 protected:
-    inline static const std::string CAMERA_POS_KEY = "capture_camera_pos",
-                                    CAMERA_CENTER_KEY = "capture_camera_center",
-                                    CAMERA_UP_KEY = "capture_camera_up",
-                                    CAMERA_FOV_KEY = "capture_camera_fov",
-                                    GEOMETRY_INFO_KEY = "geometry_info",
-                                    RAW_DATA_DIR_KEY = "raw_data_dir",
-                                    GEN_DATA_DIR_KEY = "gen_data_dir",
-                                    DEPTH_IMAGE_WIDTH_KEY = "window_width",
-                                    DEPTH_IMAGE_HEIGHT_KEY = "window_height",
-                                    SIMULATION_CONF_KEY = "simulation_conf",
-                                    ENABLE_CLOTH_GEOMETRY_KEY =
-                                        "enable_cloth_geometry";
+    enum eImageType
+    {
+        EXR_TYPE,
+        PNG_TYPE,
+        NUM_OF_TYPES
+    };
+    inline static const std::string gImageSuffix[eImageType::NUM_OF_TYPES] = {
+        ".exr",
+        ".png",
+    };
+    static eImageType GetImageType(const std::string name);
+    static std::string GetImageSuffix(eImageType type);
+
+    inline static const std::string
+        CAMERA_POS_KEY = "capture_camera_pos",
+        CAMERA_CENTER_KEY = "capture_camera_center",
+        CAMERA_UP_KEY = "capture_camera_up",
+        CAMERA_FOV_KEY = "capture_camera_fov",
+        GEOMETRY_INFO_KEY = "geometry_info", RAW_DATA_DIR_KEY = "raw_data_dir",
+        GEN_DATA_DIR_KEY = "gen_data_dir",
+        DEPTH_IMAGE_WIDTH_KEY = "window_width",
+        DEPTH_IMAGE_HEIGHT_KEY = "window_height",
+        SIMULATION_CONF_KEY = "simulation_conf",
+        ENABLE_CLOTH_GEOMETRY_KEY = "enable_cloth_geometry",
+        ENABLE_CAMERA_NOISE_KEY = "enable_camera_noise",
+        CAMERA_TRANSLATION_NOISE_KEY = "camera_translation_noise",
+        CAMERA_ORIENTATION_NOISE_KEY = "camera_orientation_noise",
+        CAMERA_NOISE_SAMPLES_KEY = "camera_noise_samples",
+        EXPORT_IMAGE_FORMAT_KEY = "export_image_format";
+
+    eImageType mExportImageType;
     std::string mGeometryInfoPath; // the geometry info
     std::string mRawDataDir;       // raw simulation data dir
     std::string mGenDataDir;       // gen new data dir
@@ -37,7 +56,13 @@ protected:
     tVector mCameraPos, mCameraCenter,
         mCameraUp; // camera position, center point and up direction
     float mCameraFov;
-    CameraBasePtr mCamera; // camera pos
+    std::vector<CameraBasePtr> mCameraLst; // camera pointer
+
+    // apply noise on the camera position and orientation
+    bool mEnableCameraNoise;
+    double mCameraTranslationNoise, mCameraOrientationNoise;
+    int mCameraNoiseSamples;
+
     void InitCameraInfo(const Json::Value &conf);
     virtual void UpdateSubstep() override final;
     bool LoadRawData(std::string path, tVectorXd &feature_vec);

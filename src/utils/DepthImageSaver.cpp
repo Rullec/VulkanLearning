@@ -1,8 +1,11 @@
 #define TINYEXR_IMPLEMENTATION
 #include "tinyexr.h"
 
-bool SaveDepthEXR(const float *rgb, int width, int height,
-                  const char *outfilename)
+/**
+ * \brief           save depth exr
+ */
+bool SaveEXRDepthImage(const float *depth, int width, int height,
+                       const char *outfilename)
 {
     EXRHeader header;
     InitEXRHeader(&header);
@@ -21,9 +24,9 @@ bool SaveDepthEXR(const float *rgb, int width, int height,
     // Split RGBRGBRGB... into R, G and B layer
     for (int i = 0; i < width * height; i++)
     {
-        images[0][i] = rgb[i + 0];
-        // images[1][i] = rgb[3 * i + 1];
-        // images[2][i] = rgb[3 * i + 2];
+        images[0][i] = depth[i + 0];
+        // images[1][i] = depth[3 * i + 1];
+        // images[2][i] = depth[3 * i + 2];
     }
 
     float *image_ptr[3];
@@ -70,10 +73,36 @@ bool SaveDepthEXR(const float *rgb, int width, int height,
     }
     printf("Saved exr file 1. [ %s ] \n", outfilename);
 
-    // free(rgb);
+    // free(depth);
 
     free(header.channels);
     free(header.pixel_types);
     free(header.requested_pixel_types);
+    return true;
+}
+
+/**
+ * \brief               Save png images
+ */
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "utils/stb_image_write.h"
+#include <iostream>
+bool SavePNGDepthImage(const float *depth_pixels, int width, int height,
+                       const char *outfile_name)
+{
+    int num_of_pixels = width * height;
+    uint32_t *png_pixels = new uint32_t[num_of_pixels];
+    for (int i = 0; i < num_of_pixels; i++)
+    {
+        const int int_v = int(depth_pixels[i] * 255.99f);
+        png_pixels[i] =
+            0xff000000 | (int_v << 0) | (int_v << 8) | (int_v << 16);
+        // = rgba;
+    }
+
+    stbi_write_png(outfile_name, width, height, 4, png_pixels,
+                   width * sizeof(uint32_t));
+    std::cout << "[debug] save png image to " << outfile_name << std::endl;
     return true;
 }
