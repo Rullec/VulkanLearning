@@ -2,53 +2,118 @@ import pickle
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import video_manager
+from axon import get_depth_image_mm, resize, get_mtx_and_dist_sdk
+import process_data_scene
+import cv2
+
+def load_capture_depth_image(cam):
+    # capture depth image from the camera
+    # if os.path.exists("tmp.pkl") is False:
+    #     #
+
+    #     with open("tmp.pkl", 'wb') as f:
+    #         pickle.dump(img, f)
+    # else:
+    #     with open("tmp.pkl", 'rb') as f:
+    #         img = pickle.load(f)
+    camera_matrix, dist_coef = get_mtx_and_dist_sdk()
+    img = get_depth_image_mm(cam)
+    # print(f"old img {img}")
+    img -= 20
+    # print(f"new img {img}")
+    # exit()
+    img = cv2.undistort(
+            img, camera_matrix, dist_coef, None, None
+        )
+    img *= 1e-3
+    img = resize(img, 512)
+    return img
 
 
-def load_capture_depth_image():
-    depth_dir = "depths.log/"
-    files = [os.path.join(depth_dir, i) for i in os.listdir(depth_dir)]
-    load_depth_image = None
-    for pkl in files:
-        with open(pkl, "rb") as f:
-            cont = pickle.load(f)
-            if load_depth_image is None:
-                load_depth_image = cont
-            else:
-                load_depth_image += cont
+def load_cast_depth_image(scene):
 
-    load_depth_image /= len(files)
-    assert load_depth_image.shape == (480, 640)
-    load_depth_image = load_depth_image[:, 80:560]
-    from PIL import Image
-    load_depth_image = np.array(Image.fromarray(load_depth_image).resize((512, 512)))
-    return load_depth_image
+    shape = scene.GetDepthImageShape()
+
+    # pos = np.array([0.00187508856, 0.42842519843, 0.55907583299, 1])
+    # pos = np.array([-9.98005445, 302.31570635, 501.97957573, 1]) * 1e-3
+    # center = np.array([-4.86800079, 160.0555942, 0, 1]) * 1e-3
+    # pos = np.array([-8.40875573, 340.5975439, 660.68147564, 1]) * 1e-3
+    # center = np.array([-10.1599905, 151.46500068, 0, 1]) * 1e-3
+    # pos = np.array([-6.15960061, 302.56721469, 378.33105492, 1]) * 1e-3
+    # center = np.array([-6.45289283, 153.23874287, 0, 1]) * 1e-3
+    pos = np.array([0, 119, 516, 1]) * 1e-3
+    center = np.array([0, 119, 0, 1]) * 1e-3
+    pos[3], center[3] = 1, 1
+
+    # fov = 49.2
+    fov = 49.2
+    img = scene.CalcEmptyDepthImage(pos, center, fov)
+    print(f"shape {shape}")
+    print(f"img shape {img.shape}")
+    img = img.reshape(shape)
+    print(f"img shape {img.shape}")
+    return img
+    # path = r"D:\SimpleClothSimulator\data\export_data\test_geodata_gen\0.png"
+    # from PIL import Image
+    # image = np.array(Image.open(path), dtype=np.float32)
+    # image = np.mean(image, axis=2)
+    # image /= 200 # convert to m
+    # image *= 1000 # convert to mm
+
+    # # read the value, divide it by 200
+    # # print(image.shape)
+    # return image
 
 
-def load_cast_depth_image():
-    path = r"D:\SimpleClothSimulator\data\export_data\test_geodata_gen\0.png"
-    from PIL import Image
-    image = np.array(Image.open(path), dtype=np.float32)
-    image = np.mean(image, axis=2)
-    image /= 200 # convert to m
-    image *= 1000 # convert to mm
+config_path = "./config/data_process.json"
+cam = video_manager.video_manager()
+scene = process_data_scene.process_data_scene()
+scene.Init(config_path)
+casted_img = load_cast_depth_image(scene)
 
-    # read the value, divide it by 200
-    # print(image.shape)
-    return image
+import matplotlib.pyplot as plt
 
+plt.ion()
+fig1 = plt.figure('frame')
 
-capture_depth_image = load_capture_depth_image()
-cast_depth_image = load_cast_depth_image()
+while True:
+    # clear but do not close the figure
+    fig1.clf()
+    ax1 = fig1.add_subplot(1, 3, 1)
+    captured_img = load_capture_depth_image(cam)
+    ax1.imshow(captured_img)
+    ax1.title.set_text("captured")
 
-print(f"capture_depth_image shape {capture_depth_image.shape}")
-print(f"cast_depth_image shape {cast_depth_image.shape}")
-plt.subplot(1, 3, 1)
-plt.imshow(capture_depth_image)
-plt.title("capture_depth_image")
-plt.subplot(1, 3, 2)
-plt.imshow(cast_depth_image)
-plt.title("cast_depth_image")
-plt.subplot(1, 3, 3)
-plt.imshow(cast_depth_image - capture_depth_image)
-plt.title("diff")
-plt.show()
+    ax2 = fig1.add_subplot(1, 3, 2)
+
+    ax2.imshow(casted_img)
+    ax2.title.set_text("casted")
+
+    ax3 = fig1.add_subplot(1, 3, 3)
+    diff = np.abs(captured_img - casted_img)
+    ax3.imshow(diff)
+    ax3.title.set_text("diff")
+
+    # draw the image
+    # ax1.imshow(res)
+    # ax1.title.set_text("depth image (mm)")
+
+    # pause
+    plt.pause(3e-2)
+
+# capture_depth_image = load_capture_depth_image(cam)
+# cast_depth_image = load_cast_depth_image()
+
+# print(f"capture_depth_image shape {capture_depth_image.shape}")
+# print(f"cast_depth_image shape {cast_depth_image.shape}")
+# plt.subplot(1, 3, 1)
+# plt.imshow(capture_depth_image)
+# plt.title("capture_depth_image")
+# plt.subplot(1, 3, 2)
+# plt.imshow(cast_depth_image)
+# plt.title("cast_depth_image")
+# # plt.subplot(1, 3, 3)
+# # plt.imshow(cast_depth_image - capture_depth_image)
+# # plt.title("diff")
+# plt.show()

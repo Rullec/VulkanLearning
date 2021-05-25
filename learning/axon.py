@@ -2,14 +2,13 @@ import numpy as np
 from calib_axon import get_camera_pts_to_world_coord, get_mtx_and_dist, get_mtx_and_dist_sdk
 import video_manager
 import os
-from PIL import Image
-
+from scipy.spatial.transform import Rotation as R
 global_xpos = None
 global_ypos = None
 cam = None
 
 
-def resize(image):
+def resize(image, size = 128):
     # height, width
     height, width = image.shape
     mid = width / 2
@@ -19,7 +18,7 @@ def resize(image):
     # expand this square to
     from PIL import Image
     image = Image.fromarray(image)
-    image = image.resize((128, 128))
+    image = image.resize((size, size))
     image = np.array(image)
     return image
 
@@ -168,6 +167,69 @@ def ir_camera_calibration_legacy():
     print(f"get ir succ, shape {image.shape}")
 
 
+
+def extract_trans_mat(mat_str: str) -> np.ndarray:
+    row_list = []
+    for _idx, i in enumerate(mat_str.split("\n")):
+        # print(f"{_idx} : {i}")
+        res = [float(i) for i in i.replace("[", "").replace("]", "").split()]
+        if len(res) != 4:
+            continue
+        else:
+            row_list.append(res)
+
+        # assert len(row_list[-1]) == 4, f"{row_list[-1]}"
+    # exit()
+    assert len(row_list) == 4
+    mat = np.array(row_list)
+    return mat
+
+
+def refine_rotmat(rotmat):
+    rotation = R.from_matrix(rotmat)
+    rotation = R.from_rotvec(R.as_rotvec(rotation))
+    return rotation.as_matrix()
+
+def calc_intersection_ray_plane(ori, dir, plane_point, plane_normal):
+    D = -np.dot(plane_point, plane_normal)
+    t = -(np.dot(plane_normal, ori) + D) / (np.dot(plane_normal, dir))
+    new_pt = dir * t + ori
+    return new_pt
+
+
+def cal_focus(rotmat, cam_pos):
+    dir = np.array([0, 0, 1])
+    cam_ori = cam_pos[:3]
+    cam_dir = np.matmul(rotmat, dir)
+    plane_point = np.array([0, 0, 0])
+    plane_normal = np.array([0, 0, 1])
+    # print(f"cam point {cam_ori}")
+    # print(f"cam dir {cam_dir}")
+    focus = calc_intersection_ray_plane(cam_ori, cam_dir, plane_point,
+                                        plane_normal)
+    # p_cam, p_cloth_center, dist = calc_two_line_nearest_points(
+    #     cam_ori, cam_dir, cloth_center_ori, cloth_center_dir)
+    # print(f"p_cam {p_cam}")
+    # print(f"p_cloth_center {p_cloth_center}")
+    # print(f"dist {dist}")
+    return focus
+
+def rotation_info_output(mat):
+    # 2. get rotmat and pos
+    cam_rotmat = refine_rotmat(mat[:3, :3])
+    cam_pos = mat[:, 3]
+    # print(f"rot mat \n{cam_rotmat}")
+    focus_point = cal_focus(cam_rotmat, cam_pos)
+
+    # output
+    # cam_pos[0:3] *= 1e-3
+    print(f"camera pos {cam_pos} mm")
+    print(f"focus point {focus_point} mm")
+    # print(f"cam rotmat {cam_rotmat}")
+    rotvec = R.from_matrix(cam_rotmat).as_rotvec()
+    # print(f"rotvec {rotvec}")
+    print(f"camera rot theta {(np.pi - np.linalg.norm(rotvec)) / np.pi * 180}")
+
 def ir_camera_calibration():
     cam = video_manager.video_manager()
     # sdk_mtx = cam.GetDepthIntrinsicMtx()
@@ -201,18 +263,24 @@ def ir_camera_calibration():
     clear = lambda: os.system('cls')
     avg_trans = np.zeros([4, 4])
     avg_counter = 0
+    camera_matrix, dist_coef = get_mtx_and_dist_sdk()
     while True:
         # clear()
         # print("------------------------")
         # clear but do not close the figure
         fig1.clf()
-        ax1 = fig1.add_subplot(1, 1, 1)
+        ax1 = fig1.add_subplot(1, 2, 1)
+        ax2 = fig1.add_subplot(1, 2, 2)
         image = get_ir_image(cam).astype(np.uint8)
+        undistorted_image = cv2.undistort(
+            image, camera_matrix, dist_coef, None, None
+        )
         # from PIL import Image
         # new_pil_image.save(f"tmp/{iter}.png")
         iter += 1
         # print(image.shape)
         ax1.imshow(image)
+        ax2.imshow(undistorted_image)
         # mat_lst = get_camera_pts_to_world_coord([image], False)
         image = np.ascontiguousarray(image, dtype=np.uint8)
 
@@ -224,11 +292,12 @@ def ir_camera_calibration():
         if sdk_camera_pts_to_world_coords is not None:
             # print(f"camera pos {sdk_camera_pts_to_world_coords[:, 3]}")
             # print(f"camera rot \n{sdk_camera_pts_to_world_coords[0:3, 0:3]}")
-            # print(f"camera trans \n{sdk_camera_pts_to_world_coords}")
+            print(f"camera trans \n{sdk_camera_pts_to_world_coords}")
+            rotation_info_output(sdk_camera_pts_to_world_coords)
             avg_trans = (avg_trans * avg_counter +
                          sdk_camera_pts_to_world_coords) / (avg_counter + 1)
             avg_counter += 1
-            print(f"avg trans \n{avg_trans}")
+            # print(f"avg trans \n{avg_trans}")
 
         # # get camera transform from self intrinsics
         # self_mtx, self_dist = get_mtx_and_dist()
@@ -248,8 +317,8 @@ def ir_camera_calibration():
 
 
 if __name__ == "__main__":
-    # np.set_printoptions(suppress=True)
-    # ir_camera_calibration()
+    np.set_printoptions(suppress=True)
+    ir_camera_calibration()
     # import cv2
     # from calib_axon import calc_objp, calc_objective_coordinate_in_screen_coordinate
     # img = cv2.imread("images/1.bmp")
@@ -267,8 +336,8 @@ if __name__ == "__main__":
     # chess_board_size = get_chessboard_size()
 
     # ir_camera_calibration()
-    cam = video_manager.video_manager()
-    display(cam, save=True)
+    # cam = video_manager.video_manager()
+    # display(cam, save=True)
     # unit = cam.GetDepthUnit_mm()
     # print(f"cur unit {unit} mm")
     # depth = get_depth_image_mm(cam)

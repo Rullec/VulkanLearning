@@ -519,6 +519,7 @@ tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
 
     // 2. begin to create camera views
     mCameraPos = cam_pos;
+    mCameraCenter = cam_focus;
     mCameraFov = fov;
     mCameraUp = tVector(0, 1, 0, 0);
     InitCameraViews();

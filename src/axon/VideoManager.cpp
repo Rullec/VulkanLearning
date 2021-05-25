@@ -287,7 +287,7 @@ tMatrixXi cVideoManager::GetDepthImage()
         for (int x = 0; x < m_depthFrame.getWidth(); ++x, ++pDepth)
         {
             uint16_t value = (*pDepth);
-            depth_mat(y, x) = value;
+            depth_mat(y,  m_depthFrame.getWidth() - x) = value;
             if (value > max)
                 max = value;
             if (value < min)

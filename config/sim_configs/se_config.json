@@ -77,7 +77,7 @@
             ],
             "translation": [
                 0,
-                0.05,
+                0.0635,
                 0
             ],
             "orientation": [
@@ -91,7 +91,7 @@
             "mesh_path": "data/clinder.obj",
             "target_aabb": [
                 0.3,
-                0.06,
+                0.0635,
                 0.3
             ],
             "translation": [
@@ -121,7 +121,7 @@
                 0,
                 0,
                 1,
-                0.21
+                0.177
             ],
             "plane_scale": 1
         }
