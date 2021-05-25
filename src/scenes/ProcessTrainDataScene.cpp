@@ -302,6 +302,7 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
  */
 void cProcessTrainDataScene::InitCameraViews()
 {
+    mCameraLst.clear();
     const tVector3f &camera_pos = this->mCameraPos.segment(0, 3).cast<float>(),
                     &camera_center =
                         this->mCameraCenter.segment(0, 3).cast<float>(),

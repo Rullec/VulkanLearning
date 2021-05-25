@@ -11,7 +11,7 @@ def load_capture_depth_image(cam):
     # capture depth image from the camera
     # if os.path.exists("tmp.pkl") is False:
     #     #
-
+    
     #     with open("tmp.pkl", 'wb') as f:
     #         pickle.dump(img, f)
     # else:
@@ -80,18 +80,28 @@ fig1 = plt.figure('frame')
 while True:
     # clear but do not close the figure
     fig1.clf()
-    ax1 = fig1.add_subplot(1, 3, 1)
+    ax1 = fig1.add_subplot(1, 4, 1)
     captured_img = load_capture_depth_image(cam)
+
+    kernel = np.ones((5, 5), dtype=np.float32)
+    import cv2
+    dilated_cap_img = cv2.dilate(captured_img, kernel)
     ax1.imshow(captured_img)
     ax1.title.set_text("captured")
 
-    ax2 = fig1.add_subplot(1, 3, 2)
+    ax3 = fig1.add_subplot(1, 4, 2)
+    ax3.imshow(dilated_cap_img)
+    ax3.title.set_text("dilated")
+    
+
+    ax2 = fig1.add_subplot(1, 4, 3)
 
     ax2.imshow(casted_img)
     ax2.title.set_text("casted")
 
-    ax3 = fig1.add_subplot(1, 3, 3)
-    diff = np.abs(captured_img - casted_img)
+    ax3 = fig1.add_subplot(1, 4, 4)
+    # diff = np.abs(captured_img - casted_img)
+    diff = np.abs(dilated_cap_img - casted_img)
     ax3.imshow(diff)
     ax3.title.set_text("diff")
 
