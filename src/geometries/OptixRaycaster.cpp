@@ -40,7 +40,8 @@ struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) HitgroupRecord
 // cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> triangles,
 //                                  const std::vector<tVertex *> vertices) :
 //                                  cRaycaster(triangles, vertices)
-cOptixRaycaster::cOptixRaycaster()
+cOptixRaycaster::cOptixRaycaster(bool enable_only_export_cutted_window)
+    : cRaycaster(enable_only_export_cutted_window)
 {
     InitOptix();
 
@@ -539,22 +540,26 @@ void cOptixRaycaster::BuildGeometryCudaHostBuffer()
 /**
  * \brief           Calculate the depth image
  */
-extern bool SavePNGDepthImage(const float *depth_pixels, int width, int height,
-                         const char *outfile_name);
-void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera,
-                                   std::string path)
+extern bool SavePNGSingleChannel(const float *depth_pixels, int width,
+                                 int height, const char *outfile_name);
+void cOptixRaycaster::CalcDepthMap(const tMatrix2i &cast_range,
+                                   int _camera_height, int _camera_width,
+                                   CameraBasePtr camera, std::string path)
 {
-    Rebuild();
+    camera_width = _camera_width;
+    camera_height = _camera_height;
+    CalcCastWindowSize(cast_range, visible_window_width, visible_window_height,
+                       visible_window_st);
 
-    this->cur_width = width;
-    this->cur_height = height;
+    launchParams.raycast_range = cast_range;
+    Rebuild();
 
     // 1. if the size is changed, we need to resize the buffer
     setCamera(camera);
-    if (launchParams.frame.size.x() != width ||
-        launchParams.frame.size.y() != height)
+    if (launchParams.frame.size.x() != camera_width ||
+        launchParams.frame.size.y() != camera_height)
     {
-        tVector2i size = tVector2i(width, height);
+        tVector2i size = tVector2i(camera_width, camera_height);
         resize(size);
     }
     // std::cout << "resize done\n";
@@ -564,11 +569,31 @@ void cOptixRaycaster::CalcDepthMap(int height, int width, CameraBasePtr camera,
     render();
     // 3. launch the optix program
     // std::cout << "render done\n";
-    std::vector<float> pixels(width * height, 0);
+    std::vector<float> pixels(camera_width * camera_height, 0);
     this->downloadPixels(pixels.data());
     // std::cout << "download pixels done\n";
 
-    SavePNGDepthImage(pixels.data(), width, height, path.c_str());
+    SavePngDepthImage(pixels, path.c_str());
+    // if (mEnableOnlyExportCuttedWindow == false)
+    // {
+    //     SavePngDepthImage(pixels.data(), camera_width, camera_height,
+    //                       path.c_str());
+    // }
+    // else
+    // {
+    //     std::vector<float> new_pixels(
+    //         visible_window_width * visible_window_height, 0);
+    //     for (int row = 0; row < visible_window_height; row++)
+    //     {
+    //         int new_pixels_st = visible_window_width * row;
+    //         int old_pixels_st =
+    //             (row + cast_range(1, 0)) * camera_width + cast_range(0, 0);
+    //         memcpy(new_pixels.data() + new_pixels_st,
+    //                pixels.data() + old_pixels_st,
+    //                visible_window_width * sizeof(float));
+    //     }
+
+    // }
     // exit(0);
     // 4. download the result and save it to .ppm image
 }
@@ -717,16 +742,23 @@ void cOptixRaycaster::downloadPixels(float *h_pixels)
  * \brief           calculate depth image for multiple camera views
  */
 #include "utils/FileUtil.h"
-extern bool SaveEXRDepthImage(const float *rgb, int width, int height,
-                         const char *outfilename);
+#include "utils/SysUtil.h"
+extern bool SaveEXRSingleChannel(const float *rgb, int width, int height,
+                                 const char *outfilename);
 void cOptixRaycaster::CalcDepthMapMultiCamera(
-    int height, int width, std::vector<CameraBasePtr> camera_array,
+    const tMatrix2i &cast_range, int height, int width,
+    std::vector<CameraBasePtr> camera_array,
     std::vector<std::string> path_array)
 {
+    // int st0 = cSysUtil::GetPhyMemConsumedBytes();
+    CalcCastWindowSize(cast_range, visible_window_width, visible_window_height,
+                       visible_window_st);
+    launchParams.raycast_range = cast_range;
     Rebuild();
+    // int st1 = cSysUtil::GetPhyMemConsumedBytes();
 
-    this->cur_width = width;
-    this->cur_height = height;
+    this->camera_width = width;
+    this->camera_height = height;
 
     int size = camera_array.size();
     SIM_ASSERT(size == path_array.size());
@@ -763,11 +795,12 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
 
         if (suffix == "exr")
         {
-            SaveEXRDepthImage(pixels.data(), width, height, path.c_str());
+            SaveEXRSingleChannel(pixels.data(), width, height, path.c_str());
         }
         else if (suffix == "png")
         {
-            SavePNGDepthImage(pixels.data(), width, height, path.c_str());
+
+            SavePngDepthImage(pixels, path.c_str());
         }
         else
         {
@@ -776,16 +809,22 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
         // SaveEXRDepthImage(const float *rgb, int width, int height, const
         // char*outfilename)
     }
+    // int end = cSysUtil::GetPhyMemConsumedBytes();
+    // std::cout << "CalcDepthMapMultiCamera add " << (end - st0) * 1e-6 << " MB\n" ;
+    // std::cout << "CalcDepthMapMultiCamera0 add " << (st1 - st0) * 1e-6 << " MB\n" ;
+    // std::cout << "CalcDepthMapMultiCamera1 add " << (end - st1) * 1e-6 << " MB\n" ;
 }
 
-void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width,
+void cOptixRaycaster::CalcDepthMapMultiCamera(const tMatrix2i &cast_range,
+                                              int height, int width,
                                               CameraBasePtr cur_cam,
                                               tVectorXf &pixels_eigen)
 {
+    launchParams.raycast_range = cast_range;
     Rebuild();
 
-    this->cur_width = width;
-    this->cur_height = height;
+    this->camera_width = width;
+    this->camera_height = height;
 
     // 1. if the size is changed, we need to resize the buffer
     setCamera(cur_cam);
@@ -810,5 +849,41 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(int height, int width,
     // SaveEXRDepthImage(pixels.data(), width, height, path_array[i].c_str());
     // SaveDepthEXR(const float *rgb, int width, int height, const
     // char*outfilename)
+}
+
+/**
+ * \brief           Save png depth image
+ */
+#include "utils/TimeUtil.hpp"
+bool cOptixRaycaster::SavePngDepthImage(const std::vector<float> &pixels,
+                                        const char *path)
+{
+    // cTimeUtil::Begin("save_png");
+    if (mEnableOnlyExportCuttedWindow == false)
+    {
+        SavePNGSingleChannel(pixels.data(), camera_width, camera_height, path);
+    }
+    else
+    {
+
+        std::vector<float> new_pixels(
+            visible_window_width * visible_window_height, 0);
+
+        for (int row = 0; row < visible_window_height; row++)
+        {
+            int new_pixels_st = visible_window_width * row;
+            int old_pixels_st = (row + visible_window_st[1]) * camera_width +
+                                visible_window_st[0];
+            memcpy(new_pixels.data() + new_pixels_st,
+                   pixels.data() + old_pixels_st,
+                   visible_window_width * sizeof(float));
+        }
+
+        SavePNGSingleChannel(new_pixels.data(), visible_window_width,
+                             visible_window_height, path);
+    }
+
+    // cTimeUtil::End("save_png");
+    return true;
 }
 #endif

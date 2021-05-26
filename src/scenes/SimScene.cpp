@@ -115,9 +115,9 @@ void cSimScene::InitRaycaster()
     // }
     // for (int i = 0; i < this->)
 #ifdef USE_OPTIX
-    mRaycaster = std::make_shared<cOptixRaycaster>();
+    mRaycaster = std::make_shared<cOptixRaycaster>(false);
 #else
-    mRaycaster = std::make_shared<cRaycaster>();
+    mRaycaster = std::make_shared<cRaycaster>(false);
 #endif
     mRaycaster->AddResources(mTriangleArray, mVertexArray);
     for (auto &x : mObstacleList)

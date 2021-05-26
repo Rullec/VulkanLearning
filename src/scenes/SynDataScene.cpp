@@ -7,8 +7,8 @@
 #include "utils/JsonUtil.h"
 #include "utils/TimeUtil.hpp"
 #include <iostream>
-int online_cur_prop_id = -1;
-tVectorXd online_before_nodal_pos;
+// int online_cur_prop_id = -1;
+// tVectorXd online_before_nodal_pos;
 
 cSynDataScene::cSynDataScene()
 {
@@ -45,8 +45,8 @@ void cSynDataScene::Init(const std::string &conf_path)
         cJsonUtil::ParseAsDouble("data_cleaner_threshold", conf_json);
     mPropManager = std::make_shared<tPhyPropertyManager>(
         cJsonUtil::ParseAsValue("property_manager", conf_json));
-    mEnableDrawing =
-        cJsonUtil::ParseAsBool(this->ENABLE_DRAWING_KEY, conf_json);
+    mEnableDraw =
+        cJsonUtil::ParseAsBool(this->ENABLE_DRAW_KEY, conf_json);
     {
         mIdealDefaultTimestep = cJsonUtil::ParseAsDouble(
             cSimScene::DEFAULT_TIMESTEP_KEY, conf_json);
@@ -61,7 +61,7 @@ void cSynDataScene::Init(const std::string &conf_path)
     mLinScene->Init(mDefaultConfigPath);
     InitExportDataDir();
 
-    if (mEnableDrawing == false)
+    if (mEnableDraw == false)
     {
         OfflineSampling();
     }
@@ -96,10 +96,6 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     mTotalSamples_count++;
     Reset();
 
-    if (mEnableDataAug == true)
-    {
-        ApplyNoiseIfPossible();
-    }
     // mLinScene->ApplyTransform(init_trans);
     mLinScene->SetSimProperty(props);
     bool is_first_frame = true;
@@ -263,14 +259,21 @@ void cSynDataScene::Update(double dt)
 {
     cSimScene::Update(dt);
 
-    if (online_cur_prop_id != -1)
+    // if (online_cur_prop_id != -1)
     {
         // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        // mLinScene->Update(dt);
+        mLinScene->Update(dt);
         mLinScene->UpdateRenderingResource();
     }
 }
-void cSynDataScene::Reset() { mLinScene->Reset(); }
+void cSynDataScene::Reset()
+{
+    mLinScene->Reset();
+    if (mEnableDataAug == true)
+    {
+        ApplyNoiseIfPossible();
+    }
+}
 const tVectorXf &cSynDataScene::GetTriangleDrawBuffer()
 {
     // std::cout << "[debug] syn_scene : get triangles size = " << tmp.size() <<
@@ -295,7 +298,10 @@ void cSynDataScene::CursorMove(int xpos, int ypos)
     mLinScene->CursorMove(xpos, ypos);
 }
 
-void cSynDataScene::Key(int key, int scancode, int action, int mods) {}
+void cSynDataScene::Key(int key, int scancode, int action, int mods)
+{
+    mLinScene->Key(key, scancode, action, mods);
+}
 void cSynDataScene::MouseButton(int button, int action, int mods)
 {
     mLinScene->MouseButton(button, action, mods);

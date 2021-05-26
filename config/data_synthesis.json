@@ -2,8 +2,7 @@
     "enable_draw": false,
     "scene_type": "data_synthesis",
     "default_config_path": "config/sim_configs/se_config.json",
-    "enable_data_aug": false,
-    "pause_at_first": true,
+    "pause_at_first": false,
     "default_timestep": 1e-3,
     "convergence_threshold": 0.01,
     "window_height": 600,
@@ -44,27 +43,27 @@
             "bending_warp": {
                 "range": [
                     5e2,
-                    1e4
+                    5e3
                 ],
-                "num_of_samples": 1,
+                "num_of_samples": 5,
                 "visible": true,
                 "index": 0
             },
             "bending_weft": {
                 "range": [
                     5e2,
-                    1e4
+                    5e3
                 ],
-                "num_of_samples": 1,
+                "num_of_samples": 5,
                 "visible": true,
                 "index": 1
             },
             "bending_bias": {
                 "range": [
                     5e2,
-                    1e4
+                    5e3
                 ],
-                "num_of_samples": 1,
+                "num_of_samples": 5,
                 "visible": true,
                 "index": 2
             }
@@ -83,7 +82,7 @@
     },
     "enable_noise": true,
     "noise": {
-        "noised_samples": 1,
+        "noised_samples": 20,
         "enable_init_rotation": false,
         "enable_gaussian_pos_noise": false,
         "gaussian_std": 0,
@@ -92,6 +91,5 @@
         "enable_low_freq_noise": true
     },
     "enable_data_cleaner": true,
-    "data_cleaner_threshold": 0.01,
-    "enable_drawing": false
+    "data_cleaner_threshold": 0.01
 }

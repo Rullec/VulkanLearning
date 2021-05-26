@@ -11,16 +11,18 @@ class Value;
 class cOptixRaycaster : public cRaycaster
 {
 public:
-    explicit cOptixRaycaster();
+    explicit cOptixRaycaster(bool enable_only_exporting_cutted_window);
     virtual void AddResources(const std::vector<tTriangle *> triangles,
                               const std::vector<tVertex *> vertices) override;
-    virtual void CalcDepthMap(int height, int width, CameraBasePtr camera,
+    virtual void CalcDepthMap(const tMatrix2i &cast_range, int height,
+                              int width, CameraBasePtr camera,
                               std::string path) override final;
     virtual void
-    CalcDepthMapMultiCamera(int height, int width,
+    CalcDepthMapMultiCamera(const tMatrix2i &cast_range, int height, int width,
                             std::vector<CameraBasePtr> camera_array,
                             std::vector<std::string> path_array);
-    virtual void CalcDepthMapMultiCamera(int height, int width,
+    virtual void CalcDepthMapMultiCamera(const tMatrix2i &cast_range,
+                                         int height, int width,
                                          CameraBasePtr cur_cam,
                                          tVectorXf &pixels);
 
@@ -44,7 +46,12 @@ protected:
     void downloadPixels(float *h_pixels);
     void UpdateVertexBufferToCuda();
     // -----------vars-------------
-    int cur_width, cur_height;
+    int camera_width, camera_height; // the raycasting full view resolution
+
+    int visible_window_width,
+        visible_window_height; // we may only be insterested in a small fraction
+                               // window of the whole picture
+    tVector2i visible_window_st;    // [width_st, height_st]
     CUcontext cudaContext;
     CUstream stream;
     cudaDeviceProp deviceProps;
@@ -79,6 +86,8 @@ protected:
 
     std::vector<tVector3f> cuda_host_vertices_buffer;
     std::vector<tVector3i> cuda_host_index_buffer;
+
+    bool SavePngDepthImage(const std::vector<float> &pixels, const char *path);
 };
 
 #define GDT_TERMINAL_RED "\033[1;31m"

@@ -11,6 +11,7 @@ MathUtil.cpp
 MathUtil2.cpp
 Rand.cpp
 TimeUtil.cpp
+SysUtil.cpp
 ObjUtil.cpp
 DepthImageSaver.cpp
 )

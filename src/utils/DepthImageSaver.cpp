@@ -4,8 +4,8 @@
 /**
  * \brief           save depth exr
  */
-bool SaveEXRDepthImage(const float *depth, int width, int height,
-                       const char *outfilename)
+bool SaveEXRSingleChannel(const float *depth, int width, int height,
+                          const char *outfilename)
 {
     EXRHeader header;
     InitEXRHeader(&header);
@@ -88,8 +88,8 @@ bool SaveEXRDepthImage(const float *depth, int width, int height,
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "utils/stb_image_write.h"
 #include <iostream>
-bool SavePNGDepthImage(const float *depth_pixels, int width, int height,
-                       const char *outfile_name)
+bool SavePNGSingleChannel(const float *depth_pixels, int width, int height,
+                          const char *outfile_name)
 {
     int num_of_pixels = width * height;
     uint32_t *png_pixels = new uint32_t[num_of_pixels];
@@ -103,6 +103,7 @@ bool SavePNGDepthImage(const float *depth_pixels, int width, int height,
 
     stbi_write_png(outfile_name, width, height, 4, png_pixels,
                    width * sizeof(uint32_t));
-    std::cout << "[debug] save png image to " << outfile_name << std::endl;
+    // std::cout << "[debug] save png image to " << outfile_name << std::endl;
+    delete[] png_pixels;
     return true;
 }

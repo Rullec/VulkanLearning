@@ -24,9 +24,9 @@
     "cloth_property": {
         "stretch_warp": 1e4,
         "stretch_weft": 1e4,
-        "bending_warp": 1e3,
-        "bending_weft": 1e3,
-        "bending_bias": 1e3
+        "bending_warp": 5e2,
+        "bending_weft": 5e2,
+        "bending_bias": 5e2
     },
     "constraints": {
         "fixed_point.bak": [

@@ -44,8 +44,12 @@ struct CUDABuffer
         {
             this->resize(size);
         }
+        else
+        {
+            CUDA_CHECK(Malloc((void **)&d_ptr, size));
+            assert(d_ptr != nullptr);
+        }
         this->sizeInBytes = size;
-        CUDA_CHECK(Malloc((void **)&d_ptr, sizeInBytes));
     }
 
     //! free allocated memory

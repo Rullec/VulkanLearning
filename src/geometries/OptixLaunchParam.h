@@ -30,7 +30,12 @@ struct MY_ALIGN(16) LaunchParams
     tVector3f camera_up;
     tVector3f camera_center;
 
+    MY_ALIGN(16)
+    Eigen::Matrix2i raycast_range;
+    MY_ALIGN(16)
+
     OptixTraversableHandle traversable;
+
 };
 
 // #endif

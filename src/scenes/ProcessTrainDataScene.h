@@ -45,13 +45,22 @@ protected:
         CAMERA_TRANSLATION_NOISE_KEY = "camera_translation_noise",
         CAMERA_ORIENTATION_NOISE_KEY = "camera_orientation_noise",
         CAMERA_NOISE_SAMPLES_KEY = "camera_noise_samples",
-        EXPORT_IMAGE_FORMAT_KEY = "export_image_format";
+        EXPORT_IMAGE_FORMAT_KEY = "export_image_format",
+        CASTING_WIDTH_RANGE_KEY = "casting_width_range",
+        CASTING_HEIGHT_RANGE_KEY = "casting_height_range",
+        NUM_OF_CLOTH_ROTATION_VIEWS_KEY = "num_of_cloth_rotation_views",
+        ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY =
+            "enable_only_exporting_cutted_window";
 
+    Eigen::Matrix2i mCastingRange; // casting window screen coordinates
     eImageType mExportImageType;
     std::string mGeometryInfoPath; // the geometry info
     std::string mRawDataDir;       // raw simulation data dir
     std::string mGenDataDir;       // gen new data dir
     bool mEnableClothGeometry;     // add cloth geometry into the raycast scene
+    bool mEnableOnlyExportingCuttedWindow; // only export the cutted window to
+                                           // png file
+    int mNumOfClothRotationViews; // num of views for rotating the cloth
     int mWidth, mHeight;
     tVector mCameraPos, mCameraCenter,
         mCameraUp; // camera position, center point and up direction

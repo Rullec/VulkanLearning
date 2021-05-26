@@ -13,7 +13,7 @@ SIM_DECLARE_CLASS_AND_PTR(tPhyPropertyManager);
 class cSynDataScene : public cSimScene
 {
 public:
-    inline static const std::string ENABLE_DRAWING_KEY = "enable_drawing";
+    inline static const std::string ENABLE_DRAW_KEY = "enable_draw";
     explicit cSynDataScene();
     virtual void Init(const std::string &conf_path) override;
     virtual void Update(double dt) override;
@@ -42,7 +42,7 @@ protected:
         // tEigenArr<tMatrix> GenerateAugmentTransform() const;
         // tEigenArr<tMatrix> mTrans;
     };
-    bool mEnableDrawing; // enable drawing when sampling (for debug purpose)
+    bool mEnableDraw; // enable drawing when sampling (for debug purpose)
     std::shared_ptr<tSyncDataNoise> mSynDataNoise;
     cLinctexScenePtr mLinScene;
     std::string mDefaultConfigPath;      // config used to build simulation

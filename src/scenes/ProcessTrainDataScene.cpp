@@ -28,7 +28,23 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
     mCameraFov = cJsonUtil::ParseAsFloat(CAMERA_FOV_KEY, root);
     mExportImageType = cProcessTrainDataScene::GetImageType(
         cJsonUtil::ParseAsString(EXPORT_IMAGE_FORMAT_KEY, root));
+    mCastingRange.row(0) =
+        cJsonUtil::ReadVectorJson(
+            cJsonUtil::ParseAsValue(CASTING_WIDTH_RANGE_KEY, root))
+            .segment(0, 2)
+            .transpose()
+            .cast<int>();
+    mCastingRange.row(1) =
+        cJsonUtil::ReadVectorJson(
+            cJsonUtil::ParseAsValue(CASTING_HEIGHT_RANGE_KEY, root))
+            .segment(0, 2)
+            .transpose()
+            .cast<int>();
 
+    mNumOfClothRotationViews =
+        cJsonUtil::ParseAsInt(this->NUM_OF_CLOTH_ROTATION_VIEWS_KEY, root);
+    mEnableOnlyExportingCuttedWindow =
+        cJsonUtil::ParseAsBool(ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY, root);
     // parse camera noise info
     {
         mEnableCameraNoise =
@@ -97,7 +113,7 @@ void cProcessTrainDataScene::CalcDepthMapNoCloth()
     // std::vector<CameraBasePtr> cam_views(0);
     // cam_views.push_back(mCamera);
 
-    ptr->CalcDepthMapMultiCamera(mHeight, mWidth, mCameraLst,
+    ptr->CalcDepthMapMultiCamera(mCastingRange, mHeight, mWidth, mCameraLst,
                                  save_img_path_array);
     printf("[log] calculate depth map without cloth geometry done, output dir "
            "= %s, cost %.3f ms\n",
@@ -107,6 +123,7 @@ void cProcessTrainDataScene::CalcDepthMapNoCloth()
 /**
  * \brief           main loop to calculate the depth map for each data point
  */
+#include "utils/SysUtil.h"
 void cProcessTrainDataScene::CalcDepthMapLoop()
 {
     std::vector<std::string> paths = cFileUtil::ListDir(this->mRawDataDir);
@@ -149,12 +166,16 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         //         feature_name_array.push_back(new_full_feature_name);
         //     }
         // }
-
         // 2. create depth map
         cTimeUtil::Begin("handle_image");
         std::string base_name = cFileUtil::RemoveExtension(
             cFileUtil::GetFilename(surface_geo_data));
-        CalcDepthMapMultiViews(surface_geo_data, base_name, mCameraLst, 10);
+        
+        // int st = cSysUtil::GetPhyMemConsumedBytes();
+        CalcDepthMapMultiViews(surface_geo_data, base_name, mCameraLst,
+                               mNumOfClothRotationViews);
+        // int ed = cSysUtil::GetPhyMemConsumedBytes();
+        // std::cout << "add mem0 = " << (ed - st) * 1e-6 << " MB\n";
         printf("[log] handle image %d/%d, cost %.4f ms\n", i + 1,
                paths.size() + 1, cTimeUtil::End("handle_image", true));
     }
@@ -168,9 +189,9 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
 void cProcessTrainDataScene::InitRaycaster()
 {
 #ifdef USE_OPTIX
-    mRaycaster = std::make_shared<cOptixRaycaster>();
+    mRaycaster = std::make_shared<cOptixRaycaster>(mEnableOnlyExportingCuttedWindow);
 #else
-    mRaycaster = std::make_shared<cRaycaster>();
+    mRaycaster = std::make_shared<cRaycaster>(mEnableOnlyExportingCuttedWindow);
 #endif
     if (mEnableClothGeometry == true)
     {
@@ -211,7 +232,8 @@ void cProcessTrainDataScene::CalcDepthMap(const std::string raw_data_path,
 
     // tMatrixXd res = CalcDepthImage();
     // std::cout << "begin to calc depth map\n";
-    mRaycaster->CalcDepthMap(mHeight, mWidth, camera, save_png_path);
+    mRaycaster->CalcDepthMap(mCastingRange, mHeight, mWidth, camera,
+                             save_png_path);
     {
         Json::Value value;
         value["feature"] = cJsonUtil::BuildVectorJson(feature_vec);
@@ -276,14 +298,16 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
         {
             auto new_base =
                 basename + "_" + std::to_string(i) + "_" + std::to_string(j);
+            std::string suffix = this->GetImageSuffix(this->mExportImageType);
             png_array.push_back(cFileUtil::ConcatFilename(this->mGenDataDir,
-                                                          new_base + ".exr"));
+                                                          new_base + suffix));
             save_feature_path_array.push_back(cFileUtil::ConcatFilename(
                 this->mGenDataDir, new_base + ".json"));
         }
 
         // 3.2 for loop over different camera view
-        ptr->CalcDepthMapMultiCamera(mHeight, mWidth, camera_array, png_array);
+        ptr->CalcDepthMapMultiCamera(mCastingRange, mHeight, mWidth,
+                                     camera_array, png_array);
     }
     for (auto &tmp : save_feature_path_array)
     {
@@ -302,6 +326,7 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
  */
 void cProcessTrainDataScene::InitCameraViews()
 {
+    mCameraLst.clear();
     const tVector3f &camera_pos = this->mCameraPos.segment(0, 3).cast<float>(),
                     &camera_center =
                         this->mCameraCenter.segment(0, 3).cast<float>(),
@@ -529,7 +554,8 @@ tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
 
     // 4.
     auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
-    ptr->CalcDepthMapMultiCamera(mHeight, mWidth, mCameraLst[0], mPixels);
+    ptr->CalcDepthMapMultiCamera(mCastingRange, mHeight, mWidth, mCameraLst[0],
+                                 mPixels);
     return mPixels;
 }
 

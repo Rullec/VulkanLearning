@@ -2,8 +2,8 @@
     "scene_type": "data_process",
     "pause_at_first": false,
     "enable_draw": true,
-    "window_height": 512,
-    "window_width": 512,
+    "window_height": 480,
+    "window_width": 640,
     "enable_obstacle": true,
     "simulation_conf": "./config/sim_configs/se_config.json",
     "camera": {
@@ -22,14 +22,14 @@
         "far": 100
     },
     "capture_camera_pos": [
-        0.00187508856,
-        0.42842519843,
-        0.55907583299,
+        0.0,
+        0.119,
+        0.516,
         1
     ],
     "capture_camera_center": [
-        -0.00352920924,
-        0.28065162501,
+        0.0,
+        0.119,
         0,
         1
     ],
@@ -39,14 +39,24 @@
         0,
         0
     ],
-    "capture_camera_fov": 52.5,
-    "enable_cloth_geometry": false,
+    "casting_width_range": [
+        160,
+        480
+    ],
+    "casting_height_range": [
+        50,
+        275
+    ],
+    "enable_only_exporting_cutted_window": true,
+    "capture_camera_fov": 49.2,
+    "enable_cloth_geometry": true,
     "geometry_info": "./log/geo_info.json",
     "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\test_geodata",
     "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\test_geodata_gen",
+    "num_of_cloth_rotation_views": 100,
     "enable_camera_noise": true,
-    "camera_translation_noise": 0.015,
-    "camera_orientation_noise": 0.1,
-    "camera_noise_samples": 10,
+    "camera_translation_noise": 0.01,
+    "camera_orientation_noise": 0.01,
+    "camera_noise_samples": 4,
     "export_image_format": ".png"
 }

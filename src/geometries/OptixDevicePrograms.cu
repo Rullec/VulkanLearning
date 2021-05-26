@@ -160,16 +160,29 @@ extern "C" __global__ void __raygen__renderFrame()
     float3 new_position = make_float3(optixLaunchParams.position.x(),
                                       optixLaunchParams.position.y(),
                                       optixLaunchParams.position.z());
-    optixTrace(optixLaunchParams.traversable, new_position, new_dir,
-               0.f,   // tmin
-               1e20f, // tmax
-               0.0f,  // rayTime
-               OptixVisibilityMask(255),
-               OPTIX_RAY_FLAG_DISABLE_ANYHIT, // OPTIX_RAY_FLAG_NONE,
-               SURFACE_RAY_TYPE,              // SBT offset
-               RAY_TYPE_COUNT,                // SBT stride
-               SURFACE_RAY_TYPE,              // missSBTIndex
-               d);
+    
+    if(
+        (ix < optixLaunchParams.raycast_range(0,0) || ix > optixLaunchParams.raycast_range(0, 1))
+        ||
+        (iy < optixLaunchParams.raycast_range(1,0) || iy > optixLaunchParams.raycast_range(1,1))
+    )
+    {
+        d = 0;
+    }
+    else {
+        optixTrace(optixLaunchParams.traversable, new_position, new_dir,
+            0.f,   // tmin
+            1e20f, // tmax
+            0.0f,  // rayTime
+            OptixVisibilityMask(255),
+            OPTIX_RAY_FLAG_DISABLE_ANYHIT, // OPTIX_RAY_FLAG_NONE,
+            SURFACE_RAY_TYPE,              // SBT offset
+            RAY_TYPE_COUNT,                // SBT stride
+            SURFACE_RAY_TYPE,              // missSBTIndex
+            d);
+    }
+
+                     
 
     // const int int_r = int(255.99f*__int_as_float(r));
     // const int int_g = int(255.99f*__int_as_float(g));
