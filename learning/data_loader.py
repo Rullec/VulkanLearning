@@ -3,8 +3,10 @@ import numpy as np
 import os
 import json
 
+
 class DataLoader():
     PKL_FILE_NAME = "train_data.pkl"
+    STATISTIC_FILE_NAME = "statistic.pkl"
     X_KEY = "X"
     Y_KEY = "Y"
     INPUT_MEAN_KEY = "input_mean"
@@ -13,7 +15,8 @@ class DataLoader():
     OUTPUT_STD_KEY = "output_std"
 
     def __init__(self, data_dir: str, train_perc: float, test_perc: float,
-                 batch_size: int, enable_log_prediction: bool) -> None:
+                 batch_size: int, enable_log_prediction: bool,
+                 only_load_statistic_data: bool) -> None:
         '''
         DataLoader inherited from the torch dataloader
         :param data_dir: data root directory
@@ -32,7 +35,7 @@ class DataLoader():
         # exit()
         self.enable_log_predction = enable_log_prediction
         self._init_vars()
-        self._load_data()
+        self._load_data(only_load_statistic_data)
         # self.__split_data()
 
     def get_input_size(self):
@@ -79,75 +82,116 @@ class DataLoader():
             else:
                 return None
 
-    def _load_data(self):
-        '''
-        load the data and compress to a pkl file
-        '''
-        pkl_file = os.path.join(self.data_dir, DataLoader.PKL_FILE_NAME)
-        if os.path.exists(pkl_file) == True:
+    def _dump_statistics(self):
+        stat_file = os.path.join(self.data_dir, self.STATISTIC_FILE_NAME)
+        cont = {
+            DataLoader.INPUT_MEAN_KEY: self.input_mean,
+            DataLoader.INPUT_STD_KEY: self.input_std,
+            DataLoader.OUTPUT_MEAN_KEY: self.output_mean,
+            DataLoader.OUTPUT_STD_KEY: self.output_std
+        }
+
+        import pickle
+        with open(stat_file, 'wb') as f:
+            pickle.dump(cont, f)
+
+    def _load_statistics(self):
+        stat_file = os.path.join(self.data_dir, self.STATISTIC_FILE_NAME)
+        if os.path.exists(stat_file) is True:
             import pickle
-            with open(pkl_file, 'rb') as f:
+            with open(stat_file, 'rb') as f:
                 cont = pickle.load(f)
-                X_lst = cont[DataLoader.X_KEY]
-                Y_lst = cont[DataLoader.Y_KEY]
                 self.input_mean = cont[DataLoader.INPUT_MEAN_KEY]
                 self.input_std = cont[DataLoader.INPUT_STD_KEY]
                 self.output_mean = cont[DataLoader.OUTPUT_MEAN_KEY]
                 self.output_std = cont[DataLoader.OUTPUT_STD_KEY]
+            return True
         else:
-            from tqdm import tqdm
-            X_lst, Y_lst = [], []
-            if os.path.exists(self.data_dir) == True:
-                for f in tqdm(os.listdir(self.data_dir),
-                              f"Loading data from {self.data_dir}"):
-                    # if f[-4:] == "json":
-                    tar_f = os.path.join(self.data_dir, f)
-                    X, Y = DataLoader._load_single_data(
-                        tar_f, self.enable_log_predction)
-                    X_lst.append(X)
-                    Y_lst.append(Y)
-            X_lst = np.array(X_lst, dtype=np.float32)
-            Y_lst = np.array(Y_lst, dtype=np.float32)
-            self.input_mean = X_lst.mean(axis=0)
-            self.input_std = X_lst.std(axis=0)
-            self.output_mean = Y_lst.mean(axis=0)
-            self.output_std = Y_lst.std(axis=0)
+            return False
 
-            cont = {
-                DataLoader.X_KEY: X_lst,
-                DataLoader.Y_KEY: Y_lst,
-                DataLoader.INPUT_MEAN_KEY: self.input_mean,
-                DataLoader.INPUT_STD_KEY: self.input_std,
-                DataLoader.OUTPUT_MEAN_KEY: self.output_mean,
-                DataLoader.OUTPUT_STD_KEY: self.output_std
-            }
-            import pickle
-            with open(pkl_file, 'wb') as f:
-                pickle.dump(cont, f)
+    def _load_data(self, only_load_statistic_data_):
+        '''
+        load the data and compress to a pkl file
+        '''
+        load_stat_succ = False
+        if only_load_statistic_data_ == True:
+            # 1. begin to load statisic
+            load_stat_succ = self._load_statistics()
 
-        X_lst = (X_lst - self.input_mean) / self.input_std
-        Y_lst = (Y_lst - self.output_mean) / self.output_std
-        # print(f"raw Y = {Y_lst}")
-        # print(f"exp Y = {np.exp(Y_lst)}")
-        # print(f"output mean = {self.output_mean}")
-        # print(f"output std = {self.output_std}")
-        # exit(0)
+            # 2. if succ, set X_lst and Y_lst, set flag = true
 
-        size = len(X_lst)
-        train_size = int(self.train_perc * size)
-        test_size = size - train_size
-        perm = np.random.permutation(size)
-        train_id = perm[:train_size]
-        test_id = perm[train_size:]
-        # print(f"train id {train_id}")
-        # print(f"test id {test_id}")
-        # exit()
-        from operator import itemgetter
+        # if we load statistic failed
+        if (only_load_statistic_data_ == True
+                and load_stat_succ == False) or (only_load_statistic_data_
+                                                 == False):
 
-        self.train_X = list(itemgetter(*train_id)(X_lst))
-        self.train_Y = list(itemgetter(*train_id)(Y_lst))
-        self.test_X = list(itemgetter(*test_id)(X_lst))
-        self.test_Y = list(itemgetter(*test_id)(Y_lst))
+            pkl_file = os.path.join(self.data_dir, DataLoader.PKL_FILE_NAME)
+            if os.path.exists(pkl_file) == True:
+                import pickle
+                with open(pkl_file, 'rb') as f:
+                    cont = pickle.load(f)
+                    X_lst = cont[DataLoader.X_KEY]
+                    Y_lst = cont[DataLoader.Y_KEY]
+                    self.input_mean = cont[DataLoader.INPUT_MEAN_KEY]
+                    self.input_std = cont[DataLoader.INPUT_STD_KEY]
+                    self.output_mean = cont[DataLoader.OUTPUT_MEAN_KEY]
+                    self.output_std = cont[DataLoader.OUTPUT_STD_KEY]
+            else:
+                from tqdm import tqdm
+                X_lst, Y_lst = [], []
+                if os.path.exists(self.data_dir) == True:
+                    for f in tqdm(os.listdir(self.data_dir),
+                                  f"Loading data from {self.data_dir}"):
+                        # if f[-4:] == "json":
+                        tar_f = os.path.join(self.data_dir, f)
+                        X, Y = DataLoader._load_single_data(
+                            tar_f, self.enable_log_predction)
+                        X_lst.append(X)
+                        Y_lst.append(Y)
+                X_lst = np.array(X_lst, dtype=np.float32)
+                Y_lst = np.array(Y_lst, dtype=np.float32)
+                self.input_mean = X_lst.mean(axis=0)
+                self.input_std = X_lst.std(axis=0)
+                self.output_mean = Y_lst.mean(axis=0)
+                self.output_std = Y_lst.std(axis=0)
+
+                cont = {
+                    DataLoader.X_KEY: X_lst,
+                    DataLoader.Y_KEY: Y_lst,
+                    DataLoader.INPUT_MEAN_KEY: self.input_mean,
+                    DataLoader.INPUT_STD_KEY: self.input_std,
+                    DataLoader.OUTPUT_MEAN_KEY: self.output_mean,
+                    DataLoader.OUTPUT_STD_KEY: self.output_std
+                }
+                import pickle
+                with open(pkl_file, 'wb') as f:
+                    pickle.dump(cont, f)
+            self._dump_statistics()
+
+        if only_load_statistic_data_ == False:
+            X_lst = (X_lst - self.input_mean) / self.input_std
+            Y_lst = (Y_lst - self.output_mean) / self.output_std
+            # print(f"raw Y = {Y_lst}")
+            # print(f"exp Y = {np.exp(Y_lst)}")
+            # print(f"output mean = {self.output_mean}")
+            # print(f"output std = {self.output_std}")
+            # exit(0)
+
+            size = len(X_lst)
+            train_size = int(self.train_perc * size)
+            # test_size = size - train_size
+            perm = np.random.permutation(size)
+            train_id = perm[:train_size]
+            test_id = perm[train_size:]
+            # print(f"train id {train_id}")
+            # print(f"test id {test_id}")
+            # exit()
+            from operator import itemgetter
+
+            self.train_X = list(itemgetter(*train_id)(X_lst))
+            self.train_Y = list(itemgetter(*train_id)(Y_lst))
+            self.test_X = list(itemgetter(*test_id)(X_lst))
+            self.test_Y = list(itemgetter(*test_id)(Y_lst))
 
     def get_validation_data(self):
         st = 0

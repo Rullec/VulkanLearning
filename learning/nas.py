@@ -2,7 +2,7 @@ import nevergrad as ng
 import json
 import os
 from shutil import copyfile
-from res_param_net import ResParamNet
+from res_param_net import CNNParamNet
 import numpy as np
 import torch
 from train import build_net
@@ -43,12 +43,12 @@ def fake_training(learning_rate: float, lr_decay: float, weight_decay: float,
 
     with open(target_config) as f:
         cont = json.load(f)
-        cont[ResParamNet.LEANING_RATE_KEY] = learning_rate
-        cont[ResParamNet.LEANING_RATE_DECAY_KEY] = lr_decay
-        cont[ResParamNet.WEIGHT_DECAY_KEY] = weight_decay
-        cont[ResParamNet.LAYERS_KEY] = [layer0, layer1, layer2, layer3]
-        cont[ResParamNet.DROPOUT_KEY] = dropout
-        cont[ResParamNet.BATCH_SIZE_KEY] = batch_size
+        cont[CNNParamNet.LEANING_RATE_KEY] = learning_rate
+        cont[CNNParamNet.LEANING_RATE_DECAY_KEY] = lr_decay
+        cont[CNNParamNet.WEIGHT_DECAY_KEY] = weight_decay
+        cont[CNNParamNet.LAYERS_KEY] = [layer0, layer1, layer2, layer3]
+        cont[CNNParamNet.DROPOUT_KEY] = dropout
+        cont[CNNParamNet.BATCH_SIZE_KEY] = batch_size
     with open(target_config, 'w') as f:
         json.dump(cont, f)
     error = train(target_config) * 1000

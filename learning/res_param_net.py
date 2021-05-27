@@ -1,30 +1,31 @@
 from param_net import ParamNet
 from image_data_loader import ImageDataLoader
-from net_core import res_net
+from net_core import cnn_net
 import torch
 import time
 import numpy as np
 
 
-class ResParamNet(ParamNet):
+class CNNParamNet(ParamNet):
     '''
     Resnet Neural Network 
     receiving image input
     '''
-    NAME = "ResParamNet"
+    NAME = "CNNParamNet"
 
-    def __init__(self, config_path, device):
-        super().__init__(config_path, device)
+    def __init__(self, config_path, device, only_load_statistic_data):
+        super().__init__(config_path, device, only_load_statistic_data)
         # print("build res ParamNet")
 
-    def _build_dataloader(self):
+    def _build_dataloader(self, only_load_statistic_data):
         print("[log] begin to build dataloader in resnet")
         self.data_loader = ImageDataLoader(
             self.data_dir,
             0.8,
             0.2,
             self.batch_size,
-            enable_log_prediction=self.enable_log_prediction)
+            enable_log_prediction=self.enable_log_prediction,
+            only_load_statistic_data=only_load_statistic_data)
         self.input_size = self.data_loader.get_input_size()
         self.output_size = self.data_loader.get_output_size()[0]
         # print(f"input size {self.input_size}")
@@ -35,7 +36,7 @@ class ResParamNet(ParamNet):
 
         # print(self.output_size)
         # exit(0)
-        self.net = res_net(self.layers, self.output_size,
+        self.net = cnn_net(self.layers, self.output_size,
                            self.dropout).to(self.device)
         self.criterion = torch.nn.MSELoss()
         total = 0
@@ -61,6 +62,8 @@ class ResParamNet(ParamNet):
                 # print(i_batch)
                 self.net.train()
                 inputs, outputs = sampled_batched
+                # inputs = np.squeeze(np.array(inputs))
+                # outputs = np.squeeze(np.array(outputs))
                 inputs = np.array(inputs)
                 outputs = np.array(outputs)
                 # print(f"outputs = {outputs}")
@@ -82,8 +85,9 @@ class ResParamNet(ParamNet):
                 # print(f"input shape {inputs.shape}")
                 pred = self.net(inputs)
 
-                # print(f"pred type {pred.dtype}")
-                # print(f"Y type {Y.dtype}")
+                # print(f"pred shape {pred.shape}")
+                # print(f"Y shape {Y.shape}")
+                # exit()
                 loss = self.criterion(pred, Y).to(self.device)
                 # print(f"pred {pred}")
                 # print(f"Y {Y}")

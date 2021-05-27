@@ -1,9 +1,8 @@
 import numpy as np
 import torch
-from torch._C import Value
 from param_net import ParamNet
 import json
-from res_param_net import ResParamNet
+from res_param_net import CNNParamNet
 
 
 def build_net(conf):
@@ -15,9 +14,9 @@ def build_net(conf):
     if param_name == ParamNet.NAME:
         print(f"[log] build {param_name} net succ")
         return ParamNet
-    elif param_name == ResParamNet.NAME:
+    elif param_name == CNNParamNet.NAME:
         print(f"[log] build {param_name} net succ")
-        return ResParamNet
+        return CNNParamNet
     else:
         raise ValueError(f"unsupport net type {param_name}")
     # print(param_name)
@@ -45,5 +44,5 @@ if __name__ == "__main__":
     # conf_path = "..\config\\train_configs\\fc_conf.json"
     net_type = build_net(conf_path)
     net = net_type(conf_path, device)
-    net.train(max_epochs=10000)
-    # net.test()
+    # net.train(max_epochs=10000)
+    net.test()

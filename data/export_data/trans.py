@@ -2,7 +2,7 @@ import os
 from PIL import Image
 from tqdm import tqdm
 
-new_dir = "./goodcamera_data0_gen360/"
+new_dir = "./test_geodata_gen/"
 # dest_dir = "./test_small_data/"
 
 png_files = [i for i in os.listdir(new_dir) if i.find("png") != -1]
@@ -24,9 +24,10 @@ for png in tqdm(png_files):
     # print(image.mode)
     image = image.convert('L')
     height, width = image.size
-    image = image.crop((height / 4, width / 4, 3 * height / 4, 3 * width / 4))
+    # image = image.crop((height / 4, width / 4, 3 * height / 4, 3 * width / 4))
     # print(image.size)
-    image = image.resize((128, 128))
+    if image.size[1] > 200:
+        image = image.resize((int(image.size[0] / 2), int(image.size[1] / 2)))
     image.save(file)
     # print(f"save {file} done")
     # print(image.format)

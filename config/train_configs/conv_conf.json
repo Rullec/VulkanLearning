@@ -1,23 +1,77 @@
 {
-    "name": "ResParamNet",
+    "name": "CNNParamNet",
     "lr": 1e-4,
     "min_lr": 1e-6,
     "lr_decay": 0.995,
     "weight_decay": 1e-3,
     "covg_threshold": 1e-2,
     "optimizer": "adam",
-    "data_dir.test": "D:\\SimpleClothSimulator\\data\\export_data\\test_dtype_data",
-    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\reduced_noised_gen360",
+    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\test_geodata_gen",
     "layers": [
-        2048,
-        128,
-        16
+        {
+            "type": "conv",
+            "kernel_size": 7,
+            "stride": 2,
+            "padding": 3,
+            "inplanes": 1,
+            "outplanes": 16
+        },
+        {
+            "type": "conv",
+            "kernel_size": 3,
+            "stride": 2,
+            "padding": 1,
+            "inplanes": 16,
+            "outplanes": 32
+        },
+        {
+            "type": "conv",
+            "kernel_size": 3,
+            "stride": 2,
+            "padding": 1,
+            "inplanes": 32,
+            "outplanes": 64
+        },
+        {
+            "type": "conv",
+            "kernel_size": 3,
+            "stride": 2,
+            "padding": 1,
+            "inplanes": 64,
+            "outplanes": 32
+        },
+        {
+            "type": "conv",
+            "kernel_size": 3,
+            "stride": 1,
+            "padding": 1,
+            "inplanes": 32,
+            "outplanes": 16
+        },
+        {
+            "type": "avgpool",
+            "output": 1024
+        },
+        {
+            "type": "fc",
+            "input": 1024,
+            "output": 128
+        },
+        {
+            "type": "fc",
+            "input": 128,
+            "output": 64
+        },
+        {
+            "type": "end_fc",
+            "input": 64
+        }
     ],
     "model_output_dir": "../output/",
-    "model_path": "",
-    "batch_size": 2048,
+    "model_path": "../output/05-26-16_55_42-0.003.pkl",
+    "batch_size": 1024,
     "save_model_iters": 10,
     "logging_iters": 1,
     "enable_log_prediction": false,
-    "dropout": 0
+    "dropout": 0.0
 }

@@ -36,7 +36,7 @@ class ParamNet:
     ENABLE_LOG_PREDICTION_KEY = "enable_log_prediction"
     DROPOUT_KEY = "dropout"
 
-    def __init__(self, config_path, device):
+    def __init__(self, config_path, device, only_load_statistic_data=False):
         '''
         :param config_path: config string path
         :param device: cuda or cpu?
@@ -46,7 +46,7 @@ class ParamNet:
         with open(config_path) as f:
             self.conf = json.load(f)
         self._load_param()
-        self._build_dataloader()
+        self._build_dataloader(only_load_statistic_data)
         self._build_net()
         self._build_optimizer()
         self._postprocess()
@@ -110,7 +110,7 @@ class ParamNet:
             total += i.numel()
         self.criterion = torch.nn.MSELoss()
 
-    def _build_dataloader(self):
+    def _build_dataloader(self, only_load_statistic_data_):
         '''
         Create dataloader and get the data size
         '''
@@ -119,7 +119,8 @@ class ParamNet:
             0.8,
             0.2,
             self.batch_size,
-            enable_log_prediction=self.enable_log_prediction)
+            enable_log_prediction=self.enable_log_prediction,
+            only_load_statistic_data=only_load_statistic_data_)
         self.input_size = self.data_loader.get_input_size()
         self.output_size = self.data_loader.get_output_size()
 
@@ -168,7 +169,7 @@ class ParamNet:
         assert type(input) == np.ndarray
         input = (input -
                  self.data_loader.input_mean) / self.data_loader.input_std
-        
+
         pred = self.net(torch.Tensor(input).to(self.device))
         # print(f"[infer] pred {pred.detach().numpy()}")
         # print(f"[infer] output std {self.data_loader.output_std}")
@@ -412,7 +413,7 @@ class ParamNet:
                 else:
                     diff = np.abs(pred - gt)
                 # diff_perc = diff / gt * 100
-                diff_perc = np.linalg.norm(diff)
+                diff_perc = np.linalg.norm(diff / gt)
                 # print(f"pred {pred}")
                 # print(f"gt {gt}")
                 # print(f"diff {gt}")
