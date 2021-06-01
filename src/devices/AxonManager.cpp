@@ -1,4 +1,4 @@
-#include "VideoManager.h"
+#include "AxonManager.h"
 // #include "Viewer.h"
 #include "AXonLink.h"
 
@@ -205,7 +205,7 @@ int InitDevice(openni::Status &rc, openni::Device &device,
     printf("[debug] Init axon depth camera done\n");
 }
 
-cVideoManager::cVideoManager()
+cAxonManager::cAxonManager()
 {
     openni::Status rc = openni::STATUS_OK;
     openni::VideoStream color;
@@ -213,7 +213,7 @@ cVideoManager::cVideoManager()
     Init();
 }
 
-void cVideoManager::Init()
+void cAxonManager::Init()
 {
     openni::VideoMode depthVideoMode;
     openni::VideoMode colorVideoMode;
@@ -265,7 +265,7 @@ void cVideoManager::Init()
     GetIrImage();
 }
 
-tMatrixXi cVideoManager::GetDepthImage()
+tMatrixXi cAxonManager::GetDepthImage()
 {
     m_depthStream.readFrame(&m_depthFrame);
     const openni::DepthPixel *pDepthRow =
@@ -287,7 +287,7 @@ tMatrixXi cVideoManager::GetDepthImage()
         for (int x = 0; x < m_depthFrame.getWidth(); ++x, ++pDepth)
         {
             uint16_t value = (*pDepth);
-            depth_mat(y,  m_depthFrame.getWidth() - x) = value;
+            depth_mat(y, m_depthFrame.getWidth() - x) = value;
             if (value > max)
                 max = value;
             if (value < min)
@@ -323,7 +323,7 @@ tMatrixXi cVideoManager::GetDepthImage()
  */
 #include "OniEnums.h"
 
-double cVideoManager::GetDepthUnit_mm()
+double cAxonManager::GetDepthUnit_mm()
 {
     openni::PixelFormat format = m_depthFrame.getVideoMode().getPixelFormat();
     /*
@@ -361,7 +361,7 @@ double cVideoManager::GetDepthUnit_mm()
     return res;
 }
 
-tMatrixXi cVideoManager::GetIrImage()
+tMatrixXi cAxonManager::GetIrImage()
 {
     m_irStream.readFrame(&m_irFrame);
     if (m_irFrame.isValid())
@@ -408,7 +408,7 @@ tMatrixXi cVideoManager::GetIrImage()
  *              0 & 0 & 1 \\
  *              \end{bmatrix}
  */
-tMatrix3d cVideoManager::GetDepthIntrinsicMtx() const
+tMatrix3d cAxonManager::GetDepthIntrinsicMtx() const
 {
     AXonLinkCamParam camParam;
     int dataSize = sizeof(AXonLinkCamParam);
@@ -451,7 +451,7 @@ tMatrix3d cVideoManager::GetDepthIntrinsicMtx() const
  * please check
  * https://docs.opencv.org/2.4.13.7/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#calibratecamera
  */
-tVectorXd cVideoManager::GetDepthIntrinsicDistCoef() const
+tVectorXd cAxonManager::GetDepthIntrinsicDistCoef() const
 {
     int size = 8;
     tVectorXd dist_coef = tVectorXd::Zero(8);

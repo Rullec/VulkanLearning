@@ -1,14 +1,13 @@
 #pragma once
-#include "OpenNI.h"
-#include "utils/MathUtil.h"
-// #include Eigen/Dense"
-// typedef Eigen::MatrixXd tMatrixXd;
-// typedef Eigen::MatrixXi tMatrixXi;
 
-class cVideoManager
+#include "DeviceManager.h"
+#include "OpenNI.h"
+
+// class cDeviceManager :
+class cAxonManager : public cDeviceManager
 {
 public:
-    cVideoManager();
+    cAxonManager();
     virtual tMatrixXi GetDepthImage();
     virtual double GetDepthUnit_mm();
     virtual tMatrixXi GetIrImage();

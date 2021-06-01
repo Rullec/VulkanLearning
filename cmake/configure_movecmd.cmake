@@ -25,3 +25,22 @@ macro(move_release_to_src target_name)
     )
     endif()
 endmacro()
+
+
+macro(move_pybind11_release_to_src target_source_path target_name)
+    if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+            add_custom_command(
+                TARGET ${target_name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E rename
+                    ${CMAKE_CURRENT_BINARY_DIR}/Debug/${target_name}.cp37-win_amd64.pyd
+                    ${CMAKE_SOURCE_DIR}/${target_source_path}/${target_name}.cp37-win_amd64.pyd
+            )
+    else()
+        add_custom_command(
+            TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rename
+                ${CMAKE_CURRENT_BINARY_DIR}/Release/${target_name}.cp37-win_amd64.pyd
+                ${CMAKE_SOURCE_DIR}/${target_source_path}/${target_name}.cp37-win_amd64.pyd
+        )
+    endif()
+endmacro()

@@ -2,7 +2,7 @@ import pickle
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import video_manager
+import device_manager
 from axon import get_depth_image_mm, resize, get_mtx_and_dist_sdk
 import process_data_scene
 import cv2
@@ -67,7 +67,7 @@ def load_cast_depth_image(scene):
 
 
 config_path = "./config/data_process.json"
-cam = video_manager.video_manager()
+cam = device_manager.kinect_manager()
 scene = process_data_scene.process_data_scene()
 scene.Init(config_path)
 casted_img = load_cast_depth_image(scene)

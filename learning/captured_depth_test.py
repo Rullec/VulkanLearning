@@ -76,14 +76,13 @@ def find_hole_mask(raw_depth_image):
     # ax1.imshow(raw_depth_image)
     # ax1.title.set_text("raw_depth_image")
 
-
-    # ax2 = plt.subplot(1, 3, 2)    
+    # ax2 = plt.subplot(1, 3, 2)
     # ax2.imshow(holes)
     # ax2.title.set_text("holes")
 
     new_image = cv2.inpaint(image, holes, 1, cv2.INPAINT_TELEA)
     return new_image
-    # ax3 = plt.subplot(1, 3, 3)    
+    # ax3 = plt.subplot(1, 3, 3)
     # ax3.imshow(new_image)
     # ax3.title.set_text("new_image")
     # plt.show()

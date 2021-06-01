@@ -1,6 +1,6 @@
 import numpy as np
 from calib_axon import get_camera_pts_to_world_coord, get_mtx_and_dist, get_mtx_and_dist_sdk
-import video_manager
+import device_manager
 import os
 from scipy.spatial.transform import Rotation as R
 global_xpos = None
@@ -231,7 +231,7 @@ def rotation_info_output(mat):
     print(f"camera rot theta {(np.pi - np.linalg.norm(rotvec)) / np.pi * 180}")
 
 def ir_camera_calibration():
-    cam = video_manager.video_manager()
+    cam = device_manager.kinect_manager()
     # sdk_mtx = cam.GetDepthIntrinsicMtx()
     # sdk_dist = cam.GetDepthIntrinsicDistCoef()
     # # print(f"GetDepthIntrinsicMtx \n{sdk_mtx}")
