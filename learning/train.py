@@ -23,6 +23,7 @@ def build_net(conf):
 
 
 if __name__ == "__main__":
+    np.set_printoptions(suppress=True)
     # from tqdm import tqdm
     # lst = list(np.random.rand(100))
     # for id, _ in enumerate(tqdm(lst)):

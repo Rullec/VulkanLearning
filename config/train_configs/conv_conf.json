@@ -1,27 +1,20 @@
 {
     "name": "CNNParamNet",
-    "lr": 1e-4,
+    "lr": 1e-3,
     "min_lr": 1e-6,
     "lr_decay": 0.995,
     "weight_decay": 1e-3,
     "covg_threshold": 1e-2,
     "optimizer": "adam",
-    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\500_to_5000_mesh_gen_small",
+    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\500_to_5000_mesh_small_gen",
+    "image_dataloader_type": "image_dataloader",
     "layers": [
         {
             "type": "conv",
             "kernel_size": 7,
             "stride": 2,
             "padding": 3,
-            "inplanes": 1,
-            "outplanes": 16
-        },
-        {
-            "type": "conv",
-            "kernel_size": 3,
-            "stride": 2,
-            "padding": 1,
-            "inplanes": 16,
+            "inplanes": 6,
             "outplanes": 32
         },
         {
@@ -38,18 +31,39 @@
             "stride": 2,
             "padding": 1,
             "inplanes": 64,
-            "outplanes": 32
+            "outplanes": 128
+        },
+        {
+            "type": "conv",
+            "kernel_size": 3,
+            "stride": 2,
+            "padding": 1,
+            "inplanes": 128,
+            "outplanes": 256
         },
         {
             "type": "conv",
             "kernel_size": 3,
             "stride": 1,
             "padding": 1,
-            "inplanes": 32,
-            "outplanes": 16
+            "inplanes": 256,
+            "outplanes": 64
+        },
+        {
+            "type": "conv",
+            "kernel_size": 3,
+            "stride": 1,
+            "padding": 1,
+            "inplanes": 64,
+            "outplanes": 32
         },
         {
             "type": "avgpool",
+            "output": 1024
+        },
+        {
+            "type": "fc",
+            "input": 1024,
             "output": 1024
         },
         {
@@ -68,7 +82,7 @@
         }
     ],
     "model_output_dir": "../output/",
-    "model_path": "",
+    "model_path": "../output/06-03-23_33_25-0.007.pkl",
     "batch_size": 1024,
     "save_model_iters": 10,
     "logging_iters": 1,

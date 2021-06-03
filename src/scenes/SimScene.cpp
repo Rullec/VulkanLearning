@@ -2,7 +2,7 @@
 #include "Perturb.h"
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
-// #include "scenes/DrawScene.h"
+#include "sim/CollisionDetecter.h"
 #include "sim/KinematicBody.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
@@ -34,6 +34,7 @@ cSimScene::cSimScene()
     mFixedPointIds.clear();
     mPerturb = nullptr;
     mPauseSim = false;
+    mColDetecter = nullptr;
     // mClothInitPos.setZero();
 }
 
@@ -54,9 +55,14 @@ void cSimScene::Init(const std::string &conf_path)
         cJsonUtil::ParseAsString(cSimScene::SCENE_TYPE_KEY, root));
     mEnableObstacle =
         cJsonUtil::ParseAsBool(cSimScene::ENABLE_OBSTACLE_KEY, root);
+
+    mEnableCollisionDetection =
+        cJsonUtil::ParseAsBool(cSimScene::ENABLE_COLLISION_DETECTION_KEY, root);
     if (mEnableObstacle)
         CreateObstacle(
             cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, root));
+    if (mEnableCollisionDetection)
+        CreateCollisionDetecter();
 }
 
 void cSimScene::PauseSim() { mPauseSim = !mPauseSim; }
@@ -262,6 +268,23 @@ void cSimScene::CalcExtForce(tVectorXd &ext_force) const
             perturb_force.segment(0, 3) / 3;
         // 2. give the ray to the perturb, calculate force on each vertices
         // 3. apply the force
+    }
+
+    std::cout << "[debug] add collision spring force\n";
+    if (mColDetecter != nullptr)
+    {
+        auto pts = mColDetecter->GetCollisionPoints();
+        for (auto &pt : pts)
+        {
+            double pene = -1 * (pt->mPenetration - 0.005);
+            double k = 1e3;
+            pene = pene < 0 ? 0 : pene;
+            double force = k * pene;
+            ext_force.segment(pt->mVertexId * 3, 3) +=
+                pt->mContactNormal.segment(0, 3) * force;
+            std::cout << "[debug] col force " << force << " on vertex "
+                      << pt->mVertexId << std::endl;
+        }
     }
 }
 
@@ -676,4 +699,12 @@ void cSimScene::RayCastScene(const tRay *ray, tTriangle **selected_tri,
 {
     SIM_ASSERT(mRaycaster != nullptr);
     mRaycaster->RayCast(ray, selected_tri, selected_tri_id, raycast_point);
+}
+
+/**
+ * \brief                   Collision Detection
+ */
+void cSimScene::CreateCollisionDetecter()
+{
+    mColDetecter = std::make_shared<cCollisionDetecter>();
 }

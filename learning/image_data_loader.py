@@ -1,10 +1,11 @@
+from ntpath import join
 from data_loader import DataLoader
 import os
 from PIL import Image
 import numpy as np
 import json
 from tqdm import tqdm
-
+from image_data_loader_dist import get_subdirs, get_mesh_data
 
 class ImageDataLoader(DataLoader):
     '''
@@ -19,29 +20,23 @@ class ImageDataLoader(DataLoader):
                          enable_log_prediction, only_load_statistic_data)
 
     @staticmethod
-    def __load_single_data(png_path, feature_path, enable_log_pred):
+    def __load_single_data(png_files, feature_path, enable_log_pred):
         '''
         Given a pair of png path and feature json path, return the image and feature in np.ndarray
         '''
-        assert os.path.exists(png_path), f"{png_path}"
+        for i in png_files:
+            assert os.path.exists(i), f"{i}"
         assert os.path.exists(feature_path), f"{feature_path}"
 
         try:
             # 1. load the image
-            image = Image.open(png_path)
-            # print(f"image info {image.format} {image.size} {image.mode}")
-            # image.show()
-            image = np.asarray(image, dtype=np.float32)
-            assert len(image.shape) == 2, f"{png_path} {image.shape}"
-            # print(image.shape)
-            # exit(0)
-            # new_image = np.mean(image_array[:, :], axis)
-            # print(f"old image shape {image.size}")
-            # print(f"new image shape {new_image}")
-            # confirm that this image is grayscale
-            # new_image_verify = image_array[:, :, 0]
-            # diff_norm = np.linalg.norm(new_image_verify - new_image)
-            # assert diff_norm < 1e-10
+            img_lst = []
+            for png_file in png_files:
+                image = Image.open(png_file)
+                image = np.asarray(image, dtype=np.float32)
+                assert len(image.shape) == 2, f"{png_file} {image.shape}"
+                img_lst.append(image)
+            img_lst = np.stack(img_lst, axis=0)
 
             # 2. load the feature
             with open(feature_path) as f:
@@ -52,53 +47,44 @@ class ImageDataLoader(DataLoader):
                 feature = feature.astype(np.float32)
         except Exception as e:
             print(e)
-            image = None
+            img_lst = None
             feature = None
-        return image, feature
+        return img_lst, feature
 
     @staticmethod
-    def __get_pngs_and_features(data_dir: str):
+    def __get_pngs_and_features(data_root_dir: str):
         '''
         Given a data directory, fetch all filenames and split them into png files & json feature files
         '''
-        all_names = os.listdir(data_dir)
-        png_files = []
-        feature_files = []
+        print(f"[debug] begin to get pngs and features data_dir")
 
-        # divide and verify the data
-        def judge_suffix(name: str, suffix: str) -> bool:
-            return name[-len(suffix):] == suffix
+        mesh_data_lst = []
 
-        for file in all_names:
-            if judge_suffix(file, "png"):
-                png_files.append(file)
-            elif judge_suffix(file, "json"):
-                feature_files.append(file)
-        assert len(feature_files) == len(
-            png_files), f"{len(feature_files)} !={len(png_files)}"
-        for i in range(len(png_files)):
-            png = png_files[i]
-            feature = feature_files[i]
-            png_base = png.split('.')[0]
-            feature_base = feature.split('.')[0]
-            assert png_base == feature_base, f"{png_base} != {feature_base}"
-            # print(f"{png_base} == {feature_base}")
-        return png_files, feature_files
+        for mesh_data in get_subdirs(data_root_dir):
+            mesh_data_lst = mesh_data_lst + get_mesh_data(
+                os.path.join(data_root_dir, mesh_data))
+        # print(len(mesh_data_lst))
+        # for i in mesh_data_lst:
+        #     print(f"feature file {i.feature_file} png files {i.png_files}")
+        return mesh_data_lst
 
     def _init_vars(self):
         '''
         initialize the train variables
         '''
-        png_files, feature_files = ImageDataLoader.__get_pngs_and_features(
-            self.data_dir)
+        mesh_data_lst = ImageDataLoader.__get_pngs_and_features(self.data_dir)
+        example_mesh_data = mesh_data_lst[0]
         # verify succ, pick the first one to load
         image, feature = ImageDataLoader.__load_single_data(
-            os.path.join(self.data_dir, png_files[0]),
-            os.path.join(self.data_dir, feature_files[0]),
+            example_mesh_data.png_files, example_mesh_data.feature_file,
             self.enable_log_predction)
 
         self.input_size = image.shape
         self.output_size = feature.shape
+        # print(f"input size {self.input_size}")
+        # print(f"output size {self.output_size}")
+        # print("init vars succ")
+        # exit(0)
 
     def _load_data(self, only_load_statistic_data_):
         load_stat_succ = False
@@ -128,30 +114,37 @@ class ImageDataLoader(DataLoader):
                 print(f"[debug] pkl not found, load pngs from {self.data_dir}")
                 X_lst, Y_lst = [], []
                 if os.path.exists(self.data_dir) == True:
-                    png_files, feature_files = ImageDataLoader.__get_pngs_and_features(
+                    mesh_data_lst = ImageDataLoader.__get_pngs_and_features(
                         self.data_dir)
-                    for f, _ in enumerate(
-                            tqdm(png_files,
-                                 f"Loading data from {self.data_dir}")):
+                    for _id, _ in enumerate(
+                            tqdm(
+                                mesh_data_lst,
+                                f"Loading data from {os.path.split(self.data_dir)[-1] }"
+                            )):
                         # if f[-4:] == "json":
+                        mesh_data = mesh_data_lst[_id]
                         X, Y = ImageDataLoader.__load_single_data(
-                            os.path.join(self.data_dir, png_files[f]),
-                            os.path.join(self.data_dir, feature_files[f]),
+                            mesh_data.png_files, mesh_data.feature_file,
                             self.enable_log_predction)
+                        # print(f"X shape {X.shape}")
+                        # print(f"Y shape {Y.shape}")
                         if X is None or Y is None:
                             print(
-                                f"[warn] data {png_files[f]} {feature_files[f]} is broken, please clear"
+                                f"[warn] data {mesh_data.png_files} {mesh_data.feature_file} is broken, please clear"
                             )
                             continue
                         X_lst.append(X)
                         Y_lst.append(Y)
-                X_lst = np.array(X_lst)
-                Y_lst = np.array(Y_lst)
+                # print(len(X_lst))
+                X_lst = np.stack(X_lst, axis=0)
+                Y_lst = np.stack(Y_lst, axis=0)
                 self.input_mean = X_lst.mean(axis=0)
                 self.input_std = X_lst.std(axis=0)
                 self.output_mean = Y_lst.mean(axis=0)
                 self.output_std = Y_lst.std(axis=0)
-
+                # print(f"X_lst shape {X_lst.shape}")
+                # print(f"Y_lst shape {Y_lst.shape}")
+                # exit(0)
                 # exit(0)
                 cont = {
                     DataLoader.X_KEY: X_lst,
@@ -186,15 +179,25 @@ class ImageDataLoader(DataLoader):
 
             size = len(X_lst)
             train_size = int(self.train_perc * size)
-            test_size = size - train_size
             perm = np.random.permutation(size)
             train_id = perm[:train_size]
             test_id = perm[train_size:]
             from operator import itemgetter
 
-            self.test_X = np.expand_dims(list(itemgetter(*test_id)(X_lst)),
-                                         axis=1)
+            # self.test_X = np.expand_dims(list(itemgetter(*test_id)(X_lst)),
+            #                              axis=1)
+            # self.test_Y = list(itemgetter(*test_id)(Y_lst))
+            # self.train_X = np.expand_dims(list(itemgetter(*train_id)(X_lst)),
+            #                               axis=1)
+            # self.train_Y = list(itemgetter(*train_id)(Y_lst))
+            self.test_X = np.array(list(itemgetter(*test_id)(X_lst)))
             self.test_Y = list(itemgetter(*test_id)(Y_lst))
+            self.train_X = np.array(list(itemgetter(*train_id)(X_lst)))
             self.train_Y = list(itemgetter(*train_id)(Y_lst))
-            self.train_X = np.expand_dims(list(itemgetter(*train_id)(X_lst)),
-                                          axis=1)
+
+            print(f"test X shape {self.test_X.shape}")
+            print(f"test Y shape {len(self.test_Y)}, {self.test_Y[0].shape}")
+            print(f"train X shape {self.train_X.shape}")
+            print(
+                f"train Y shape {len(self.train_Y)}, {self.train_Y[0].shape}")
+            # exit()

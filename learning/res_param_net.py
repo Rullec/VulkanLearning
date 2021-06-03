@@ -1,5 +1,7 @@
 from param_net import ParamNet
 from image_data_loader import ImageDataLoader
+from image_data_loader_dist import ImageDataLoaderDist
+
 from net_core import cnn_net
 import torch
 import time
@@ -12,20 +14,36 @@ class CNNParamNet(ParamNet):
     receiving image input
     '''
     NAME = "CNNParamNet"
+    IMAGE_DATALOADER_TYPE_KEY = "image_dataloader_type"
 
     def __init__(self, config_path, device, only_load_statistic_data):
         super().__init__(config_path, device, only_load_statistic_data)
-        # print("build res ParamNet")
+
+    def _load_param(self):
+        super()._load_param()
+        self.image_dataloader_type = self.conf[
+            CNNParamNet.IMAGE_DATALOADER_TYPE_KEY]
 
     def _build_dataloader(self, only_load_statistic_data):
         print("[log] begin to build dataloader in resnet")
-        self.data_loader = ImageDataLoader(
-            self.data_dir,
-            0.8,
-            0.2,
-            self.batch_size,
-            enable_log_prediction=self.enable_log_prediction,
-            only_load_statistic_data=only_load_statistic_data)
+        if self.image_dataloader_type == "image_dataloader":
+            self.data_loader = ImageDataLoader(
+                self.data_dir,
+                0.8,
+                0.2,
+                self.batch_size,
+                enable_log_prediction=self.enable_log_prediction,
+                only_load_statistic_data=only_load_statistic_data)
+        elif self.image_dataloader_type == "image_dataloader_dist":
+            self.data_loader = ImageDataLoaderDist(
+                self.data_dir,
+                0.8,
+                0.2,
+                self.batch_size,
+                enable_log_prediction=self.enable_log_prediction,
+                only_load_statistic_data=only_load_statistic_data)
+        else:
+            assert False
         self.input_size = self.data_loader.get_input_size()
         self.output_size = self.data_loader.get_output_size()[0]
         # print(f"input size {self.input_size}")

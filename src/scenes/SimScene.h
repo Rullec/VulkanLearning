@@ -33,6 +33,7 @@ struct tPerturb;
 // class cDrawScene;
 SIM_DECLARE_CLASS_AND_PTR(cKinematicBody)
 SIM_DECLARE_CLASS_AND_PTR(cRaycaster)
+SIM_DECLARE_CLASS_AND_PTR(cCollisionDetecter)
 class cSimScene : public cScene
 {
 public:
@@ -41,7 +42,9 @@ public:
                                     DEFAULT_TIMESTEP_KEY = "default_timestep",
                                     SCENE_TYPE_KEY = "scene_type",
                                     ENABLE_OBSTACLE_KEY = "enable_obstacle",
-                                    OBSTACLE_CONF_KEY = "obstacle_conf";
+                                    OBSTACLE_CONF_KEY = "obstacle_conf",
+                                    ENABLE_COLLISION_DETECTION_KEY =
+                                        "enable_collision_detection";
 
     cSimScene();
     ~cSimScene();
@@ -71,6 +74,7 @@ protected:
     eSceneType mSceneType;
     bool mEnableProfiling;
     bool mEnableObstacle; // using obstacle?
+    bool mEnableCollisionDetection;
     std::vector<cKinematicBodyPtr>
         mObstacleList;        // obstacle for cloth simulation
     cRaycasterPtr mRaycaster; // raycaster
@@ -92,8 +96,10 @@ protected:
     tVectorXd mDampingForce;                 // external force
 
     tVectorXd mXpre, mXcur; // previous node position & current node position
-    std::vector<int> mFixedPointIds; // fixed constraint point
-    tVectorXd mClothInitPos;         // init position of the cloth
+    std::vector<int> mFixedPointIds;    // fixed constraint point
+    tVectorXd mClothInitPos;            // init position of the cloth
+    cCollisionDetecterPtr mColDetecter; // collision detecter
+
     // base methods
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     virtual void InitDrawBuffer();
@@ -118,6 +124,7 @@ protected:
     // virtual void CreatePerturb(tRay *ray);
 
     virtual void CreateObstacle(const Json::Value &conf);
+    virtual void CreateCollisionDetecter();
     bool mPauseSim;
     virtual void PauseSim();
 };

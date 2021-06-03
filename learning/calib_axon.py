@@ -149,7 +149,7 @@ def calc_objp():
     # Creating vector to store vectors of 2D points for each checkerboard image
 
     # Defining the world coordinates for 3D points
-    objp = np.zeros((1, CHECKERBOARD[0] * CHECKERBOARD[1], 3), np.float32)
+    objp = np.zeros((1, CHECKERBOARD[0] * CHECKERBOARD[1], 3), float)
     objp[0, :, :2] = np.mgrid[0:CHECKERBOARD[0],
                               0:CHECKERBOARD[1]].T.reshape(-1, 2)
     objp *= 30
@@ -293,7 +293,7 @@ def draw_solvepnp(mtx, dist, image):
 
     objp = calc_objp()
 
-    axis = np.float32([[33, 0, 0], [0, 33, 0], [0, 0, -33]]).reshape(-1, 3)
+    axis = float([[33, 0, 0], [0, 33, 0], [0, 0, -33]]).reshape(-1, 3)
     objpoints, imagepoints = calc_image_points([image], objp)
     if len(objpoints) == 0 or len(imagepoints) == 0:
         return None, None, None

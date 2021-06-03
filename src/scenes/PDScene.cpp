@@ -328,12 +328,16 @@ tVectorXd cPDScene::CalcNextPosition() const
     // cTimeUtil::End("fast simulation calc next");
     return Xnext;
 }
-
+#include "sim/CollisionDetecter.h"
 void cPDScene::UpdateSubstep()
 {
     // cTimeUtil::Begin("substep");
     ClearForce();
 
+    if (mColDetecter != nullptr)
+    {
+        mColDetecter->PerformCollisionDetect();
+    }
     // cTimeUtil::Begin("substep_calc_next_pos");
     const tVectorXd &Xnext = CalcNextPosition();
     // cTimeUtil::End("substep_calc_next_pos");

@@ -17,7 +17,7 @@ def resize(image, size=128):
     mid = width / 2
     assert width % 2 == 0
     # to a square
-    image = image[:, int(mid - height / 2):int(mid + height / 2)].astype(float)
+    image = image[:, int(mid - height / 2):int(mid + height / 2)].astype(np.float32)
     # expand this square to
     from PIL import Image
     image = Image.fromarray(image)
@@ -49,7 +49,7 @@ def get_depth_image_mm(cam):
         get the depth image (unit mm)
     '''
     # print("begin to get depth image")
-    depth = cam.GetDepthImage().astype(float) * cam.GetDepthUnit_mm()
+    depth = cam.GetDepthImage().astype(np.float32) * cam.GetDepthUnit_mm()
     # print("succ to get depth image")
     return depth
 
@@ -243,7 +243,7 @@ def convert_kinect_ir_image(image):
     max = np.max(new_image)
     new_image[new_image == 20000] = max
     # print(f"max {max}")
-    return (image.astype(float) / max * 255).astype(np.uint8)
+    return (image.astype(np.float32) / max * 255).astype(np.uint8)
 
 
 def ir_camera_calc_extrinsics():
