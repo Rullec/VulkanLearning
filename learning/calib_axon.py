@@ -177,7 +177,7 @@ def calibrate_camera(images):
     # exit(0)
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints,
                                                        images[0].shape[::-1],
-                                                       None, None)
+                                                       None, np.zeros(8))
     if ret is False:
         return none_result
     else:
@@ -225,7 +225,7 @@ def get_world_pts_to_obj_coord(X_positive_in_screen_coord,
     '''
     global CHECKERBOARD
     global square_size
-    height_of_table = 63 # mm
+    height_of_table = 63  # mm
     trans_mat = np.identity(4)
     # in screen coordinate, X plus is down, Y plus is left, origin is right-up corner
     if (X_positive_in_screen_coord[1]
@@ -268,11 +268,50 @@ def get_obj_pts_to_world_coord():
     # print(np.matmul (new_res, old_res))
 
 
+def draw_solvepnp(mtx, dist, image):
+    def draw(img, corners, imgpts):
+        corner = tuple(corners[0].ravel())
+        corner = (int(corner[0]), int(corner[1]))
+        new_imgpts_lst = []
+        for _idx in range(len(imgpts)):
+            a, b = int(imgpts[_idx][0][0]), int(imgpts[_idx][0][1])
+            new_imgpts_lst.append((a, b))
+            # print(imgpts[_idx])
+            # print(type(imgpts[_idx]))
+        
+        # print(f"corner {corner}")
+        # print(f"imgpts 0 {new_imgpts_lst[0]}")
+        # print(f"imgpts 1 {new_imgpts_lst[1]}")
+        # print(f"imgpts 2 {new_imgpts_lst[2]}")
+        # print(f"example {(1, 2)}")
+        # exit()
+        # exit()
+        img = cv2.line(img, corner, new_imgpts_lst[0], (255, 0, 0), 5)
+        img = cv2.line(img, corner, new_imgpts_lst[1], (0, 255, 0), 5)
+        img = cv2.line(img, corner, new_imgpts_lst[2], (0, 0, 255), 5)
+        return img
+
+    objp = calc_objp()
+
+    axis = np.float32([[33, 0, 0], [0, 33, 0], [0, 0, -33]]).reshape(-1, 3)
+    objpoints, imagepoints = calc_image_points([image], objp)
+    if len(objpoints) == 0 or len(imagepoints) == 0:
+        return None, None, None
+    else:
+        ret, rvecs, tvecs = cv2.solvePnP(objpoints[0], imagepoints[0], mtx,
+                                         dist)
+
+        # project 3D points to image plane
+        imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist)
+        image = draw(image, imagepoints[0], imgpts)
+        return rvecs, tvecs, image
+
+
 def get_camera_pts_to_world_coord(mtx, dist, image):
     assert type(image) == np.ndarray
     rvecs, tvecs, X_plus_vector_in_screen_coords, Y_plus_vector_in_screen_coords = calibrate_camera_extrinstic(
         mtx, dist, [image])
-
+    # print(f"rvecs {rvecs}")
     # print(
     #     f"X plus {X_plus_vector_in_screen_coords}, Y plus {Y_plus_vector_in_screen_coords}"
     # )
@@ -330,8 +369,6 @@ def calibrate_camera_extrinstic(mtx, dist, image):
     if len(objpoints) == 0 or len(imagepoints) == 0:
         return None, None, None, None
     else:
-        # print(objpoints)
-        # print(imagepoints)
         ret, rvecs, tvecs = cv2.solvePnP(objpoints[0], imagepoints[0], mtx,
                                          dist)
         X_positive, Y_positive = calc_objective_coordinate_in_screen_coordinate(
@@ -356,14 +393,31 @@ def load_images(pat):
     return gray_images
 
 
-def get_mtx_and_dist_sdk():
-    mtx = np.array([[504.65344238, 0., 314.07043457],
-                    [0., 504.35171509, 233.0559845], [0., 0., 1.]])
-    dist = np.array([
-        -0.03364468, -0.03456402, -0.0007391, 0.00034046, -0.09825993, 0., 0.,
-        0.
-    ])
-    return mtx, dist
+# def get_mtx_and_dist_sdk():
+#     assert False, "axon result, deprecated"
+#     mtx = np.array([[504.65344238, 0., 314.07043457],
+#                     [0., 504.35171509, 233.0559845], [0., 0., 1.]])
+#     dist = np.array([
+#         -0.03364468, -0.03456402, -0.0007391, 0.00034046, -0.09825993, 0., 0.,
+#         0.
+#     ])
+#     return mtx, dist
+
+
+def get_mtx_and_dist_from_sdk(cam):
+    return cam.GetDepthIntrinsicMtx_sdk(), cam.GetDepthIntrinsicDistCoef_sdk()
+
+
+def get_mtx_and_dist_from_self(cam):
+    return cam.GetDepthIntrinsicMtx_self(), cam.GetDepthIntrinsicDistCoef_self(
+    )
+    # mtx = np.array([[504.65344238, 0., 314.07043457],
+    #                 [0., 504.35171509, 233.0559845], [0., 0., 1.]])
+    # dist = np.array([
+    #     -0.03364468, -0.03456402, -0.0007391, 0.00034046, -0.09825993, 0., 0.,
+    #     0.
+    # ])
+    # return mtx, dist
 
 
 def get_mtx_and_dist():

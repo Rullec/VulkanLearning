@@ -3,31 +3,32 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import device_manager
-from axon import get_depth_image_mm, resize, get_mtx_and_dist_sdk
+from axon import get_depth_image_mm, resize, get_mtx_and_dist_from_sdk
 import process_data_scene
 import cv2
+
 
 def load_capture_depth_image(cam):
     # capture depth image from the camera
     # if os.path.exists("tmp.pkl") is False:
     #     #
-    
+
     #     with open("tmp.pkl", 'wb') as f:
     #         pickle.dump(img, f)
     # else:
     #     with open("tmp.pkl", 'rb') as f:
     #         img = pickle.load(f)
-    camera_matrix, dist_coef = get_mtx_and_dist_sdk()
+    camera_matrix, dist_coef = get_mtx_and_dist_from_sdk(cam)
     img = get_depth_image_mm(cam)
     # print(f"old img {img}")
-    img -= 20
+    # img -= 20
     # print(f"new img {img}")
     # exit()
-    img = cv2.undistort(
-            img, camera_matrix, dist_coef, None, None
-        )
+    # img = cv2.undistort(
+    #         img, camera_matrix, dist_coef, None, None
+    #     )
     img *= 1e-3
-    img = resize(img, 512)
+
     return img
 
 
@@ -42,17 +43,21 @@ def load_cast_depth_image(scene):
     # center = np.array([-10.1599905, 151.46500068, 0, 1]) * 1e-3
     # pos = np.array([-6.15960061, 302.56721469, 378.33105492, 1]) * 1e-3
     # center = np.array([-6.45289283, 153.23874287, 0, 1]) * 1e-3
-    pos = np.array([0, 119, 516, 1]) * 1e-3
-    center = np.array([0, 119, 0, 1]) * 1e-3
+    pos = np.array([15.67383673, 364.25153041, 506.72606936, 1]) * 1e-3
+    center = np.array([6.32744896, 184.42204099, 0, 1]) * 1e-3
     pos[3], center[3] = 1, 1
 
     # fov = 49.2
-    fov = 49.2
+    # fov = 49.2
+    # fov = 71.8
+    fov = 61.92
+    # fov = 5
     img = scene.CalcEmptyDepthImage(pos, center, fov)
-    print(f"shape {shape}")
-    print(f"img shape {img.shape}")
+    # print(f"shape {shape}")
+    # print(f"img shape {img.shape}")
     img = img.reshape(shape)
-    print(f"img shape {img.shape}")
+    img = np.ascontiguousarray(img)
+    print(f"casted img shape {img.shape}")
     return img
     # path = r"D:\SimpleClothSimulator\data\export_data\test_geodata_gen\0.png"
     # from PIL import Image
@@ -66,64 +71,72 @@ def load_cast_depth_image(scene):
     # return image
 
 
-config_path = "./config/data_process.json"
-cam = device_manager.kinect_manager()
-scene = process_data_scene.process_data_scene()
-scene.Init(config_path)
-casted_img = load_cast_depth_image(scene)
+if __name__ == "__main__":
+    config_path = "./config/data_process.json"
+    cam = device_manager.kinect_manager()
+    scene = process_data_scene.process_data_scene()
+    scene.Init(config_path)
+    casted_img = load_cast_depth_image(scene)
 
-import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 
-plt.ion()
-fig1 = plt.figure('frame')
+    plt.ion()
+    fig1 = plt.figure('frame')
 
-while True:
-    # clear but do not close the figure
-    fig1.clf()
-    ax1 = fig1.add_subplot(1, 4, 1)
-    captured_img = load_capture_depth_image(cam)
+    while True:
+        # clear but do not close the figure
+        fig1.clf()
+        ax1 = fig1.add_subplot(2, 2, 1)
+        captured_img = load_capture_depth_image(cam)
+        print(f"captured_img shape {captured_img.shape}")
 
-    kernel = np.ones((5, 5), dtype=np.float32)
-    import cv2
-    dilated_cap_img = cv2.dilate(captured_img, kernel)
-    ax1.imshow(captured_img)
-    ax1.title.set_text("captured")
+        # kernel = np.ones((5, 5), dtype=np.float32)
+        # import cv2
+        # dilated_cap_img = cv2.dilate(captured_img, kernel)
+        ax1.imshow(captured_img)
+        ax1.title.set_text("captured")
 
-    ax3 = fig1.add_subplot(1, 4, 2)
-    ax3.imshow(dilated_cap_img)
-    ax3.title.set_text("dilated")
-    
+        ax3 = fig1.add_subplot(2, 2, 2)
+        mtx, dist = get_mtx_and_dist_from_sdk(cam)
+        undistorted_img = cv2.undistort(captured_img, mtx, dist)
+        ax3.imshow(undistorted_img)
+        ax3.title.set_text("undistorted")
 
-    ax2 = fig1.add_subplot(1, 4, 3)
+        ax2 = fig1.add_subplot(2, 2, 3)
 
-    ax2.imshow(casted_img)
-    ax2.title.set_text("casted")
+        ax2.imshow(casted_img)
+        ax2.title.set_text("casted")
 
-    ax3 = fig1.add_subplot(1, 4, 4)
-    # diff = np.abs(captured_img - casted_img)
-    diff = np.abs(dilated_cap_img - casted_img)
-    ax3.imshow(diff)
-    ax3.title.set_text("diff")
+        ax4 = fig1.add_subplot(2, 2, 4)
 
-    # draw the image
-    # ax1.imshow(res)
-    # ax1.title.set_text("depth image (mm)")
+        ax4.imshow(casted_img - undistorted_img)
+        ax4.title.set_text("diff")
 
-    # pause
-    plt.pause(3e-2)
+        # ax3 = fig1.add_subplot(1, 3, 4)
+        # diff = np.abs(captured_img - casted_img)
+        # diff = np.abs(dilated_cap_img - casted_img)
+        # ax3.imshow(diff)
+        # ax3.title.set_text("diff")
 
-# capture_depth_image = load_capture_depth_image(cam)
-# cast_depth_image = load_cast_depth_image()
+        # draw the image
+        # ax1.imshow(res)
+        # ax1.title.set_text("depth image (mm)")
 
-# print(f"capture_depth_image shape {capture_depth_image.shape}")
-# print(f"cast_depth_image shape {cast_depth_image.shape}")
-# plt.subplot(1, 3, 1)
-# plt.imshow(capture_depth_image)
-# plt.title("capture_depth_image")
-# plt.subplot(1, 3, 2)
-# plt.imshow(cast_depth_image)
-# plt.title("cast_depth_image")
-# # plt.subplot(1, 3, 3)
-# # plt.imshow(cast_depth_image - capture_depth_image)
-# # plt.title("diff")
-# plt.show()
+        # pause
+        plt.pause(3e-2)
+
+    # capture_depth_image = load_capture_depth_image(cam)
+    # cast_depth_image = load_cast_depth_image()
+
+    # print(f"capture_depth_image shape {capture_depth_image.shape}")
+    # print(f"cast_depth_image shape {cast_depth_image.shape}")
+    # plt.subplot(1, 3, 1)
+    # plt.imshow(capture_depth_image)
+    # plt.title("capture_depth_image")
+    # plt.subplot(1, 3, 2)
+    # plt.imshow(cast_depth_image)
+    # plt.title("cast_depth_image")
+    # # plt.subplot(1, 3, 3)
+    # # plt.imshow(cast_depth_image - capture_depth_image)
+    # # plt.title("diff")
+    # plt.show()

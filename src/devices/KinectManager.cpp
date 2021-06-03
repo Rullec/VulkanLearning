@@ -96,8 +96,11 @@ tMatrixXi cKinectManager::GetDepthImage()
 }
 
 double cKinectManager::GetDepthUnit_mm() { return 1; }
+#include "utils/TimeUtil.hpp"
 tMatrixXi cKinectManager::GetIrImage()
 {
+    // cTimeUtil::Begin("get_ir_image");
+
     auto capture = GetCapture();
 
     k4a_image_t image = k4a_capture_get_ir_image(capture);
@@ -146,6 +149,7 @@ tMatrixXi cKinectManager::GetIrImage()
     // release the image
     k4a_image_release(image);
     k4a_capture_release(capture);
+    // cTimeUtil::End("get_ir_image");
     return depth_mat;
 }
 
@@ -160,7 +164,7 @@ tMatrixXi cKinectManager::GetIrImage()
  *              \end{bmatrix}
  */
 
-tMatrix3d cKinectManager::GetDepthIntrinsicMtx() const
+tMatrix3d cKinectManager::GetDepthIntrinsicMtx_sdk() const
 {
     auto depth_calib = GetDepthCalibration();
     tMatrix3d mat = tMatrix3d::Identity();
@@ -181,7 +185,7 @@ tMatrix3d cKinectManager::GetDepthIntrinsicMtx() const
  * please check
  * https://docs.opencv.org/2.4.13.7/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#calibratecamera
  */
-tVectorXd cKinectManager::GetDepthIntrinsicDistCoef() const
+tVectorXd cKinectManager::GetDepthIntrinsicDistCoef_sdk() const
 {
     auto depth_calib = GetDepthCalibration();
     tVectorXd res = tVectorXd::Zero(8);
@@ -214,9 +218,11 @@ void cKinectManager::Init()
     // set up the configuration
     k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
     config.color_format = K4A_IMAGE_FORMAT_COLOR_MJPG;
-    config.color_resolution = K4A_COLOR_RESOLUTION_2160P;
+    config.color_resolution = K4A_COLOR_RESOLUTION_OFF;
     config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+    // config.depth_mode = K4A_DEPTH_MODE_WFOV_UNBINNED;
     config.camera_fps = K4A_FRAMES_PER_SECOND_30;
+    // config.camera_fps = K4A_FRAMES_PER_SECOND_15;
 
     // start the camera
     if (K4A_RESULT_SUCCEEDED != k4a_device_start_cameras(mDevice, &config))
@@ -249,4 +255,48 @@ k4a_calibration_camera_t cKinectManager::GetDepthCalibration() const
         exit(-1);
     }
     return calibration.depth_camera_calibration;
+}
+
+/**
+ * \brief               Get intrinsics self
+ */
+tMatrix3d cKinectManager::GetDepthIntrinsicMtx_self() const
+{
+    /*
+         k1 k2 p1 p2 k3
+dist : -0.329146, 0.166924, 0.00371129, 0.00137014, -0.0609417
+        fx fy cx cy skew
+cam matrix: , , , , -0.00683854
+    */
+    tMatrix3d mat = tMatrix3d::Identity();
+    mat(0, 0) = 498.417;
+    mat(1, 1) = 499.322;
+    mat(0, 2) = 502.074;
+    mat(1, 2) = 491.664;
+    return mat;
+}
+
+/**
+ * \brief               Get intrinsics self
+ */
+tVectorXd cKinectManager::GetDepthIntrinsicDistCoef_self() const
+{
+    int size = 8;
+    tVectorXd coef = tVectorXd::Zero(size);
+    /*
+    coming from shining 3d
+    -0.329146, 0.166924, 0.00371129, 0.00137014, -0.0609417
+    */
+    double k1 = -0.329146, k2 = 0.166924, p1 = 0.00371129, p2 = 0.00137014,
+           k3 = -0.0609417;
+
+    // double k1 = -0.35272165, k2 = 0.21301618, p1 = 0.00066491, p2 =
+    // -0.00061842,
+    //        k3 = -0.10257608;
+    coef[0] = k1;
+    coef[1] = k2;
+    coef[2] = p1;
+    coef[3] = p2;
+    coef[4] = k3;
+    return coef;
 }

@@ -1,14 +1,17 @@
 import numpy as np
-from calib_axon import get_camera_pts_to_world_coord, get_mtx_and_dist, get_mtx_and_dist_sdk
+
+import matplotlib.pyplot as plt
+from calib_axon import get_camera_pts_to_world_coord, get_mtx_and_dist_from_self, get_mtx_and_dist_from_sdk, calibrate_camera_intrinstic, draw_solvepnp
 import device_manager
 import os
 from scipy.spatial.transform import Rotation as R
+
 global_xpos = None
 global_ypos = None
 cam = None
 
 
-def resize(image, size = 128):
+def resize(image, size=128):
     # height, width
     height, width = image.shape
     mid = width / 2
@@ -85,6 +88,7 @@ def display(cam, mode="depth", save=False):
             raw_res = get_depth_image_mm(cam)
         elif mode == "ir":
             raw_res = get_ir_image(cam)
+
         res = resize(raw_res)
         # print(f"raw {res.dtype}")
 
@@ -137,7 +141,7 @@ def infer_net(net, depth_image):
 
 
 def ir_camera_calibration_legacy():
-    cam = video_manager.video_manager()
+    cam = device_manager.kinect_manager()
 
     import matplotlib.pyplot as plt
     import cv2
@@ -167,7 +171,6 @@ def ir_camera_calibration_legacy():
     print(f"get ir succ, shape {image.shape}")
 
 
-
 def extract_trans_mat(mat_str: str) -> np.ndarray:
     row_list = []
     for _idx, i in enumerate(mat_str.split("\n")):
@@ -189,6 +192,7 @@ def refine_rotmat(rotmat):
     rotation = R.from_matrix(rotmat)
     rotation = R.from_rotvec(R.as_rotvec(rotation))
     return rotation.as_matrix()
+
 
 def calc_intersection_ray_plane(ori, dir, plane_point, plane_normal):
     D = -np.dot(plane_point, plane_normal)
@@ -214,6 +218,7 @@ def cal_focus(rotmat, cam_pos):
     # print(f"dist {dist}")
     return focus
 
+
 def rotation_info_output(mat):
     # 2. get rotmat and pos
     cam_rotmat = refine_rotmat(mat[:3, :3])
@@ -230,28 +235,23 @@ def rotation_info_output(mat):
     # print(f"rotvec {rotvec}")
     print(f"camera rot theta {(np.pi - np.linalg.norm(rotvec)) / np.pi * 180}")
 
-def ir_camera_calibration():
-    cam = device_manager.kinect_manager()
-    # sdk_mtx = cam.GetDepthIntrinsicMtx()
-    # sdk_dist = cam.GetDepthIntrinsicDistCoef()
-    # # print(f"GetDepthIntrinsicMtx \n{sdk_mtx}")
-    # # print(f"GetDepthIntrinsicDistCoef {sdk_dist}")
-    # self_mtx, self_dist = get_mtx_and_dist()
-    # diff_mtx = self_mtx - sdk_mtx
-    # diff_dist = self_dist - sdk_dist[0:len(self_dist)]
-    # print(f"self mtx \n{self_mtx}")
-    # print(f"sdk mtx \n{sdk_mtx}")
-    # print(f"diff mtx \n{diff_mtx}")
 
-    # print(f"self dist {self_dist}")
-    # print(f"sdk dist {sdk_dist}")
-    # print(f"diff dist {diff_dist}")
+def convert_kinect_ir_image(image):
+    import copy
+    new_image = copy.deepcopy(image)
+    new_image[new_image >= 60000] = 20000
+    max = np.max(new_image)
+    new_image[new_image == 20000] = max
+    # print(f"max {max}")
+    return (image.astype(float) / max * 255).astype(np.uint8)
+
+
+def ir_camera_calc_extrinsics():
+    cam = device_manager.kinect_manager()
 
     # exit(0)
     import matplotlib.pyplot as plt
-    import cv2
-    # from calib_axon import get_camera_pts_to_world_coord
-    mtx, dist = get_mtx_and_dist_sdk()
+    mtx, dist = get_mtx_and_dist_from_sdk(cam)
 
     plt.ion()
     fig1 = plt.figure('frame')
@@ -263,89 +263,107 @@ def ir_camera_calibration():
     clear = lambda: os.system('cls')
     avg_trans = np.zeros([4, 4])
     avg_counter = 0
-    camera_matrix, dist_coef = get_mtx_and_dist_sdk()
+    import time
     while True:
-        # clear()
+        st = time.time()
         # print("------------------------")
         # clear but do not close the figure
         fig1.clf()
-        ax1 = fig1.add_subplot(1, 2, 1)
-        ax2 = fig1.add_subplot(1, 2, 2)
-        image = get_ir_image(cam).astype(np.uint8)
-        undistorted_image = cv2.undistort(
-            image, camera_matrix, dist_coef, None, None
-        )
-        # from PIL import Image
-        # new_pil_image.save(f"tmp/{iter}.png")
+        ax1 = fig1.add_subplot(1, 1, 1)
+        image = get_ir_image(cam)
+
+        image = convert_kinect_ir_image(image)
         iter += 1
         # print(image.shape)
         ax1.imshow(image)
-        ax2.imshow(undistorted_image)
-        # mat_lst = get_camera_pts_to_world_coord([image], False)
-        image = np.ascontiguousarray(image, dtype=np.uint8)
+        image = np.ascontiguousarray(image)
 
         # get camera transform from sdk intrinsics
-        sdk_mtx, sdk_dist = get_mtx_and_dist_sdk()
+        sdk_mtx, sdk_dist = get_mtx_and_dist_from_sdk(cam)
+        # self_mtx, self_dist = get_mtx_and_dist_from_self(cam)
+
         sdk_camera_pts_to_world_coords = get_camera_pts_to_world_coord(
             sdk_mtx, sdk_dist, image)
-
+        # self_camera_pts_to_world_coords = get_camera_pts_to_world_coord(
+        #     self_mtx, self_dist, image)
         if sdk_camera_pts_to_world_coords is not None:
             # print(f"camera pos {sdk_camera_pts_to_world_coords[:, 3]}")
             # print(f"camera rot \n{sdk_camera_pts_to_world_coords[0:3, 0:3]}")
-            print(f"camera trans \n{sdk_camera_pts_to_world_coords}")
+            print(
+                f"camera trans(sdk intri) \n{sdk_camera_pts_to_world_coords}")
+            # print(
+            #     f"camera trans(self intri) \n{self_camera_pts_to_world_coords}"
+            # )
             rotation_info_output(sdk_camera_pts_to_world_coords)
             avg_trans = (avg_trans * avg_counter +
                          sdk_camera_pts_to_world_coords) / (avg_counter + 1)
             avg_counter += 1
             # print(f"avg trans \n{avg_trans}")
 
-        # # get camera transform from self intrinsics
-        # self_mtx, self_dist = get_mtx_and_dist()
-        # self_camera_pts_to_world_coords = get_camera_pts_to_world_coord(
-        #     self_mtx, self_dist, image)
-        # if self_camera_pts_to_world_coords is not None:
-        #     print(f"self_camera pos {self_camera_pts_to_world_coords[:, 3]}")
-        #     print(f"self_camera rot \n{self_camera_pts_to_world_coords[0:3, 0:3]}")
-
         # draw the image
         ax1.title.set_text("ir image")
 
         # pause
         plt.pause(3e-2)
+        ed = time.time()
+        # print(f"frame cost {ed - st} s")
 
     print(f"get ir succ, shape {image.shape}")
 
 
+def ir_camera_calc_intrinsics(data_dir):
+    png_files = [os.path.join(data_dir, i) for i in os.listdir(data_dir)]
+    # pkl_files = pkl_files[:2]
+    from PIL import Image
+    img_lst = []
+    for file in png_files:
+
+        img = Image.open(file)
+        img = np.array(img)
+        img = convert_kinect_ir_image(img)
+
+        img_lst.append(img)
+    res = calibrate_camera_intrinstic(img_lst)
+    print(res)
+
+
+def draw_axis():
+    cam = device_manager.kinect_manager()
+
+    plt.ion()
+    fig1 = plt.figure('frame')
+    iter = 0
+    import time
+    while True:
+        st = time.time()
+        # print("------------------------")
+        # clear but do not close the figure
+        fig1.clf()
+        ax1 = fig1.add_subplot(1, 1, 1)
+        image = get_ir_image(cam)
+
+        image = convert_kinect_ir_image(image)
+        iter += 1
+        # print(image.shape)
+        image = np.ascontiguousarray(image)
+
+        # get camera transform from sdk intrinsics
+        sdk_mtx, sdk_dist = get_mtx_and_dist_from_self(cam)
+        r, t, image = draw_solvepnp(sdk_mtx, sdk_dist, image)
+        print(f"r {r}")
+        if image is None:
+            continue
+        ax1.imshow(image)
+        # draw the image
+        ax1.title.set_text("ir image")
+
+        # pause
+        plt.pause(3e-2)
+        ed = time.time()
+
+
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
-    ir_camera_calibration()
-    # import cv2
-    # from calib_axon import calc_objp, calc_objective_coordinate_in_screen_coordinate
-    # img = cv2.imread("images/1.bmp")
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # objp = calc_objp()
-    # objpoints, imgpoints = calc_image_points([img], objp)
-    # print(f"obj points {objpoints}")
-    # print(f"img points {imgpoints}")
-    # X_positive, Y_positive = calc_objective_coordinate_in_screen_coordinate(
-    #     objpoints[0], imgpoints[0])
-
-    # new_objp = objp[0]
-    # new_objp[]
-
-    # chess_board_size = get_chessboard_size()
-
-    # ir_camera_calibration()
-    # cam = video_manager.video_manager()
-    # display(cam, save=True)
-    # unit = cam.GetDepthUnit_mm()
-    # print(f"cur unit {unit} mm")
-    # depth = get_depth_image_mm(cam)
-    # import matplotlib.pyplot as plt
-    # plt.imshow(depth)
-    # plt.plot()
-    # conf_path = "..\config\\train_configs\\conv_conf.json"
-    # print(f"depth shape {depth.shape}")
-    # # display()
-    # net = load_agent(conf_path)
-    # infer_net(net, depth)
+    ir_camera_calc_extrinsics()
+    # draw_axis()
+    # ir_camera_calc_intrinsics(data_dir="captured_ir_images")

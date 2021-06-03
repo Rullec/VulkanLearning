@@ -6,7 +6,7 @@
     "weight_decay": 1e-3,
     "covg_threshold": 1e-2,
     "optimizer": "adam",
-    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\test_geodata_gen",
+    "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\500_to_5000_mesh_gen_small",
     "layers": [
         {
             "type": "conv",
@@ -68,7 +68,7 @@
         }
     ],
     "model_output_dir": "../output/",
-    "model_path": "../output/05-26-16_55_42-0.003.pkl",
+    "model_path": "",
     "batch_size": 1024,
     "save_model_iters": 10,
     "logging_iters": 1,

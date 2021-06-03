@@ -598,7 +598,7 @@ void cOptixRaycaster::CalcDepthMap(const tMatrix2i &cast_range,
     // 4. download the result and save it to .ppm image
 }
 
-tMatrix4f get_discrete_mat(double fov, int height, int width,
+tMatrix4f get_discrete_mat(double vfov, int height, int width,
                            const tMatrix4f &view_mat_inv, bool is_vulkan)
 {
     // printf("[debug] cursor xpos %.3f, ypos %.3f\n", xpos, ypos);
@@ -629,7 +629,7 @@ tMatrix4f get_discrete_mat(double fov, int height, int width,
     // std::cout << "after 2, vec = "
     //           << (test = mat2 * test).transpose() << std::endl;
     // mat3(0, 0) = std::tan(cMathUtil::Radians(mFov) / 2) * mNear;
-    const float rad_fov = fov / 180 * 3.14;
+    const float rad_fov = vfov / 180 * M_PI;
     float near_plane_dist = 1;
     // pos = mat2 * pos;
     tMatrix4f mat3 = tMatrix4f::Identity();
@@ -766,8 +766,12 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
     {
         if (true == cFileUtil::ExistsFile(path_array[i]))
         {
-            printf("[warn] depth img %s exist, ignore\n",
-                   path_array[i].c_str());
+
+            if (i == 0 && cMathUtil::RandInt(0, 100) < 1)
+            {
+                printf("[warn] depth img %s exist, ignore\n",
+                       path_array[i].c_str());
+            }
             continue;
         }
         // 1. if the size is changed, we need to resize the buffer
@@ -810,9 +814,10 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
         // char*outfilename)
     }
     // int end = cSysUtil::GetPhyMemConsumedBytes();
-    // std::cout << "CalcDepthMapMultiCamera add " << (end - st0) * 1e-6 << " MB\n" ;
-    // std::cout << "CalcDepthMapMultiCamera0 add " << (st1 - st0) * 1e-6 << " MB\n" ;
-    // std::cout << "CalcDepthMapMultiCamera1 add " << (end - st1) * 1e-6 << " MB\n" ;
+    // std::cout << "CalcDepthMapMultiCamera add " << (end - st0) * 1e-6 << "
+    // MB\n" ; std::cout << "CalcDepthMapMultiCamera0 add " << (st1 - st0) *
+    // 1e-6 << " MB\n" ; std::cout << "CalcDepthMapMultiCamera1 add " << (end -
+    // st1) * 1e-6 << " MB\n" ;
 }
 
 void cOptixRaycaster::CalcDepthMapMultiCamera(const tMatrix2i &cast_range,

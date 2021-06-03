@@ -11,8 +11,10 @@ public:
     virtual tMatrixXi GetDepthImage();
     virtual double GetDepthUnit_mm();
     virtual tMatrixXi GetIrImage();
-    virtual tMatrix3d GetDepthIntrinsicMtx() const;
-    virtual tVectorXd GetDepthIntrinsicDistCoef() const;
+    virtual tMatrix3d GetDepthIntrinsicMtx_sdk() const;
+    virtual tVectorXd GetDepthIntrinsicDistCoef_sdk() const;
+    virtual tMatrix3d GetDepthIntrinsicMtx_self() const;
+    virtual tVectorXd GetDepthIntrinsicDistCoef_self() const;
 
 protected:
     virtual void Init();

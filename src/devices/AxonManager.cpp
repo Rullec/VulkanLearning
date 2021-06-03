@@ -408,7 +408,7 @@ tMatrixXi cAxonManager::GetIrImage()
  *              0 & 0 & 1 \\
  *              \end{bmatrix}
  */
-tMatrix3d cAxonManager::GetDepthIntrinsicMtx() const
+tMatrix3d cAxonManager::GetDepthIntrinsicMtx_sdk() const
 {
     AXonLinkCamParam camParam;
     int dataSize = sizeof(AXonLinkCamParam);
@@ -451,7 +451,7 @@ tMatrix3d cAxonManager::GetDepthIntrinsicMtx() const
  * please check
  * https://docs.opencv.org/2.4.13.7/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#calibratecamera
  */
-tVectorXd cAxonManager::GetDepthIntrinsicDistCoef() const
+tVectorXd cAxonManager::GetDepthIntrinsicDistCoef_sdk() const
 {
     int size = 8;
     tVectorXd dist_coef = tVectorXd::Zero(8);
@@ -470,4 +470,22 @@ tVectorXd cAxonManager::GetDepthIntrinsicDistCoef() const
     dist_coef[6] = param.k5;
     dist_coef[7] = param.k6;
     return dist_coef;
+}
+
+/**
+ * \brief           Please check the self parameters
+ */
+#include "utils/LogUtil.h"
+tMatrix3d cAxonManager::GetDepthIntrinsicMtx_self() const
+{
+    SIM_ERROR("hasn't been impled");
+    return tMatrix3d::Zero();
+}
+/**
+ * \brief           Please check the self parameters
+ */
+tVectorXd cAxonManager::GetDepthIntrinsicDistCoef_self() const
+{
+    SIM_ERROR("hasn't been impled");
+    return tVectorXd::Zero(8);
 }

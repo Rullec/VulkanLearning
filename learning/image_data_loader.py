@@ -25,28 +25,35 @@ class ImageDataLoader(DataLoader):
         '''
         assert os.path.exists(png_path), f"{png_path}"
         assert os.path.exists(feature_path), f"{feature_path}"
-        # 1. load the image
-        image = Image.open(png_path)
-        # print(f"image info {image.format} {image.size} {image.mode}")
-        # image.show()
-        image = np.asarray(image, dtype=np.float32)
-        assert len(image.shape) == 2, f"{png_path} {image.shape}"
-        # print(image.shape)
-        # exit(0)
-        # new_image = np.mean(image_array[:, :], axis)
-        # print(f"old image shape {image.size}")
-        # print(f"new image shape {new_image}")
-        # confirm that this image is grayscale
-        # new_image_verify = image_array[:, :, 0]
-        # diff_norm = np.linalg.norm(new_image_verify - new_image)
-        # assert diff_norm < 1e-10
 
-        # 2. load the feature
-        with open(feature_path) as f:
-            cont = json.load(f)
-            feature = np.array(cont["feature"])
-            if enable_log_pred == True:
-                feature = np.log(feature).astype(np.float32)
+        try:
+            # 1. load the image
+            image = Image.open(png_path)
+            # print(f"image info {image.format} {image.size} {image.mode}")
+            # image.show()
+            image = np.asarray(image, dtype=np.float32)
+            assert len(image.shape) == 2, f"{png_path} {image.shape}"
+            # print(image.shape)
+            # exit(0)
+            # new_image = np.mean(image_array[:, :], axis)
+            # print(f"old image shape {image.size}")
+            # print(f"new image shape {new_image}")
+            # confirm that this image is grayscale
+            # new_image_verify = image_array[:, :, 0]
+            # diff_norm = np.linalg.norm(new_image_verify - new_image)
+            # assert diff_norm < 1e-10
+
+            # 2. load the feature
+            with open(feature_path) as f:
+                cont = json.load(f)
+                feature = np.array(cont["feature"])
+                if enable_log_pred == True:
+                    feature = np.log(feature)
+                feature = feature.astype(np.float32)
+        except Exception as e:
+            print(e)
+            image = None
+            feature = None
         return image, feature
 
     @staticmethod
@@ -131,6 +138,11 @@ class ImageDataLoader(DataLoader):
                             os.path.join(self.data_dir, png_files[f]),
                             os.path.join(self.data_dir, feature_files[f]),
                             self.enable_log_predction)
+                        if X is None or Y is None:
+                            print(
+                                f"[warn] data {png_files[f]} {feature_files[f]} is broken, please clear"
+                            )
+                            continue
                         X_lst.append(X)
                         Y_lst.append(Y)
                 X_lst = np.array(X_lst)

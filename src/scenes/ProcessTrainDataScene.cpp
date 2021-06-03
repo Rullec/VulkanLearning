@@ -170,7 +170,7 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         cTimeUtil::Begin("handle_image");
         std::string base_name = cFileUtil::RemoveExtension(
             cFileUtil::GetFilename(surface_geo_data));
-        
+
         // int st = cSysUtil::GetPhyMemConsumedBytes();
         CalcDepthMapMultiViews(surface_geo_data, base_name, mCameraLst,
                                mNumOfClothRotationViews);
@@ -189,7 +189,8 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
 void cProcessTrainDataScene::InitRaycaster()
 {
 #ifdef USE_OPTIX
-    mRaycaster = std::make_shared<cOptixRaycaster>(mEnableOnlyExportingCuttedWindow);
+    mRaycaster =
+        std::make_shared<cOptixRaycaster>(mEnableOnlyExportingCuttedWindow);
 #else
     mRaycaster = std::make_shared<cRaycaster>(mEnableOnlyExportingCuttedWindow);
 #endif
@@ -313,7 +314,8 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
     {
         if (true == cFileUtil::ExistsFile(tmp))
         {
-            printf("[warn] feature file %s exist, ignore\n", tmp.c_str());
+            if (cMathUtil::RandInt(0, 100) < 1)
+                printf("[warn] feature file %s exist, ignore\n", tmp.c_str());
         }
         Json::Value value;
         value["feature"] = cJsonUtil::BuildVectorJson(sim_param_vec);
@@ -564,7 +566,7 @@ tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
  */
 std::pair<int, int> cProcessTrainDataScene::GetDepthImageShape() const
 {
-    return std::pair<int, int>(mWidth, mHeight);
+    return std::pair<int, int>(mHeight, mWidth);
 }
 
 /**
