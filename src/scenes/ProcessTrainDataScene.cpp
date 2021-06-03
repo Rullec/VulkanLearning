@@ -40,60 +40,88 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
             .segment(0, 2)
             .transpose()
             .cast<int>();
-
-    mNumOfClothRotationViews =
-        cJsonUtil::ParseAsInt(this->NUM_OF_CLOTH_ROTATION_VIEWS_KEY, root);
     mEnableOnlyExportingCuttedWindow =
         cJsonUtil::ParseAsBool(ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY, root);
-    // parse camera noise info
-    {
-        mEnableCameraNoise =
-            cJsonUtil::ParseAsBool(ENABLE_CAMERA_NOISE_KEY, root);
-        mCameraNoiseSamples =
-            cJsonUtil::ParseAsInt(CAMERA_NOISE_SAMPLES_KEY, root);
+    mCameraCenter = cJsonUtil::ReadVectorJson(
+                        cJsonUtil::ParseAsValue(
+                            cProcessTrainDataScene::CAMERA_CENTER_KEY, root))
+                        .segment(0, 4);
+    mCameraUp = cJsonUtil::ReadVectorJson(
+                    cJsonUtil::ParseAsValue(
+                        cProcessTrainDataScene::CAMERA_UP_KEY, root))
+                    .segment(0, 4);
+    mCameraPos = cJsonUtil::ReadVectorJson(
+                     cJsonUtil::ParseAsValue(
+                         cProcessTrainDataScene::CAMERA_POS_KEY, root))
+                     .segment(0, 4);
+    mImageUpsampling = cJsonUtil::ParseAsDouble(this->UPSAMPLING_KEY, root);
+    SIM_ASSERT(mImageUpsampling > 0);
+    // std::cout << "upsampling = " << mImageUpsampling << std::endl;
+    mWidth = int(mWidth / mImageUpsampling);
+    mHeight = int(mHeight / mImageUpsampling);
+    mCastingRange =
+        (mCastingRange.cast<float>() / mImageUpsampling).cast<int>();
+    // std::cout << "width = " << mWidth << std::endl;
+    // std::cout << "height = " << mHeight << std::endl;
+    // std::cout << "cast range = \n" << mCastingRange << std::endl;
+    // exit(0);
 
-        mCameraTranslationNoise =
-            cJsonUtil::ParseAsDouble(CAMERA_TRANSLATION_NOISE_KEY, root);
-        mCameraOrientationNoise =
-            cJsonUtil::ParseAsDouble(CAMERA_ORIENTATION_NOISE_KEY, root);
-    }
-    // std::cout << "mEnableClothGeometry = " << mEnableClothGeometry <<
-    // std::endl; exit(0);
-    // 1. validate the input/output dir
-    // SIM_ASSERT(cFileUtil::ExistsDir(mRawDataDir) == true);
-    if (cFileUtil::ExistsDir(mGenDataDir) == false)
-    {
-        cFileUtil::CreateDir(mGenDataDir.c_str());
-        // cFileUtil::DeleteDir(mGenDataDir.c_str());
-        // printf("[warn] the generated data dir %s is deleted\n",
-        // mGenDataDir.c_str());
-    }
-    {
-        Json::Value sim_conf;
-        cJsonUtil::LoadJson(cJsonUtil::ParseAsString(SIMULATION_CONF_KEY, root),
-                            sim_conf);
-
-        mEnableObstacle = cJsonUtil::ParseAsBool(ENABLE_OBSTACLE_KEY, sim_conf);
-        if (mEnableObstacle == true)
-        {
-            CreateObstacle(cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY,
-                                                   sim_conf));
-        }
-    }
-    // 2. Init camera info
-    InitCameraInfo(root);
-
-    // 3. init geometry info
+    InitPreprocessInfo(root["preprocess_info"]);
+    InitObstacle(root);
     cTriangulator::LoadGeometry(mVertexArray, mEdgeArray, mTriangleArray,
                                 mGeometryInfoPath);
-
-    // 4. load a data info, set the vertex pos, init rendering resources
-    InitCameraViews();
+    GenerateCameraViews();
 
     InitDrawBuffer();
     UpdateRenderingResource();
+    ValidateOutputDir(mGenDataDir);
 }
 
+/**
+ * \brief           Create and add obstacles
+ */
+void cProcessTrainDataScene::InitObstacle(const Json::Value &root)
+{
+    Json::Value sim_conf;
+    cJsonUtil::LoadJson(cJsonUtil::ParseAsString(SIMULATION_CONF_KEY, root),
+                        sim_conf);
+
+    mEnableObstacle = cJsonUtil::ParseAsBool(ENABLE_OBSTACLE_KEY, sim_conf);
+    if (mEnableObstacle == true)
+    {
+        CreateObstacle(
+            cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, sim_conf));
+    }
+}
+/**
+ * \brief       if the directory doesn't exist, create
+ */
+void cProcessTrainDataScene::ValidateOutputDir(std::string dir)
+{
+    if (cFileUtil::ExistsDir(dir) == false)
+    {
+        cFileUtil::CreateDir(dir.c_str());
+    }
+}
+/**
+ * \brief           Init the preprocessing info
+ */
+void cProcessTrainDataScene::InitPreprocessInfo(const Json::Value &conf)
+{
+    mPreprocessInfo.mNumOfInitRotationAngles =
+        cJsonUtil::ParseAsInt(this->NUM_OF_INIT_ROTATION_ANGLE_KEY, conf);
+    mPreprocessInfo.mNumOfClothRotationViews =
+        cJsonUtil::ParseAsInt(this->NUM_OF_CLOTH_VIEWS_KEY, conf);
+    mPreprocessInfo.mEnableCameraNoise =
+        cJsonUtil::ParseAsBool(ENABLE_CAMERA_NOISE_KEY, conf);
+    mPreprocessInfo.mCameraNoiseSamples =
+        cJsonUtil::ParseAsInt(CAMERA_NOISE_SAMPLES_KEY, conf);
+
+    mPreprocessInfo.mCameraTranslationNoise =
+        cJsonUtil::ParseAsDouble(CAMERA_TRANSLATION_NOISE_KEY, conf);
+    mPreprocessInfo.mCameraOrientationNoise =
+        cJsonUtil::ParseAsDouble(CAMERA_ORIENTATION_NOISE_KEY, conf);
+}
 /**
  * \brief           Calc depth map (no cloth geometry)
  */
@@ -132,54 +160,68 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
     tVectorXd feature_vec_buf;
 
     // 1. for each mesh
-    for (int i = 0; i < paths.size(); i++)
+    tVectorXd mesh_pos_vector;
+    for (int mesh_id = 0; mesh_id < paths.size(); mesh_id++)
     {
-        // 2. rotate the mesh, for each angle
+        cTimeUtil::Begin("handle_img");
+        std::string raycast_output_dir_level0 =
+            mGenDataDir + "\\" + "mesh" + std::to_string(mesh_id);
 
-        // 3. for each camera view (we may have the random noise)
+        // 2. regenerate the camera pos & orientations
+        GenerateCameraViews();
 
-        std::string surface_geo_data = paths[i];
-        // std::vector<std::string> image_name_array(0);
-        // std::vector<std::string> feature_name_array(0);
-        int camera_id = 0;
-        // std::vector<CameraBasePtr> my_camera_views(0);
-        // my_camera_views.push_back(mCamera);
-        // {
-        //     std::string new_image_name =
-        //     cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) +
-        //     "_" + std::to_string(camera_id) + ".exr"; std::string
-        //     new_feature_name =
-        //     cFileUtil::RemoveExtension(cFileUtil::GetFilename(raw_data)) +
-        //     "_" + std::to_string(camera_id) + ".json"; std::string
-        //     new_full_image_name = cFileUtil::ConcatFilename(mGenDataDir,
-        //     new_image_name); std::string new_full_feature_name =
-        //     cFileUtil::ConcatFilename(mGenDataDir, new_feature_name); if
-        //     (cFileUtil::ExistsFile(new_full_image_name) == true)
-        //     {
-        //         printf("[warn] file %s exist, ignore\n",
-        //         new_image_name.c_str());
-        //         my_camera_views.erase(my_camera_views.begin());
-        //     }
-        //     else
-        //     {
-        //         image_name_array.push_back(new_full_image_name);
-        //         feature_name_array.push_back(new_full_feature_name);
-        //     }
-        // }
-        // 2. create depth map
-        cTimeUtil::Begin("handle_image");
-        std::string base_name = cFileUtil::RemoveExtension(
-            cFileUtil::GetFilename(surface_geo_data));
+        // 3. for each init rotation angle, load the raw data
+        std::string mesh_path = paths[mesh_id];
+        tVectorXd mesh_feature_vec;
+        SIM_ASSERT(true == LoadRawData(mesh_path, mesh_feature_vec));
+        // the feature vector will be saved in the mesh directory
+        mesh_pos_vector = mXcur;
+        for (int init_rot_id = 0;
+             init_rot_id < this->mPreprocessInfo.mNumOfInitRotationAngles;
+             init_rot_id++)
+        {
+            // 4. restore the mesh
+            mXcur.noalias() = mesh_pos_vector;
+            std::string raycast_output_dir_level1 = raycast_output_dir_level0 +
+                                                    "\\init_rot" +
+                                                    std::to_string(init_rot_id);
 
-        // int st = cSysUtil::GetPhyMemConsumedBytes();
-        CalcDepthMapMultiViews(surface_geo_data, base_name, mCameraLst,
-                               mNumOfClothRotationViews);
-        // int ed = cSysUtil::GetPhyMemConsumedBytes();
-        // std::cout << "add mem0 = " << (ed - st) * 1e-6 << " MB\n";
-        printf("[log] handle image %d/%d, cost %.4f ms\n", i + 1,
-               paths.size() + 1, cTimeUtil::End("handle_image", true));
+            // 5. apply the init rotation angle
+            double rand_angle = cMathUtil::RandDouble(0, 2 * M_PI);
+            tMatrix3d rotmat =
+                cMathUtil::AxisAngleToRotmat(tVector(0, 1, 0, 0) * rand_angle)
+                    .topLeftCorner<3, 3>();
+            for (int i = 0; i < mXcur.size(); i += 3)
+            {
+                mXcur.segment(i, 3) = rotmat * mXcur.segment(i, 3);
+            }
+            UpdateCurNodalPosition(mXcur);
+
+            // 5. given the camera list, given the num of cloth rotation views
+            // printf("[debug] mesh %d init_rot_id %d output_dir: %s\n",
+            // mesh_id,
+            //        init_rot_id, raycast_output_dir_level1.c_str());
+
+            CalcDepthMapMultiViews(raycast_output_dir_level1, this->mCameraLst,
+                                   mPreprocessInfo.mNumOfClothRotationViews);
+            // calculate & save the depth
+        }
+
+        // 6. save feature file
+        {
+            Json::Value feature_json;
+            feature_json["feature"] =
+                cJsonUtil::BuildVectorJson(mesh_feature_vec);
+            cJsonUtil::WriteJson(cFileUtil::ConcatFilename(
+                                     raycast_output_dir_level0, "feature.json"),
+                                 feature_json, true);
+        }
+        printf("[log] handle mesh %d/%d, cost %.3f ms\n", mesh_id + 1,
+               paths.size(), cTimeUtil::End("handle_img"));
     }
     cTimeUtil::End("total");
+    // std::cout << "finished exit\n";
+    // exit(1);
 }
 /**
  * \brief           Init raycaster
@@ -268,24 +310,18 @@ tMatrix GenerateContinuousRotationMat(int divide_pairs)
  * num_of_rotation_view      different cloth rotation angle
  */
 void cProcessTrainDataScene::CalcDepthMapMultiViews(
-    const std::string &surface_geo_path, const std::string &basename,
+    const std::string &output_dir,
     const std::vector<CameraBasePtr> &camera_array, int num_of_rotation_view)
 {
-    // 1. load data from the path
-    tVectorXd sim_param_vec;
-    if (false == LoadRawData(surface_geo_path, sim_param_vec))
-    {
-        printf("[debug] Load geo info from %s failed, ignore\n",
-               surface_geo_path.c_str());
-        return;
-    }
-
+    if (cFileUtil::ExistsDir(output_dir) == false)
+        cFileUtil::CreateDir(output_dir.c_str());
     // 2. calculate the transformation matrix which will be applied onto the
     // cloth surface
     tMatrix cloth_yaxis_rotmat =
         GenerateContinuousRotationMat(num_of_rotation_view);
     auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
     std::vector<std::string> save_feature_path_array(0);
+
     // 3. for loop over different rotation angle
     for (int i = 0; i < num_of_rotation_view; i++)
     {
@@ -297,36 +333,26 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
         std::vector<std::string> png_array(0);
         for (int j = 0; j < camera_array.size(); j++)
         {
-            auto new_base =
-                basename + "_" + std::to_string(i) + "_" + std::to_string(j);
-            std::string suffix = this->GetImageSuffix(this->mExportImageType);
-            png_array.push_back(cFileUtil::ConcatFilename(this->mGenDataDir,
-                                                          new_base + suffix));
-            save_feature_path_array.push_back(cFileUtil::ConcatFilename(
-                this->mGenDataDir, new_base + ".json"));
+            std::string output_dir_level1 =
+                output_dir + "\\" + "cam" + std::to_string(j);
+            if (cFileUtil::ExistsDir(output_dir_level1) == false)
+                cFileUtil::CreateDir(output_dir_level1.c_str());
+            png_array.push_back(cFileUtil::ConcatFilename(
+                output_dir_level1, std::to_string(i) + ".png"));
+            // printf("[debug] cam %d view %d path %s\n", j, i,
+            //        png_array[png_array.size() - 1].c_str());
         }
 
         // 3.2 for loop over different camera view
         ptr->CalcDepthMapMultiCamera(mCastingRange, mHeight, mWidth,
                                      camera_array, png_array);
     }
-    for (auto &tmp : save_feature_path_array)
-    {
-        if (true == cFileUtil::ExistsFile(tmp))
-        {
-            if (cMathUtil::RandInt(0, 100) < 1)
-                printf("[warn] feature file %s exist, ignore\n", tmp.c_str());
-        }
-        Json::Value value;
-        value["feature"] = cJsonUtil::BuildVectorJson(sim_param_vec);
-        cJsonUtil::WriteJson(tmp, value);
-    }
 }
 
 /**
  * \brief       Generate rnadom camera views
  */
-void cProcessTrainDataScene::InitCameraViews()
+void cProcessTrainDataScene::GenerateCameraViews()
 {
     mCameraLst.clear();
     const tVector3f &camera_pos = this->mCameraPos.segment(0, 3).cast<float>(),
@@ -339,17 +365,17 @@ void cProcessTrainDataScene::InitCameraViews()
 
     mCameraLst.push_back(cur_camera);
 
-    if (this->mEnableCameraNoise == true)
+    if (mPreprocessInfo.mEnableCameraNoise == true)
     {
         // std::cout << "begin to apply the camera noise\n";
-        for (int i = 0; i < this->mCameraNoiseSamples; i++)
+        for (int i = 0; i < mPreprocessInfo.mCameraNoiseSamples; i++)
         {
-            tVector3f cam_pos_noise =
-                          tVector3f::Random(3) * mCameraTranslationNoise,
-                      cam_focus_noise =
-                          tVector3f::Random(3) * mCameraTranslationNoise,
-                      cam_up_noise =
-                          tVector3f::Random(3) * mCameraOrientationNoise;
+            tVector3f cam_pos_noise = tVector3f::Random(3) *
+                                      mPreprocessInfo.mCameraTranslationNoise,
+                      cam_focus_noise = tVector3f::Random(3) *
+                                        mPreprocessInfo.mCameraTranslationNoise,
+                      cam_up_noise = tVector3f::Random(3) *
+                                     mPreprocessInfo.mCameraOrientationNoise;
             // std::cout << "cam pos noise = " << cam_pos_noise.transpose() *
             // 1e2
             //           << " cm\n";
@@ -372,6 +398,7 @@ void cProcessTrainDataScene::Update(double dt)
     {
         InitRaycaster();
     }
+
     if (mEnableClothGeometry == true)
     {
         CalcDepthMapLoop();
@@ -388,25 +415,6 @@ void cProcessTrainDataScene::UpdateRenderingResource()
     cSimScene::UpdateRenderingResource();
 }
 void cProcessTrainDataScene::Reset() {}
-
-/**
- * \brief           Init capture camera info
- */
-void cProcessTrainDataScene::InitCameraInfo(const Json::Value &conf)
-{
-    mCameraCenter = cJsonUtil::ReadVectorJson(
-                        cJsonUtil::ParseAsValue(
-                            cProcessTrainDataScene::CAMERA_CENTER_KEY, conf))
-                        .segment(0, 4);
-    mCameraUp = cJsonUtil::ReadVectorJson(
-                    cJsonUtil::ParseAsValue(
-                        cProcessTrainDataScene::CAMERA_UP_KEY, conf))
-                    .segment(0, 4);
-    mCameraPos = cJsonUtil::ReadVectorJson(
-                     cJsonUtil::ParseAsValue(
-                         cProcessTrainDataScene::CAMERA_POS_KEY, conf))
-                     .segment(0, 4);
-}
 
 void cProcessTrainDataScene::UpdateSubstep() {}
 
@@ -425,6 +433,7 @@ bool cProcessTrainDataScene::LoadRawData(std::string path,
     // std::cout << "input size = " << input.size() << std::endl;
     SIM_ASSERT(input.size() == mVertexArray.size() * 3);
     UpdateCurNodalPosition(input);
+    return true;
 }
 
 /**
@@ -471,68 +480,6 @@ void write_bmp(const std::string path, const int width, const int height,
     file.close();
     delete[] img;
 }
-
-// #include "omp.h"
-// tMatrixXd cProcessTrainDataScene::CalcDepthImageLegacy(const CameraBasePtr
-// camera)
-// {
-//     tMatrixXd res = tMatrixXd::Zero(gWindowHeight, gWindowWidth);
-//     std::cout << "calc depth image, height " << gWindowHeight << " width " <<
-//     gWindowWidth << std::endl; tVector camera_pos =
-//     cMathUtil::Expand(camera->pos.cast<double>(), 1);
-//     // tRay *ray = new tRay(camera_pos, camera_pos + tVector(0, 1, 0, 0));
-//     tVector intersection_pos;
-//     int max = -1;
-// #pragma omp parallel for
-//     for (int i_row = 0; i_row < gWindowHeight; i_row++)
-//     {
-//         std::cout << "processing row " << i_row << std::endl;
-//         for (int i_col = 0; i_col < gWindowHeight; i_col++)
-//         {
-//             tVector cursor_point = CalcCursorPointWorldPos_tool(i_row, i_col,
-//             gWindowHeight, gWindowWidth,
-//             camera->ViewMatrix().inverse().cast<double>()); tRay *ray = new
-//             tRay(camera_pos, cursor_point);
-//             // ray->mDir = (cursor_point - camera_pos).normalized();
-
-//             tTriangle *tri = nullptr;
-//             int tri_id = -1;
-//             RayCastScene(ray, &tri, tri_id, intersection_pos);
-//             if (tri != nullptr)
-//             {
-//                 // std::cout << "inter pos = " <<
-//                 intersection_pos.transpose() << std::endl;
-//                 // std::cout << "camera pos = " << camera_pos.transpose() <<
-//                 std::endl; res(i_row, i_col) = (intersection_pos -
-//                 camera_pos).norm();
-//                 // max = std::max(max, res(i_row, i_col));
-//             }
-//             delete ray;
-//         }
-//     }
-
-//     // stbi_write
-//     //     stbi_write_png("test.png", gWindowWidth, gWindowHeight, 1,
-//     res.data(), sizeof(double));
-//     {
-//         double max_res = res.maxCoeff();
-//         std::cout << "max_res = " << max_res << std::endl;
-//         res /= max_res;
-//         Eigen::MatrixXi new_res = Eigen::MatrixXi::Zero(gWindowHeight,
-//         gWindowWidth); for (int i_row = 0; i_row < gWindowHeight; i_row++)
-//         {
-//             for (int i_col = 0; i_col < gWindowHeight; i_col++)
-//             {
-//                 new_res(i_row, i_col) = int(255 * res(i_row, i_col));
-//             }
-//         }
-//         write_bmp("test.bmp", gWindowWidth, gWindowHeight, new_res.data());
-//     }
-//     std::cout << "done\n";
-//     // exit(0);
-//     return tMatrixXd::Zero(0, 0);
-// }
-
 /**
  *
  */
@@ -549,7 +496,7 @@ tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
     mCameraCenter = cam_focus;
     mCameraFov = fov;
     mCameraUp = tVector(0, 1, 0, 0);
-    InitCameraViews();
+    GenerateCameraViews();
 
     // 3. begin to calculate the depth image
     tVectorXf mPixels = tVectorXf::Zero(mHeight * mWidth);

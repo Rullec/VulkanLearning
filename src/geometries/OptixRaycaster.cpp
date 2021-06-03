@@ -767,7 +767,7 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
         if (true == cFileUtil::ExistsFile(path_array[i]))
         {
 
-            if (i == 0 && cMathUtil::RandInt(0, 100) < 1)
+            // if (i == 0 && cMathUtil::RandInt(0, 100) < 1)
             {
                 printf("[warn] depth img %s exist, ignore\n",
                        path_array[i].c_str());
@@ -803,7 +803,6 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
         }
         else if (suffix == "png")
         {
-
             SavePngDepthImage(pixels, path.c_str());
         }
         else

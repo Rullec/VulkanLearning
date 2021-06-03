@@ -48,19 +48,35 @@ protected:
         EXPORT_IMAGE_FORMAT_KEY = "export_image_format",
         CASTING_WIDTH_RANGE_KEY = "casting_width_range",
         CASTING_HEIGHT_RANGE_KEY = "casting_height_range",
-        NUM_OF_CLOTH_ROTATION_VIEWS_KEY = "num_of_cloth_rotation_views",
+        NUM_OF_CLOTH_VIEWS_KEY = "num_of_cloth_views",
         ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY =
-            "enable_only_exporting_cutted_window";
+            "enable_only_exporting_cutted_window",
+        NUM_OF_INIT_ROTATION_ANGLE_KEY = "num_of_init_rotation_angle",
+        UPSAMPLING_KEY = "upsampling";
+
+    struct
+    {
+        int mNumOfInitRotationAngles; // step1: init cloth rotation angles
+        bool mEnableCameraNoise; // step2: enable camera noise on orientation &
+                                 // position
+        double mCameraTranslationNoise,
+            mCameraOrientationNoise;  // the amptitude of camera translation &
+                                      // orientation
+        int mCameraNoiseSamples;      // how many samples do we have?
+        int mNumOfClothRotationViews; // step3: num of views for rotating the
+                                      // cloth
+    } mPreprocessInfo;
 
     Eigen::Matrix2i mCastingRange; // casting window screen coordinates
     eImageType mExportImageType;
+    double mImageUpsampling;
     std::string mGeometryInfoPath; // the geometry info
     std::string mRawDataDir;       // raw simulation data dir
     std::string mGenDataDir;       // gen new data dir
     bool mEnableClothGeometry;     // add cloth geometry into the raycast scene
     bool mEnableOnlyExportingCuttedWindow; // only export the cutted window to
                                            // png file
-    int mNumOfClothRotationViews; // num of views for rotating the cloth
+
     int mWidth, mHeight;
     tVector mCameraPos, mCameraCenter,
         mCameraUp; // camera position, center point and up direction
@@ -68,11 +84,7 @@ protected:
     std::vector<CameraBasePtr> mCameraLst; // camera pointer
 
     // apply noise on the camera position and orientation
-    bool mEnableCameraNoise;
-    double mCameraTranslationNoise, mCameraOrientationNoise;
-    int mCameraNoiseSamples;
-
-    void InitCameraInfo(const Json::Value &conf);
+    void InitPreprocessInfo(const Json::Value &conf);
     virtual void UpdateSubstep() override final;
     bool LoadRawData(std::string path, tVectorXd &feature_vec);
     // tMatrixXd CalcDepthImageLegacy(const CameraBasePtr camera);
@@ -80,17 +92,14 @@ protected:
 
         const std::string raw_data_path, const std::string &save_png_path,
         const std::string &json_path, CameraBasePtr camera);
-    // void CalcDepthMapMultiViews(const std::string raw_data_path, const
-    // std::vector<std::string> &save_png_path_array, const
-    // std::vector<std::string> &json_path_array, const
-    // std::vector<CameraBasePtr> &camera_array);
-    void CalcDepthMapMultiViews(const std::string &surface_geo_path,
-                                const std::string &basename,
+    void CalcDepthMapMultiViews(const std::string &output_dir,
                                 const std::vector<CameraBasePtr> &camera_array,
                                 int num_of_rotation_view);
     void MultiViewTest();
-    void InitCameraViews();
+    void GenerateCameraViews();
+    void InitObstacle(const Json::Value &conf);
     virtual void InitRaycaster() override;
     void CalcDepthMapLoop();
     void CalcDepthMapNoCloth();
+    static void ValidateOutputDir(std::string dir);
 };
