@@ -9,13 +9,15 @@
 
 std::string gSceneTypeStr[eSceneType::NUM_OF_SCENE_TYPES] = {
     "semi_implicit", "implicit", "projective_dynamic", "pbd",
-    "tri_baraff",    "se",       "data_synthesis",     "data_process"};
+    "tri_baraff",    "se",       "data_synthesis",     "data_process",
+    "mesh_vis"};
 
 eSceneType cSimScene::BuildSceneType(const std::string &str)
 {
     int i = 0;
     for (i = 0; i < eSceneType::NUM_OF_SCENE_TYPES; i++)
     {
+        std::cout << gSceneTypeStr[i] << std::endl;
         if (str == gSceneTypeStr[i])
         {
             break;

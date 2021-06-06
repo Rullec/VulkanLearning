@@ -16,7 +16,8 @@ class DataLoader():
 
     def __init__(self, data_dir: str, train_perc: float, test_perc: float,
                  batch_size: int, enable_log_prediction: bool,
-                 only_load_statistic_data: bool) -> None:
+                 only_load_statistic_data: bool, enable_data_augment: bool,
+                 select_validation_set_inside: bool) -> None:
         '''
         DataLoader inherited from the torch dataloader
         :param data_dir: data root directory
@@ -34,6 +35,8 @@ class DataLoader():
         # print(self.test_perc)
         # exit()
         self.enable_log_predction = enable_log_prediction
+        self.enable_data_augment = enable_data_augment
+        self.select_validation_set_inside = select_validation_set_inside
         self._init_vars()
         self._load_data(only_load_statistic_data)
         # self.__split_data()
@@ -154,7 +157,8 @@ class DataLoader():
                 self.input_std = X_lst.std(axis=0)
                 self.output_mean = Y_lst.mean(axis=0)
                 self.output_std = Y_lst.std(axis=0)
-
+                np.clip(self.input_std, 1e-2, None, self.input_std)
+                np.clip(self.output_std, 1e-2, None, self.output_std)
                 cont = {
                     DataLoader.X_KEY: X_lst,
                     DataLoader.Y_KEY: Y_lst,
@@ -181,10 +185,48 @@ class DataLoader():
             train_size = int(self.train_perc * size)
             # test_size = size - train_size
             perm = np.random.permutation(size)
-            train_id = perm[:train_size]
-            test_id = perm[train_size:]
-            # print(f"train id {train_id}")
-            # print(f"test id {test_id}")
+
+            train_id = None
+            test_id = None
+            if self.select_validation_set_inside is False:
+                train_id = perm[:train_size]
+                test_id = perm[train_size:]
+            else:
+                # 1. find the max and min value of each feature channel
+                label_max = np.max(np.array(Y_lst), axis=0)
+                label_min = np.min(np.array(Y_lst), axis=0)
+
+                for i in range(len(label_max)):
+                    if np.abs(label_max[i] - label_min[i]) < 1e-5:
+                        # the min max is the same
+                        label_min[i] -= 1e-5
+                        label_max[i] += 1e-5
+                print(f"label max {label_max}")
+                print(f"label min {label_min}")
+                # 2. iterate over the set: if one chanel meet the limit, put it inside the train_id, else put it inside the test_id
+                test_size = size - train_size
+                test_id = []
+                train_id = []
+                for idx in list(perm):
+                    cur_Y = Y_lst[idx]
+                    # if inside the dataset
+                    if all(cur_Y > label_min) and all(cur_Y < label_max):
+                        # if the test set is filled
+                        if len(test_id) >= test_size:
+                            train_id.append(idx)
+                        else:
+
+                            test_id.append(idx)
+                    else:
+                        train_id.append(idx)
+                assert len(test_id) == test_size, f"ideal test size {test_size} real test_size {len(test_id)}"
+                assert len(train_id) == train_size
+            # print(f"--------- begin to check test id --------------")
+            # for _idx, i in enumerate(test_id):
+            #     print(f"test feature {_idx}: {self.output_mean + self.output_std * Y_lst[i]}")
+
+            # exit()
+
             # exit()
             from operator import itemgetter
 
@@ -199,7 +241,17 @@ class DataLoader():
             incre = min(st + self.batch_size, len(self.test_X)) - st
             if incre <= 0:
                 break
-            yield self.test_X[st:st + incre], self.test_Y[st:st + incre]
+            output_X, output_Y = self.test_X[st:st +
+                                             incre], self.test_Y[st:st + incre]
+
+            # if self.enable_data_augment is True:
+            #     size = output_X[0].shape[0]
+            #     for _idx in range(len(output_X)):
+            #         noise = (np.random.rand(3) - 0.5) / 20
+            #         noise_all = np.tile(noise, size // 3)
+            #         output_X[_idx] += noise_all
+
+            yield output_X, output_Y
             st += incre
 
     def get_train_data(self):
@@ -208,7 +260,17 @@ class DataLoader():
             incre = min(st + self.batch_size, len(self.train_X)) - st
             if incre <= 0:
                 break
-            yield self.train_X[st:st + incre], self.train_Y[st:st + incre]
+            output_X, output_Y = self.train_X[st:st +
+                                              incre], self.train_Y[st:st +
+                                                                   incre]
+
+            if self.enable_data_augment is True:
+                size = output_X[0].shape[0]
+                for _idx in range(len(output_X)):
+                    noise = (np.random.rand(3) - 0.5) / 10  # +-1.5cm
+                    noise_all = np.tile(noise, size // 3)
+                    output_X[_idx] += noise_all
+            yield output_X, output_Y
             st += incre
 
     def __shuffle_train_data(self):

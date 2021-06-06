@@ -24,7 +24,7 @@
     "cloth_property": {
         "stretch_warp": 1e4,
         "stretch_weft": 1e4,
-        "bending_warp": 5e2,
+        "bending_warp": 6e3,
         "bending_weft": 5e2,
         "bending_bias": 5e2
     },
@@ -131,5 +131,6 @@
     "enable_network_inference_mode": false,
     "network_inference_convergence_threshold": 0.001,
     "network_inference_output_path": "output.json",
-    "network_inference_min_iter": 100
+    "network_inference_min_iter": 100,
+    "enable_collision_detection": false
 }

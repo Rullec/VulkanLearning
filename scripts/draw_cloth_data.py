@@ -4,7 +4,7 @@ import json
 
 fig = plt.figure()
 ax = Axes3D(fig)
-data = r"D:\SimpleClothSimulator\data\export_data\1296items\2.json"
+data = r"D:\SimpleClothSimulator\data\export_data\500_to_5000_mesh\100.json"
 with open(data) as f:
     cont = json.load(f)
     print(cont.keys())

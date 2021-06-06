@@ -12,6 +12,7 @@ BaraffScene.cpp
 ImplicitScene.cpp
 LinctexScene.cpp
 SynDataScene.cpp
+MeshVisScene.cpp
 PDScene.cpp
 ProcessTrainDataScene.cpp
 PBDScene.cpp

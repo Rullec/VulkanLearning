@@ -176,6 +176,9 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         SIM_ASSERT(true == LoadRawData(mesh_path, mesh_feature_vec));
         // the feature vector will be saved in the mesh directory
         mesh_pos_vector = mXcur;
+        double rot_unit =
+            (2 * M_PI / mPreprocessInfo.mNumOfClothRotationViews) /
+            mPreprocessInfo.mNumOfInitRotationAngles;
         for (int init_rot_id = 0;
              init_rot_id < this->mPreprocessInfo.mNumOfInitRotationAngles;
              init_rot_id++)
@@ -187,10 +190,11 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
                                                     std::to_string(init_rot_id);
 
             // 5. apply the init rotation angle
-            double rand_angle = cMathUtil::RandDouble(0, 2 * M_PI);
-            tMatrix3d rotmat =
-                cMathUtil::AxisAngleToRotmat(tVector(0, 1, 0, 0) * rand_angle)
-                    .topLeftCorner<3, 3>();
+
+            // double rand_angle = cMathUtil::RandDouble(0, 2 * M_PI);
+            tMatrix3d rotmat = cMathUtil::AxisAngleToRotmat(
+                                   tVector(0, 1, 0, 0) * rot_unit * init_rot_id)
+                                   .topLeftCorner<3, 3>();
             for (int i = 0; i < mXcur.size(); i += 3)
             {
                 mXcur.segment(i, 3) = rotmat * mXcur.segment(i, 3);

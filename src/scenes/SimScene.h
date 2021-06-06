@@ -22,6 +22,7 @@ enum eSceneType
     SCENE_SE,     // style 3d engine
     SCENE_SYN_DATA,     // synthetic train scene
     SCENE_PROCESS_DATA, // process train scene
+    SCENE_MESH_VIS,     // mesh visualization scene
     NUM_OF_SCENE_TYPES
 };
 

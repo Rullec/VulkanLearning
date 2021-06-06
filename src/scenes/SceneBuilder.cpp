@@ -3,6 +3,7 @@
 #include "DrawScene.h"
 #include "ImplicitScene.h"
 #include "LinctexScene.h"
+#include "MeshVisScene.h"
 #include "PBDScene.h"
 #include "PDScene.h"
 #include "ProcessTrainDataScene.h"
@@ -61,6 +62,9 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
 #endif
     case eSceneType::SCENE_PROCESS_DATA:
         scene = std::make_shared<cProcessTrainDataScene>();
+        break;
+    case eSceneType::SCENE_MESH_VIS:
+        scene = std::make_shared<cMeshVisScene>();
         break;
     default:
         SIM_ERROR("unsupported sim scene {}", type);

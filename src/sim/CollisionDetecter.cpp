@@ -31,8 +31,12 @@ void cCollisionDetecter::AddCloth(std::vector<tVertex *> *vertex_array,
 /**
  * \brief           do collision detect
  */
+#include "utils/LogUtil.h"
 void cCollisionDetecter::PerformCollisionDetect()
 {
+    SIM_ASSERT(mVertexArray != nullptr);
+    SIM_ASSERT(mEdgeArray != nullptr);
+    SIM_ASSERT(mTriangleArray != nullptr);
     Clear();
     double circle_radius = 0.05; // m, 5cm
     double height = 0.27;        // m, 27cm

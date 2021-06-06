@@ -4,6 +4,7 @@ set(
     KinematicBody.cpp
     ClothPropertyManager.cpp
     ClothProperty.cpp
+    CollisionDetecter.cpp
 )
 
 add_library(sim_lib ${SIM_SRC})

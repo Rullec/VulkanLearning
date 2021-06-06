@@ -700,7 +700,7 @@ void cLinctexScene::ApplyFoldNoise(const tVector3d &principle_noise,
  * \brief                   Apply multiple folds noise
  * \param num_of_folds      Given number of folds
  */
-void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
+void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds, double max_amp)
 {
     SIM_ASSERT(num_of_folds >= 2 && num_of_folds <= 10);
     // 1. calculate the fold cycle (theta)
@@ -724,7 +724,7 @@ void cLinctexScene::ApplyMultiFoldsNoise(int num_of_folds)
         // std::cout << "angle " << i << " = " << angle << std::endl;
         // double amp = cMathUtil::RandDouble(0, 0.1); // up to 10 cm amp
         // double amp = 0.1;
-        double amp = cMathUtil::RandDouble(0, 0.1);
+        double amp = cMathUtil::RandDouble(0, max_amp);
         // double amp = cMathUtil::RandDoubleNorm(0.1, 0.1);
         tVector fold_dir =
             cMathUtil::AxisAngleToRotmat(tVector(0, 1, 0, 0) * angle) *

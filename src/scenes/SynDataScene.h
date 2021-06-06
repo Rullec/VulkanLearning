@@ -31,12 +31,14 @@ protected:
     {
         tSyncDataNoise(const Json::Value &value);
         int mNumOfNoisedSamples;
-        bool mEnableInitYRotation;
-        bool mEnableFoldNoise;
-        bool mEnableInitYPosNoise;
-        double mInitYPosNoiseStd;
-        double mFoldCoef;
+        // bool mEnableInitYRotation;
+        // bool mEnableFoldNoise;
+        // bool mEnableInitYPosNoise;
+        // double mInitYPosNoiseStd;
+        // double mFoldCoef;
         bool mEnableLowFreqNoise;
+        double mMaxFoldAmp;
+        int mMinFoldNum, mMaxFoldNum;
         // void ApplyNoise(std::vector<tVertex *> &vertex_array);
         // protected:
         // tEigenArr<tMatrix> GenerateAugmentTransform() const;

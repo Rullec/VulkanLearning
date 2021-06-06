@@ -14,24 +14,31 @@ class fc_net(nn.Module):
         super(fc_net, self).__init__()
         # define layers
         self.device = device
-        self.input = nn.Linear(input_size, layers[0])
-        self.middle_layers = []
-        for j in range(len(layers) - 1):
-            self.middle_layers.append(nn.Linear(layers[j], layers[j + 1]))
-        self.middle_layers = torch.nn.ModuleList(self.middle_layers)
-        self.output = nn.Linear(layers[-1], output_size)
+        if len(layers) > 0:
+            self.input = nn.Linear(input_size, layers[0])
+            self.middle_layers = []
+            for j in range(len(layers) - 1):
+                self.middle_layers.append(nn.Linear(layers[j], layers[j + 1]))
+            self.middle_layers = torch.nn.ModuleList(self.middle_layers)
+            self.output = nn.Linear(layers[-1], output_size)
+        else:
+            self.input = nn.Linear(input_size, output_size)
+            self.output = None
+
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x):
-        x = self.dropout(self.input(x)).to(self.device)
-        x = F.relu(x).to(self.device)
-
-        for i in self.middle_layers:
-            x = self.dropout(i(x)).to(self.device)
+        if self.output is not None:
+            x = self.dropout(self.input(x)).to(self.device)
             x = F.relu(x).to(self.device)
 
-        x = self.dropout(self.output(x)).to(self.device)
+            for i in self.middle_layers:
+                x = self.dropout(i(x)).to(self.device)
+                x = F.relu(x).to(self.device)
 
+            x = self.dropout(self.output(x)).to(self.device)
+        else:
+            x = self.dropout(self.input(x))
         # x = F.relu(x).to(self.device)
 
         return x
@@ -53,10 +60,10 @@ def build_conv_block(config):
     padding = config[PADDING_KEY]
 
     return nn.Conv2d(inplanes,
-              outplanes,
-              kernel_size=kernel_size,
-              stride=stride_size,
-              padding=padding)
+                     outplanes,
+                     kernel_size=kernel_size,
+                     stride=stride_size,
+                     padding=padding)
 
 
 def build_avg_pool_block(config):
@@ -123,7 +130,8 @@ class cnn_net(nn.Module):
                 if type == "fc":
                     x = F.relu(x)
                 if enable_logging:
-                    print(f"after layer {_idx} {type} output shape = {x.shape}")
+                    print(
+                        f"after layer {_idx} {type} output shape = {x.shape}")
             except Exception as e:
                 print(f"[error] got exception in layer {_idx} {type}, {e}")
                 exit(1)

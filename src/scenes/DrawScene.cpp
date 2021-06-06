@@ -649,7 +649,7 @@ void cDrawScene::Reset()
         // lin_scene->ApplyNoise(true, angle, true, std);
 
         // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
-        lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
+        lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10), 0.05);
         std::cout << "apply multiple folds noise\n";
         // std::cout << "apply noise in draw scene, std = " << std << std::endl;
     }

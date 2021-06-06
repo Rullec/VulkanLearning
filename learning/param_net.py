@@ -120,7 +120,9 @@ class ParamNet:
             0.2,
             self.batch_size,
             enable_log_prediction=self.enable_log_prediction,
-            only_load_statistic_data=only_load_statistic_data_)
+            only_load_statistic_data=only_load_statistic_data_,
+            enable_data_augment=False,
+            select_validation_set_inside=True)
         self.input_size = self.data_loader.get_input_size()
         self.output_size = self.data_loader.get_output_size()
 
@@ -223,18 +225,20 @@ class ParamNet:
             iters = 0
             total_validation_err = 0
             total_num = 0
-            for sampled_batched in self.data_loader.get_validation_data():
+            for _idx, sampled_batched in enumerate(self.data_loader.get_validation_data()):
 
                 inputs, outputs = sampled_batched
                 inputs = np.array(inputs)
                 outputs = np.array(outputs)
                 num = inputs.shape[0]
-                if num == 1:
-                    # print("validation, num = 1, ignore")
-                    continue
+                # if num == 1:
+                #     # print("validation, num = 1, ignore")
+                #     continue
                 # print(f"outut shape {outputs.shape}")
                 inputs = torch.from_numpy(inputs).to(self.device)
                 Y = torch.from_numpy(outputs).to(self.device)
+                
+                
                 # self.optimizer.zero_grad()
                 pred = self.net(inputs)
                 single_mse = self.criterion(pred, Y)
@@ -242,6 +246,18 @@ class ParamNet:
                 # print(f"[valid] single mse {single_mse} num {num}")
                 iters += 1
                 total_num += num
+
+
+                # if True and _idx == 0:
+                #     pred = pred.cpu()
+                #     Y = Y.cpu()
+                #     diff = np.array(pred - Y)
+                #     # print(f"diff shape {diff.shape}")
+                #     print(f"pred {pred}")
+                #     print(f"gt {Y}")
+                #     print(f"diff {diff}")
+                #     # exit()
+
             output_mean = self.data_loader.get_output_mean()
             output_std = self.data_loader.get_output_std()
             # print(f"output mean {output_mean}")
@@ -283,9 +299,6 @@ class ParamNet:
                 inputs = torch.from_numpy(inputs).to(self.device)
                 Y = torch.from_numpy(outputs).to(self.device)
                 num = inputs.shape[0]
-                # print(
-                #     f"batch {i_batch} input shape {inputs.shape} output shape {outputs.shape}"
-                # )
 
                 # outputs.type(torch.float32)
                 # print(f"output tensor {outputs}")
@@ -315,8 +328,8 @@ class ParamNet:
                     f"iter {epoch} train loss {mean_train_loss} validation loss {validation_err}, avg cost {(time.time() - st_time)/(epoch + 1)}, device {self.device}"
                 )
                 self.writer.add_scalar("train_loss", mean_train_loss, step)
-                self.writer.add_scalar("validation_error",
-                                       self._calc_validation_error(), step)
+                self.writer.add_scalar("validation_error", validation_err,
+                                       step)
                 self.writer.add_scalar("lr", self._get_lr(), step)
                 # if validation_err < self.covg_threshold:
                 #     break
@@ -419,7 +432,7 @@ class ParamNet:
                 # print(f"diff {gt}")
                 # print(f"diff perc {diff_perc}")
                 # exit()
-                if i < 10:
+                if i < 1000:
                     print(
                         f"pred {pred}\ngt {gt}\ndiff {diff}\nperc {diff_perc}\n"
                     )

@@ -45,8 +45,7 @@ void cSynDataScene::Init(const std::string &conf_path)
         cJsonUtil::ParseAsDouble("data_cleaner_threshold", conf_json);
     mPropManager = std::make_shared<tPhyPropertyManager>(
         cJsonUtil::ParseAsValue("property_manager", conf_json));
-    mEnableDraw =
-        cJsonUtil::ParseAsBool(this->ENABLE_DRAW_KEY, conf_json);
+    mEnableDraw = cJsonUtil::ParseAsBool(this->ENABLE_DRAW_KEY, conf_json);
     {
         mIdealDefaultTimestep = cJsonUtil::ParseAsDouble(
             cSimScene::DEFAULT_TIMESTEP_KEY, conf_json);
@@ -108,8 +107,20 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
         mLinScene->Update(1e-3);
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         buffer1.noalias() = mLinScene->GetClothFeatureVector();
+
+        // find the biggest movement vertex
+        // {
+        int num_of_points = buffer1.size() / 3;
+        Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
+            buffer0_mat(buffer0.data(), num_of_points, 3);
+        Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
+            buffer1_mat(buffer1.data(), num_of_points, 3);
+
+        double max_move_dist = (buffer0 - buffer1).rowwise().norm().maxCoeff();
+        // }
         // printf("%d size %d size \n", buffer0.size(), buffer1.size());
-        double diff_norm = (buffer1 - buffer0).norm();
+        // double diff_norm = (buffer1 - buffer0).norm();
+        double diff_norm = max_move_dist;
         // printf("[debug] before norm %.6f, cur norm %.6f, diff %.6f\n",
         // buffer0.norm(), buffer1.norm(), diff_norm);
         if ((diff_norm < threshold && is_first_frame == false &&
@@ -337,14 +348,17 @@ void cSynDataScene::InitExportDataDir()
 cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
 {
     mNumOfNoisedSamples = cJsonUtil::ParseAsInt("noised_samples", conf);
-    mEnableInitYRotation = cJsonUtil::ParseAsBool("enable_init_rotation", conf);
-    mEnableFoldNoise = cJsonUtil::ParseAsBool("enable_fold_noise", conf);
-    mEnableInitYPosNoise =
-        cJsonUtil::ParseAsBool("enable_gaussian_pos_noise", conf);
-    mInitYPosNoiseStd = cJsonUtil::ParseAsDouble("gaussian_std", conf);
-    mFoldCoef = cJsonUtil::ParseAsDouble("fold_coef", conf);
+    // mEnableInitYRotation = cJsonUtil::ParseAsBool("enable_init_rotation", conf);
+    // mEnableFoldNoise = cJsonUtil::ParseAsBool("enable_fold_noise", conf);
+    // mEnableInitYPosNoise =
+    //     cJsonUtil::ParseAsBool("enable_gaussian_pos_noise", conf);
+    // mInitYPosNoiseStd = cJsonUtil::ParseAsDouble("gaussian_std", conf);
+    // mFoldCoef = cJsonUtil::ParseAsDouble("fold_coef", conf);
     mEnableLowFreqNoise =
         cJsonUtil::ParseAsDouble("enable_low_freq_noise", conf);
+    mMaxFoldAmp = cJsonUtil::ParseAsDouble("max_fold_amp", conf);
+    mMinFoldNum = cJsonUtil::ParseAsInt("min_fold_num", conf);
+    mMaxFoldNum = cJsonUtil::ParseAsInt("max_fold_num", conf);
     // SIM_ASSERT(mEnableInitYRotation == false);
     // SIM_ASSERT(mEnableFoldNoise == true);
     // std::cout << mNumOfNoisedSamples << " " << mEnableInitYRotation << " " <<
@@ -363,35 +377,36 @@ void cSynDataScene::ApplyNoiseIfPossible()
         // mLinScene->ApplyNoise(this->mSynDataNoise->mEnableInitYRotation,
         // theta, mSynDataNoise->mEnableInitYPosNoise,
         // mSynDataNoise->mInitYPosNoiseStd);
-        if (this->mSynDataNoise->mEnableFoldNoise == true)
-        {
+        // if (this->mSynDataNoise->mEnableFoldNoise == true)
+        // {
 
-            tVector3d principle_axis = tVector3d::Random();
-            principle_axis[1] = 0;
-            principle_axis.normalize();
+        //     tVector3d principle_axis = tVector3d::Random();
+        //     principle_axis[1] = 0;
+        //     principle_axis.normalize();
 
-            mLinScene->ApplyFoldNoise(principle_axis, mSynDataNoise->mFoldCoef);
-            std::cout << "[debug] apply fold noise along principle noise "
-                      << principle_axis.transpose()
-                      << ", folding coef = " << mSynDataNoise->mFoldCoef
-                      << std::endl;
-        }
+        //     mLinScene->ApplyFoldNoise(principle_axis, mSynDataNoise->mFoldCoef);
+        //     std::cout << "[debug] apply fold noise along principle noise "
+        //               << principle_axis.transpose()
+        //               << ", folding coef = " << mSynDataNoise->mFoldCoef
+        //               << std::endl;
+        // }
 
-        // if(this-)
-        if (mSynDataNoise->mEnableInitYPosNoise == true)
-        {
-            double angle = 0;
-            mLinScene->ApplyNoise(mSynDataNoise->mEnableInitYRotation, angle,
-                                  mSynDataNoise->mEnableInitYPosNoise,
-                                  mSynDataNoise->mInitYPosNoiseStd);
-            std::cout << "[debug] apply gaussian noise on Y axis, std = "
-                      << mSynDataNoise->mInitYPosNoiseStd << std::endl;
-        }
+        // // if(this-)
+        // if (mSynDataNoise->mEnableInitYPosNoise == true)
+        // {
+        //     double angle = 0;
+        //     mLinScene->ApplyNoise(mSynDataNoise->mEnableInitYRotation, angle,
+        //                           mSynDataNoise->mEnableInitYPosNoise,
+        //                           mSynDataNoise->mInitYPosNoiseStd);
+        //     std::cout << "[debug] apply gaussian noise on Y axis, std = "
+        //               << mSynDataNoise->mInitYPosNoiseStd << std::endl;
+        // }
 
         if (mSynDataNoise->mEnableLowFreqNoise == true)
         {
-            int num = cMathUtil::RandInt(4, 10);
-            mLinScene->ApplyMultiFoldsNoise(num);
+            int num = cMathUtil::RandInt(mSynDataNoise->mMinFoldNum,
+                                         mSynDataNoise->mMaxFoldNum);
+            mLinScene->ApplyMultiFoldsNoise(num, mSynDataNoise->mMaxFoldAmp);
             std::cout << "[debug] apply low freq noise " << num << std::endl;
         }
         // std::cout << "theta = " << theta << std::endl;

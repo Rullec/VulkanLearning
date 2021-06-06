@@ -32,7 +32,7 @@ public:
                             const double random_ypos_std);
     virtual void ApplyFoldNoise(const tVector3d &principle_noise,
                                 const double a);
-    virtual void ApplyMultiFoldsNoise(int num_of_folds);
+    virtual void ApplyMultiFoldsNoise(int num_of_folds, double max_amp);
     virtual tPhyPropertyPtr GetSimProperty() const;
     virtual const tVectorXd &GetClothFeatureVector() const;
     virtual int GetClothFeatureSize() const;
