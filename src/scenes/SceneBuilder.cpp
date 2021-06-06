@@ -59,10 +59,10 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
     case eSceneType::SCENE_SYN_DATA:
         scene = std::make_shared<cSynDataScene>();
         break;
-#endif
     case eSceneType::SCENE_PROCESS_DATA:
         scene = std::make_shared<cProcessTrainDataScene>();
         break;
+#endif
     case eSceneType::SCENE_MESH_VIS:
         scene = std::make_shared<cMeshVisScene>();
         break;

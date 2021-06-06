@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #pragma once
 #include "SimScene.h"
 #include "utils/DefUtil.h"
@@ -103,3 +104,4 @@ protected:
     void CalcDepthMapNoCloth();
     static void ValidateOutputDir(std::string dir);
 };
+#endif

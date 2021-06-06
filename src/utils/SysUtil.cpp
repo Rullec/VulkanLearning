@@ -1,8 +1,9 @@
 #include "SysUtil.h"
-#include "windows.h"
-#include "psapi.h"
 #include <iostream>
 
+#ifdef _WIN32
+#include "windows.h"
+#include "psapi.h"
 int cSysUtil::GetPhyMemConsumedBytes()
 {
     MEMORYSTATUSEX memInfo;
@@ -17,3 +18,4 @@ int cSysUtil::GetPhyMemConsumedBytes()
 
     return physMemUsedByMe;
 }
+#endif

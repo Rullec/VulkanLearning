@@ -36,12 +36,6 @@ public:
     virtual tPhyPropertyPtr GetSimProperty() const;
     virtual const tVectorXd &GetClothFeatureVector() const;
     virtual int GetClothFeatureSize() const;
-    static void DumpSimulationData(const tVectorXd &simualtion_result,
-                                   const tVectorXd &simulation_property,
-                                   const std::string &filename);
-    static void LoadSimulationData(tVectorXd &simualtion_result,
-                                   tVectorXd &simulation_property,
-                                   const std::string &filename);
     virtual void Key(int key, int scancode, int action, int mods);
     virtual tVector CalcCOM() const;
     virtual void End();

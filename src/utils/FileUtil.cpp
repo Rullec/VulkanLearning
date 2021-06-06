@@ -589,6 +589,7 @@ bool cFileUtil::AddLock(const std::string &path)
     //     return LOCK_FAIL;
     // }
     // return LOCK_SUCCESS;
+    return false;
 }
 
 bool cFileUtil::DeleteLock(const std::string &path)
@@ -619,6 +620,7 @@ bool cFileUtil::DeleteLock(const std::string &path)
 
     // write_descriptor.erase(write_descriptor.find(path_lock));
     // return LOCK_SUCCESS;
+    return false;
 }
 
 std::vector<std::string> cFileUtil::ListDir(std::string dir)

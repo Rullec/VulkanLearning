@@ -63,5 +63,6 @@
         "near": 0.01,
         "far": 100
     },
-    "enable_profiling": true
+    "enable_profiling": true,
+    "enable_collision_detection": false
 }

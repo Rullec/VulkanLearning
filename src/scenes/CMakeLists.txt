@@ -42,23 +42,24 @@ else()
 endif()
 endif()
 
+if(WIN32)
+    pybind11_add_module(process_data_scene ./process_traindata_scene_pybind_export.cpp ./ProcessTrainDataScene.cpp)
+    target_link_libraries(process_data_scene PRIVATE sim_scenes_lib geo_lib)
 
-pybind11_add_module(process_data_scene ./process_traindata_scene_pybind_export.cpp ./ProcessTrainDataScene.cpp)
-target_link_libraries(process_data_scene PRIVATE sim_scenes_lib geo_lib)
-
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+            add_custom_command(
+                TARGET process_data_scene POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E rename
+                    ${CMAKE_CURRENT_BINARY_DIR}/Debug/process_data_scene.cp37-win_amd64.pyd
+                    ${CMAKE_SOURCE_DIR}/learning/process_data_scene.cp37-win_amd64.pyd
+            )
+    else()
         add_custom_command(
             TARGET process_data_scene POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E rename
-                ${CMAKE_CURRENT_BINARY_DIR}/Debug/process_data_scene.cp37-win_amd64.pyd
+                ${CMAKE_CURRENT_BINARY_DIR}/Release/process_data_scene.cp37-win_amd64.pyd
                 ${CMAKE_SOURCE_DIR}/learning/process_data_scene.cp37-win_amd64.pyd
         )
-else()
-    add_custom_command(
-        TARGET process_data_scene POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E rename
-            ${CMAKE_CURRENT_BINARY_DIR}/Release/process_data_scene.cp37-win_amd64.pyd
-            ${CMAKE_SOURCE_DIR}/learning/process_data_scene.cp37-win_amd64.pyd
-    )
-endif()
+    endif()
 
+endif()

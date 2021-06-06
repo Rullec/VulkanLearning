@@ -4,9 +4,9 @@ project(ClothSim VERSION 0.1.0)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(./cmake/configure_movecmd.cmake)
+include_directories(./includes)
 
-if(WIN32)
-    include_directories(./includes)
+if(WIN32)    
     link_directories(./lib)
     include_directories("D:\\Projects\\Simulation")
 endif()

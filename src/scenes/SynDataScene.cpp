@@ -10,6 +10,14 @@
 // int online_cur_prop_id = -1;
 // tVectorXd online_before_nodal_pos;
 
+extern void DumpSimulationData(const tVectorXd &simualtion_result,
+                        const tVectorXd &simulation_property,
+                        // const tVector &init_rot_qua,
+                        // const tVector &init_translation,
+                        const std::string &filename);
+extern void LoadSimulationData(tVectorXd &simualtion_result,
+                        tVectorXd &simulation_property,
+                        const std::string &filename);
 cSynDataScene::cSynDataScene()
 {
     mSynDataNoise = nullptr;
@@ -148,7 +156,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
         std::string full_name =
             cFileUtil::ConcatFilename(mExportDataDir, single_name);
         // 2. "input" & output
-        cLinctexScene::DumpSimulationData(
+        DumpSimulationData(
             mLinScene->GetClothFeatureVector(),
             props->BuildVisibleFeatureVector(),
             // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
@@ -165,7 +173,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             std::string full_name =
                 cFileUtil::ConcatFilename(mExportDataDir, single_name);
             // 2. "input" & output
-            cLinctexScene::DumpSimulationData(
+            DumpSimulationData(
                 mLinScene->GetClothFeatureVector(),
                 props->BuildVisibleFeatureVector(),
                 // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
@@ -200,7 +208,7 @@ bool cSynDataScene::CheckDuplicateWithDataSet() const
         std::string single_name = std::to_string(i) + ".json";
         std::string full_name =
             cFileUtil::ConcatFilename(mExportDataDir, single_name);
-        cLinctexScene::LoadSimulationData(old_res, old_prop, full_name);
+        LoadSimulationData(old_res, old_prop, full_name);
 
         // 1. calc distance
         double cur_dist = calc_dist(old_res, cur_res);

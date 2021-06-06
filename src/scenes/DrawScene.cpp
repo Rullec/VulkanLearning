@@ -632,6 +632,7 @@ void cDrawScene::Scroll(double xoff, double yoff)
 void cDrawScene::Reset()
 {
     mSimScene->Reset();
+#ifdef _WIN32
     auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
     if (lin_scene != nullptr)
     {
@@ -653,6 +654,7 @@ void cDrawScene::Reset()
         std::cout << "apply multiple folds noise\n";
         // std::cout << "apply noise in draw scene, std = " << std << std::endl;
     }
+#endif
 }
 
 /**

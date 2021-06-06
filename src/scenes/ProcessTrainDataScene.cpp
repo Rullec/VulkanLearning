@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "ProcessTrainDataScene.h"
 #include "cameras/ArcBallCamera.h"
 #include "geometries/OptixRaycaster.h"
@@ -127,8 +128,10 @@ void cProcessTrainDataScene::InitPreprocessInfo(const Json::Value &conf)
  */
 void cProcessTrainDataScene::CalcDepthMapNoCloth()
 {
+#ifdef USE_OPTIX
     printf("[warn] calculate depth map without cloth geometry\n");
     cTimeUtil::Begin("depth_without_cloth");
+
     auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
     std::vector<std::string> save_img_path_array(0);
     std::string suffix = this->GetImageSuffix(mExportImageType);
@@ -146,6 +149,7 @@ void cProcessTrainDataScene::CalcDepthMapNoCloth()
     printf("[log] calculate depth map without cloth geometry done, output dir "
            "= %s, cost %.3f ms\n",
            mGenDataDir.c_str(), cTimeUtil::End("depth_without_cloth", true));
+#endif
 }
 
 /**
@@ -506,9 +510,11 @@ tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
     tVectorXf mPixels = tVectorXf::Zero(mHeight * mWidth);
 
     // 4.
+#ifdef _WIN32
     auto ptr = std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster);
     ptr->CalcDepthMapMultiCamera(mCastingRange, mHeight, mWidth, mCameraLst[0],
                                  mPixels);
+#endif
     return mPixels;
 }
 
@@ -548,3 +554,5 @@ std::string cProcessTrainDataScene::GetImageSuffix(eImageType type)
 
     return cProcessTrainDataScene::gImageSuffix[id];
 }
+
+#endif

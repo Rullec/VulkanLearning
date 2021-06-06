@@ -1,6 +1,46 @@
+#include "utils/MathUtil.h"
+#include "utils/JsonUtil.h"
+#include <iostream>
+
+/**
+ * \brief           Save current simulation correspondence
+ */
+void DumpSimulationData(const tVectorXd &simualtion_result,
+                        const tVectorXd &simulation_property,
+                        // const tVector &init_rot_qua,
+                        // const tVector &init_translation,
+                        const std::string &filename)
+{
+    Json::Value export_json;
+    export_json["input"] = cJsonUtil::BuildVectorJson(simualtion_result);
+    export_json["output"] = cJsonUtil::BuildVectorJson(simulation_property);
+    // Json::Value extra_info;
+    // std::cout << "feature = " << props->BuildFullFeatureVector().transpose()
+    // << std::endl; std::cout << "trans = \n"
+    //           << init_trans << std::endl;
+
+    // extra_info["init_rot"] = cJsonUtil::BuildVectorJson(init_rot_qua);
+    // extra_info["init_pos"] = cJsonUtil::BuildVectorJson(init_translation);
+    // export_json["extra_info"] = extra_info;
+    cJsonUtil::WriteJson(filename, export_json);
+    std::cout << "[debug] save data to " << filename << std::endl;
+}
+
+void LoadSimulationData(tVectorXd &simualtion_result,
+                        tVectorXd &simulation_property,
+                        const std::string &filename)
+{
+    Json::Value root;
+    cJsonUtil::LoadJson(filename, root);
+    simualtion_result =
+        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("input", root));
+    simulation_property =
+        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("output", root));
+}
+
 #ifdef _WIN32
-#include "LinctexScene.h"
 #include "Core/SeLogger.h"
+#include "LinctexScene.h"
 #include "SePhysicalProperties.h"
 #include "SePiece.h"
 #include "SeScene.h"
@@ -13,7 +53,6 @@
 #include "utils/FileUtil.h"
 #include "utils/LogUtil.h"
 #include <chrono> // std::chrono::seconds
-#include <iostream>
 #include <thread> // std::this_thread::sleep_for
 SE_USING_NAMESPACE
 cLinctexScene::cLinctexScene()
@@ -180,7 +219,7 @@ void cLinctexScene::NetworkInferenceFunction()
     {
         std::cout << "exit, save current result to " << mNetworkInfer_OutputPath
                   << std::endl;
-        cLinctexScene::DumpSimulationData(mClothFeature,
+        DumpSimulationData(mClothFeature,
                                           mClothProp->BuildFullFeatureVector(),
                                           // tVector::Zero(),
                                           // tVector::Zero(),
@@ -425,41 +464,6 @@ const tVectorXd &cLinctexScene::GetClothFeatureVector() const
 int cLinctexScene::GetClothFeatureSize() const { return mClothFeature.size(); }
 
 /**
- * \brief           Save current simulation correspondence
- */
-void cLinctexScene::DumpSimulationData(const tVectorXd &simualtion_result,
-                                       const tVectorXd &simulation_property,
-                                       // const tVector &init_rot_qua,
-                                       // const tVector &init_translation,
-                                       const std::string &filename)
-{
-    Json::Value export_json;
-    export_json["input"] = cJsonUtil::BuildVectorJson(simualtion_result);
-    export_json["output"] = cJsonUtil::BuildVectorJson(simulation_property);
-    // Json::Value extra_info;
-    // std::cout << "feature = " << props->BuildFullFeatureVector().transpose()
-    // << std::endl; std::cout << "trans = \n"
-    //           << init_trans << std::endl;
-
-    // extra_info["init_rot"] = cJsonUtil::BuildVectorJson(init_rot_qua);
-    // extra_info["init_pos"] = cJsonUtil::BuildVectorJson(init_translation);
-    // export_json["extra_info"] = extra_info;
-    cJsonUtil::WriteJson(filename, export_json);
-    std::cout << "[debug] save data to " << filename << std::endl;
-}
-
-void cLinctexScene::LoadSimulationData(tVectorXd &simualtion_result,
-                                       tVectorXd &simulation_property,
-                                       const std::string &filename)
-{
-    Json::Value root;
-    cJsonUtil::LoadJson(filename, root);
-    simualtion_result =
-        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("input", root));
-    simulation_property =
-        cJsonUtil::ReadVectorJson(cJsonUtil::ParseAsValue("output", root));
-}
-/**
  * \brief               Init the feature vector
  */
 void cLinctexScene::InitClothFeatureVector()
@@ -565,7 +569,7 @@ void cLinctexScene::Key(int key, int scancode, int action, int mods)
     cSimScene::Key(key, scancode, action, mods);
     if (key == GLFW_KEY_S && action == GLFW_PRESS)
     {
-        cLinctexScene::DumpSimulationData(GetClothFeatureVector(),
+        DumpSimulationData(GetClothFeatureVector(),
                                           mClothProp->BuildFullFeatureVector(),
                                           // tVector::Zero(),
                                           // tVector::Zero(),

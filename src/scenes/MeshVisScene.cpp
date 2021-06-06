@@ -109,12 +109,14 @@ void cMeshVisScene::UpdateSubstep()
 {
     std::cout << mXcur.segment(0, 10).transpose() << std::endl;
 }
-
+extern void LoadSimulationData(tVectorXd &simualtion_result,
+                               tVectorXd &simulation_property,
+                               const std::string &filename);
 void cMeshVisScene::SetMeshData(int id)
 {
     tVectorXd prop, pos;
 
-    cLinctexScene::LoadSimulationData(pos, prop, mMeshDataList[id]);
+    LoadSimulationData(pos, prop, mMeshDataList[id]);
     // std::cout << "pos = " << pos.segment(0, 10).transpose() << std::endl;
     UpdateCurNodalPosition(pos);
     UpdateRenderingResource();
