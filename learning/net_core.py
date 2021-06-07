@@ -47,7 +47,7 @@ class fc_net(nn.Module):
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1, conv3x3
 
 
-def build_conv_block(config):
+def build_conv2d_block(config):
     KERNEL_SIZE_KEY = "kernel_size"
     STRIDE_KEY = "stride"
     INPLANE_KEY = "inplanes"
@@ -60,6 +60,25 @@ def build_conv_block(config):
     padding = config[PADDING_KEY]
 
     return nn.Conv2d(inplanes,
+                     outplanes,
+                     kernel_size=kernel_size,
+                     stride=stride_size,
+                     padding=padding)
+
+
+def build_conv1d_block(config):
+    KERNEL_SIZE_KEY = "kernel_size"
+    STRIDE_KEY = "stride"
+    INPLANE_KEY = "inplanes"
+    OUTPLANE_KEY = "outplanes"
+    PADDING_KEY = "padding"
+    kernel_size = config[KERNEL_SIZE_KEY]
+    stride_size = config[STRIDE_KEY]
+    inplanes = config[INPLANE_KEY]
+    outplanes = config[OUTPLANE_KEY]
+    padding = config[PADDING_KEY]
+
+    return nn.Conv1d(inplanes,
                      outplanes,
                      kernel_size=kernel_size,
                      stride=stride_size,
@@ -99,8 +118,10 @@ class cnn_net(nn.Module):
         for config in layers_config:
             type = config["type"]
             self.type_lst.append(type)
-            if type == "conv":
-                block = build_conv_block(config)
+            if type == "conv2d":
+                block = build_conv2d_block(config)
+            elif type == "conv1d":
+                block = build_conv1d_block(config)
             elif type == "avgpool":
                 block = build_avg_pool_block(config)
             elif type == "fc":

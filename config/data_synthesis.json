@@ -62,7 +62,7 @@
                     5e2,
                     5e3
                 ],
-                "num_of_samples": 50,
+                "num_of_samples": 500,
                 "visible": true,
                 "index": 2
             }
@@ -88,7 +88,7 @@
         "max_fold_num": 3
     },
     "convergence_threshold": 0.001,
-    "enable_data_cleaner": true,
+    "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false
 }

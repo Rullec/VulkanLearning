@@ -31,10 +31,9 @@ class ParamNet:
     LOAD_MODEL_PATH_KEY = "model_path"
     SAVE_MODEL_ITERS_KEY = "save_model_iters"
     LOGGING_ITERS_KEY = "logging_iters"
-    BATCH_SIZE_KEY = "batch_size"
     OPTIMIZER_TYPE_KEY = "optimizer"
-    ENABLE_LOG_PREDICTION_KEY = "enable_log_prediction"
     DROPOUT_KEY = "dropout"
+    DATA_LOADER_KEY = "data_loader_config"
 
     def __init__(self, config_path, device, only_load_statistic_data=False):
         '''
@@ -63,9 +62,10 @@ class ParamNet:
         self.layers = list(self.conf[ParamNet.LAYERS_KEY])
         self.covg_threshold = float(
             self.conf[ParamNet.CONVERGENCE_THRESHOLD_KEY])
-        self.data_dir = str(self.conf[ParamNet.DATA_DIR_KEY])
+
+        # self.data_dir = str(self.conf[ParamNet.DATA_DIR_KEY])
         self.model_output_dir = self.conf[ParamNet.MODEL_OUTPUT_DIR_KEY]
-        self.batch_size = self.conf[ParamNet.BATCH_SIZE_KEY]
+        # self.batch_size = self.conf[ParamNet.BATCH_SIZE_KEY]
         # optional
         self.load_model_path = str(
             self.conf[ParamNet.LOAD_MODEL_PATH_KEY]
@@ -73,8 +73,8 @@ class ParamNet:
         self.iters_save_model = int(self.conf[ParamNet.SAVE_MODEL_ITERS_KEY])
         self.iters_logging = int(self.conf[ParamNet.LOGGING_ITERS_KEY])
         self.optimizer_type = self.conf[ParamNet.OPTIMIZER_TYPE_KEY]
-        self.enable_log_prediction = self.conf[
-            ParamNet.ENABLE_LOG_PREDICTION_KEY]
+        # self.enable_log_prediction = self.conf[
+        #     ParamNet.ENABLE_LOG_PREDICTION_KEY]
         self.dropout = self.conf[ParamNet.DROPOUT_KEY]
 
     def save_model(self, name):
@@ -114,15 +114,8 @@ class ParamNet:
         '''
         Create dataloader and get the data size
         '''
-        self.data_loader = DataLoader(
-            self.data_dir,
-            0.8,
-            0.2,
-            self.batch_size,
-            enable_log_prediction=self.enable_log_prediction,
-            only_load_statistic_data=only_load_statistic_data_,
-            enable_data_augment=False,
-            select_validation_set_inside=True)
+        self.data_loader = DataLoader(self.conf[self.DATA_LOADER_KEY],
+                                      only_load_statistic_data_)
         self.input_size = self.data_loader.get_input_size()
         self.output_size = self.data_loader.get_output_size()
 
@@ -163,7 +156,7 @@ class ParamNet:
         import datetime
         import os
         output_name = datetime.datetime.now().strftime("%m-%d-%H_%M_%S")
-        output_name = f"{output_name}-{str(cur_loss)[:5]}.pkl"
+        output_name = f"{output_name}-{str(cur_loss)[:6]}.pkl"
         output_name = os.path.join(self.model_output_dir, output_name)
         return output_name
 
@@ -178,7 +171,8 @@ class ParamNet:
         # print(f"[infer] output mean {self.data_loader.output_mean}")
         res = pred.detach().cpu().numpy(
         ) * self.data_loader.output_std + self.data_loader.output_mean
-        if self.enable_log_prediction == True:
+        # if self.enable_log_prediction == True:
+        if self.data_loader.enable_log_predction == True:
             res = np.exp(res)
 
         return res
@@ -225,7 +219,8 @@ class ParamNet:
             iters = 0
             total_validation_err = 0
             total_num = 0
-            for _idx, sampled_batched in enumerate(self.data_loader.get_validation_data()):
+            for _idx, sampled_batched in enumerate(
+                    self.data_loader.get_validation_data()):
 
                 inputs, outputs = sampled_batched
                 inputs = np.array(inputs)
@@ -237,8 +232,7 @@ class ParamNet:
                 # print(f"outut shape {outputs.shape}")
                 inputs = torch.from_numpy(inputs).to(self.device)
                 Y = torch.from_numpy(outputs).to(self.device)
-                
-                
+
                 # self.optimizer.zero_grad()
                 pred = self.net(inputs)
                 single_mse = self.criterion(pred, Y)
@@ -246,7 +240,6 @@ class ParamNet:
                 # print(f"[valid] single mse {single_mse} num {num}")
                 iters += 1
                 total_num += num
-
 
                 # if True and _idx == 0:
                 #     pred = pred.cpu()
@@ -351,7 +344,7 @@ class ParamNet:
         # print(f"res {prediction * output_std}")
         pred = prediction * output_std + output_mean
         gt = gt * output_std + output_mean
-        if self.enable_log_prediction == True:
+        if self.data_loader.enable_log_predction == True:
             pred = np.exp(pred)
             gt = np.exp(gt)
         diff = np.abs(pred - gt)
@@ -409,7 +402,7 @@ class ParamNet:
             # idx = np.random.permutation(np_pred.shape[0])[:print_samples]
             # assert self.enable_log_prediction == True
 
-            diff_perc_lst = []
+            # diff_perc_lst = []
             for i in range(print_samples):
                 # print(f"pred {np_pred[i, :]}, gt {np_gt[i, :]}, diff {diff[i, :]}")
                 pred = np_pred[i, :] * output_std + output_mean
@@ -419,14 +412,14 @@ class ParamNet:
                 # print(f"output std = {output_std}")
                 # print(f"output mean = {output_mean}")
                 # print(f"later gt = {gt}")
-                if self.enable_log_prediction == True:
+                if self.data_loader.enable_log_predction == True:
                     pred = np.exp(pred)
                     gt = np.exp(gt)
                     diff = np.abs(pred - gt)
                 else:
                     diff = np.abs(pred - gt)
                 # diff_perc = diff / gt * 100
-                diff_perc = np.linalg.norm(diff / gt)
+                diff_perc = np.linalg.norm(diff / gt) * 100
                 # print(f"pred {pred}")
                 # print(f"gt {gt}")
                 # print(f"diff {gt}")
@@ -434,24 +427,29 @@ class ParamNet:
                 # exit()
                 if i < 1000:
                     print(
-                        f"pred {pred}\ngt {gt}\ndiff {diff}\nperc {diff_perc}\n"
+                        f"[validation print] pred {pred}\ngt {gt}\ndiff {diff}\nperc {diff_perc} %\n"
                     )
                 # for i in list(diff_perc):
                 # diff_perc_lst.append(i)
-                diff_perc_lst.append(np.linalg.norm(diff_perc))
+                # diff_perc_lst.append(np.linalg.norm(diff_perc))
                 # diff_perc_lst.append(i)
                 # print(f"diff {diff[i, :]}")
             import matplotlib.pyplot as plt
-            print(f"diff perc lst {diff_perc_lst}")
+            # print(f"diff perc lst {diff_perc_lst}")
             # exit()
             idx = np.argsort(diff_perc_lst)
 
-            print(f"50% {diff_perc_lst[idx[int(0.5 * len(diff_perc_lst))]]}")
-            print(f"80% {diff_perc_lst[idx[int(0.8 * len(diff_perc_lst))]]}")
-            print(f"90% {diff_perc_lst[idx[int(0.9 * len(diff_perc_lst))]]}")
-            print(f"99% {diff_perc_lst[idx[int(0.99 * len(diff_perc_lst))]]}")
+            print(f"50% {diff_perc_lst[idx[int(0.5 * len(diff_perc_lst))]]} %")
+            print(f"80% {diff_perc_lst[idx[int(0.8 * len(diff_perc_lst))]]} %")
+            print(f"90% {diff_perc_lst[idx[int(0.9 * len(diff_perc_lst))]]} %")
             print(
-                f"99.9% {diff_perc_lst[idx[int(0.999 * len(diff_perc_lst))]]}")
+                f"95% {diff_perc_lst[idx[int(0.95 * len(diff_perc_lst))]]} %")
+            print(
+                f"99% {diff_perc_lst[idx[int(0.99 * len(diff_perc_lst))]]} %")
+            print(
+                f"99.9% {diff_perc_lst[idx[int(0.999 * len(diff_perc_lst))]]} %"
+            )
+
             # print(f"len diff perc lst {len(diff_perc_lst)}")
 
             # print(f"pred shape {np_pred.shape}")
@@ -466,6 +464,9 @@ class ParamNet:
             #     print(
             #         f"pred {pred}\ngt {gt}\ndiff {diff} diff perc {diff_perc}\n"
             #     )
+            plt.xlabel("diff percent (%)")
+            plt.ylabel("samples")
+            plt.title("diff error percent hist")
             plt.hist(diff_perc_lst)
             # print(diff_perc_lst)
             plt.show()

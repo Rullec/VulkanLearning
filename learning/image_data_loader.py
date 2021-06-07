@@ -7,17 +7,31 @@ import json
 from tqdm import tqdm
 from image_data_loader_dist import get_subdirs, get_mesh_data
 
+
 class ImageDataLoader(DataLoader):
     '''
     Depth image dataloader for network training 
     '''
-    def __init__(self, data_dir: str, train_perc: float, test_perc: float,
-                 batch_size: int, enable_log_prediction: bool,
-                 only_load_statistic_data: bool) -> None:
-        # print("[log] image dataloader begin")
+    ENABLE_SPLIT_SAME_ROT_IMAGE_INTO_ONE_SET_KEY = "enable_split_same_rot_image_into_one_set"
 
-        super().__init__(data_dir, train_perc, test_perc, batch_size,
-                         enable_log_prediction, only_load_statistic_data)
+    # def __init__(self, data_dir: str, train_perc: float, test_perc: float,
+    #              batch_size: int, enable_log_prediction: bool,
+    #              only_load_statistic_data: bool) -> None:
+    # print("[log] image dataloader begin")
+    def __init__(self, data_loader_config_dict,
+                 only_load_statistic_data: bool):
+
+        # super().__init__(data_dir,
+        #                  train_perc,
+        #                  test_perc,
+        #                  batch_size,
+        #                  enable_log_prediction,
+        #                  only_load_statistic_data,
+        #                  enable_data_augment=True,
+        #                  select_validation_set_inside=True)
+        self.enable_split_same_rot_image_into_one_set = data_loader_config_dict[
+            self.ENABLE_SPLIT_SAME_ROT_IMAGE_INTO_ONE_SET_KEY]
+        super().__init__(data_loader_config_dict, only_load_statistic_data)
 
     @staticmethod
     def __load_single_data(png_files, feature_path, enable_log_pred):
@@ -59,13 +73,13 @@ class ImageDataLoader(DataLoader):
         print(f"[debug] begin to get pngs and features data_dir")
 
         mesh_data_lst = []
-
+        # print(f"data root dir {data_root_dir}")
+        # exit()
         for mesh_data in get_subdirs(data_root_dir):
-            mesh_data_lst = mesh_data_lst + get_mesh_data(
-                os.path.join(data_root_dir, mesh_data))
-        # print(len(mesh_data_lst))
-        # for i in mesh_data_lst:
-        #     print(f"feature file {i.feature_file} png files {i.png_files}")
+            mesh_data_lst.append(
+                get_mesh_data(os.path.join(data_root_dir, mesh_data)))
+
+        # each element of mesh_data_lst is all rotated data points of a property
         return mesh_data_lst
 
     def _init_vars(self):
@@ -73,7 +87,7 @@ class ImageDataLoader(DataLoader):
         initialize the train variables
         '''
         mesh_data_lst = ImageDataLoader.__get_pngs_and_features(self.data_dir)
-        example_mesh_data = mesh_data_lst[0]
+        example_mesh_data = mesh_data_lst[0][0]
         # verify succ, pick the first one to load
         image, feature = ImageDataLoader.__load_single_data(
             example_mesh_data.png_files, example_mesh_data.feature_file,
@@ -85,6 +99,27 @@ class ImageDataLoader(DataLoader):
         # print(f"output size {self.output_size}")
         # print("init vars succ")
         # exit(0)
+
+    def _load_data_of_this_property(self, mesh_data_of_this_property):
+
+        mesh_data_of_this_property_sample_X_lst, mesh_data_of_this_property_sample_Y_lst = [], []
+        for mesh_data_of_this_property_roti in mesh_data_of_this_property:
+            X, Y = ImageDataLoader.__load_single_data(
+                mesh_data_of_this_property_roti.png_files,
+                mesh_data_of_this_property_roti.feature_file,
+                self.enable_log_predction)
+            if X is None or Y is None:
+                print(
+                    f"[warn] data {mesh_data_of_this_property_roti.png_files} {mesh_data_of_this_property_roti.feature_file} is broken, please clear"
+                )
+                continue
+            mesh_data_of_this_property_sample_X_lst.append(X)
+            mesh_data_of_this_property_sample_Y_lst.append(Y)
+        return mesh_data_of_this_property_sample_X_lst, mesh_data_of_this_property_sample_Y_lst
+
+    # def _calc_statistics(self, raw_X_lst, raw_Y_lst):
+
+    #     return self.input_mean, self.input_std, self.output_mean, self.output_std
 
     def _load_data(self, only_load_statistic_data_):
         load_stat_succ = False
@@ -102,8 +137,8 @@ class ImageDataLoader(DataLoader):
                 with open(pkl_file, 'rb') as f:
                     # print(f"begin to load pkl from {pkl_file}")
                     cont = pickle.load(f)
-                    X_lst = cont[DataLoader.X_KEY].astype(np.float32)
-                    Y_lst = cont[DataLoader.Y_KEY].astype(np.float32)
+                    X_lst = cont[DataLoader.X_KEY]
+                    Y_lst = cont[DataLoader.Y_KEY]
                     self.input_mean = cont[DataLoader.INPUT_MEAN_KEY]
                     self.input_std = cont[DataLoader.INPUT_STD_KEY]
                     self.output_mean = cont[DataLoader.OUTPUT_MEAN_KEY]
@@ -121,27 +156,26 @@ class ImageDataLoader(DataLoader):
                                 mesh_data_lst,
                                 f"Loading data from {os.path.split(self.data_dir)[-1] }"
                             )):
-                        # if f[-4:] == "json":
-                        mesh_data = mesh_data_lst[_id]
-                        X, Y = ImageDataLoader.__load_single_data(
-                            mesh_data.png_files, mesh_data.feature_file,
-                            self.enable_log_predction)
-                        # print(f"X shape {X.shape}")
-                        # print(f"Y shape {Y.shape}")
-                        if X is None or Y is None:
-                            print(
-                                f"[warn] data {mesh_data.png_files} {mesh_data.feature_file} is broken, please clear"
-                            )
-                            continue
-                        X_lst.append(X)
-                        Y_lst.append(Y)
-                # print(len(X_lst))
-                X_lst = np.stack(X_lst, axis=0)
-                Y_lst = np.stack(Y_lst, axis=0)
-                self.input_mean = X_lst.mean(axis=0)
-                self.input_std = X_lst.std(axis=0)
-                self.output_mean = Y_lst.mean(axis=0)
-                self.output_std = Y_lst.std(axis=0)
+                        # for _id, _ in enumerate(mesh_data_lst):
+
+                        mesh_data_of_this_property = mesh_data_lst[_id]
+
+                        # load all data points of this property
+                        mesh_data_of_this_property_sample_X_lst, mesh_data_of_this_property_sample_Y_lst = self._load_data_of_this_property(
+                            mesh_data_of_this_property)
+                        
+                        # mesh_data_of_this_property_sample_X_lst: 4 x [6, 300, 300]
+                        X_lst.append(mesh_data_of_this_property_sample_X_lst)
+                        Y_lst.append(mesh_data_of_this_property_sample_Y_lst)
+                
+                
+                self.input_mean = np.stack([init_rot_angle for prop in X_lst for init_rot_angle in prop], axis=0).mean(axis=0)
+                self.input_std = np.stack([init_rot_angle for prop in X_lst for init_rot_angle in prop], axis=0).std(axis=0)
+                self.output_mean = np.stack([init_rot_angle for prop in Y_lst for init_rot_angle in prop], axis=0).mean(axis=0)
+                self.output_std = np.stack([init_rot_angle for prop in Y_lst for init_rot_angle in prop], axis=0).std(axis=0)
+
+                # self.input_mean, self.input_std, self.output_mean, self.output_std = self._calc_statistics(
+                #     X_lst, Y_lst)
                 # print(f"X_lst shape {X_lst.shape}")
                 # print(f"Y_lst shape {Y_lst.shape}")
                 # exit(0)
@@ -154,6 +188,10 @@ class ImageDataLoader(DataLoader):
                     DataLoader.OUTPUT_MEAN_KEY: self.output_mean,
                     DataLoader.OUTPUT_STD_KEY: self.output_std
                 }
+                # print(f"len X lst {len(X_lst)}")
+                # print(f"len X lst[0] {len(X_lst[0])}")
+                # print(f"shape X lst[0][0] {X_lst[0][0].shape}")
+                # exit()
                 # print(f"ave pkl to {pkl_file} begin")
                 import pickle
                 with open(pkl_file, 'wb') as f:
@@ -163,19 +201,34 @@ class ImageDataLoader(DataLoader):
             np.clip(self.input_std, 1e-2, None, self.input_std)
             np.clip(self.output_std, 1e-2, None, self.output_std)
             self._dump_statistics()
-
+        # print(f"input mean {self.input_mean}")
+        # print(f"input std {self.input_std}")
+        # print(f"output mean {self.output_mean}")
+        # print(f"output std {self.output_std}")
+        # exit()
         if only_load_statistic_data_ == False:
             print("begin to normalize data")
-            for i in tqdm(range(X_lst.shape[0])):
-                size = X_lst.shape[1]
-                # before = X_lst[i, size/2, size/2]
-                X_lst[i] = (X_lst[i] - self.input_mean) / self.input_std
-                Y_lst[i] = (Y_lst[i] - self.output_mean) / self.output_std
+            for i in tqdm(range(len(X_lst))):
+                # for i in range(len(X_lst)):
+                for property_all_data_id in range(len(X_lst[i])):
+                    # single_point_shape = X_lst[i][property_all_data_id].shape
+                    # print(single_point_shape)
+                    # exit()
+                    # before = X_lst[i, size/2, size/2]
+                    # print(X_lst[i][property_all_data_id].shape) 
+                    X_lst[i][property_all_data_id] = (
+                        (X_lst[i][property_all_data_id] - self.input_mean) /
+                        self.input_std).astype(np.float32)
+                    Y_lst[i][property_all_data_id] = (
+                        (Y_lst[i][property_all_data_id] - self.output_mean) /
+                        self.output_std).astype(np.float32)
+                    # print(X_lst[i][property_all_data_id].shape) 
+                    # print(self.input_mean.shape) 
+
+                    # exit()
                 # after = X_lst[i, size/2, size/2]
                 # print(f"{before} -> {after}")
             # print("succ to normalize the data")
-
-            # print("begin to split the data")
 
             size = len(X_lst)
             train_size = int(self.train_perc * size)
@@ -190,14 +243,44 @@ class ImageDataLoader(DataLoader):
             # self.train_X = np.expand_dims(list(itemgetter(*train_id)(X_lst)),
             #                               axis=1)
             # self.train_Y = list(itemgetter(*train_id)(Y_lst))
-            self.test_X = np.array(list(itemgetter(*test_id)(X_lst)))
+
+            self.test_X = list(itemgetter(*test_id)(X_lst))
             self.test_Y = list(itemgetter(*test_id)(Y_lst))
-            self.train_X = np.array(list(itemgetter(*train_id)(X_lst)))
+            self.train_X = list(itemgetter(*train_id)(X_lst))
             self.train_Y = list(itemgetter(*train_id)(Y_lst))
 
-            print(f"test X shape {self.test_X.shape}")
-            print(f"test Y shape {len(self.test_Y)}, {self.test_Y[0].shape}")
-            print(f"train X shape {self.train_X.shape}")
-            print(
-                f"train Y shape {len(self.train_Y)}, {self.train_Y[0].shape}")
+            # print(len(self.test_X))
+            # print(type(self.test_X))
+            # print(len(self.test_X[0]))
+            # print(type(self.test_X[0]))
+            # print(self.test_X[0][0].shape)
+            # exit()
+            self.test_X = [
+                init_rot_angle for prop in self.test_X
+                for init_rot_angle in prop
+            ]
+            self.test_Y = [
+                init_rot_angle for prop in self.test_Y
+                for init_rot_angle in prop
+            ]
+            self.train_X = [
+                init_rot_angle for prop in self.train_X
+                for init_rot_angle in prop
+            ]
+            self.train_Y = [
+                init_rot_angle for prop in self.train_Y
+                for init_rot_angle in prop
+            ]
+            # exit()
+            # print(len(self.test_X))
+            # print(len(self.test_Y))
+            # print(len(self.train_X))
+            # print(len(self.train_Y))
+            # print(type(self.test_X[0]))
+            # print(np.array(self.test_X[0]).shape)
+            # exit()
+            print(f"test X len {len(self.test_X)} X[0] shape {self.test_X[0].shape}")
+            print(f"test Y len {len(self.test_Y)}, Y[0] shape {self.test_Y[0].shape}")
+            print(f"train X len {len(self.train_X)} X[0] shape {self.train_X[0].shape}")
+            print(f"train Y len {len(self.train_Y)}, Y[0] shape {self.train_Y[0].shape}")
             # exit()

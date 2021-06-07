@@ -14,10 +14,20 @@ class DataLoader():
     OUTPUT_MEAN_KEY = "output_mean"
     OUTPUT_STD_KEY = "output_std"
 
-    def __init__(self, data_dir: str, train_perc: float, test_perc: float,
-                 batch_size: int, enable_log_prediction: bool,
-                 only_load_statistic_data: bool, enable_data_augment: bool,
-                 select_validation_set_inside: bool) -> None:
+    BATCH_SIZE_KEY = "batch_size"
+    DATA_DIR_KEY = "data_dir"
+    TRAIN_PERC_KEY = "train_perc"
+    ENABLE_LOG_PREDICTION_KEY = "enable_log_prediction"
+    ENABLE_DATA_AUGMENT_KEY = "enable_data_augment"
+    BATCH_SIZE_KEY = "batch_size"
+    ENABLE_SELECT_VALIDATION_SET_INSIDE_KEY = "enable_select_validation_set_inside"
+
+    # def __init__(self, data_dir: str, train_perc: float, test_perc: float,
+    #              batch_size: int, enable_log_prediction: bool,
+    #              only_load_statistic_data: bool, enable_data_augment: bool,
+    #              select_validation_set_inside: bool) -> None:
+    def __init__(self, data_loader_config_dict,
+                 only_load_statistic_data) -> None:
         '''
         DataLoader inherited from the torch dataloader
         :param data_dir: data root directory
@@ -27,16 +37,21 @@ class DataLoader():
         :enable_log_prediction: if True, apply np.log on the data output vector before the normalization.
             It can make the resulted distribution better
         '''
-        self.batch_size = batch_size
-        self.data_dir = data_dir
-        self.train_perc = train_perc / (train_perc + test_perc)
-        self.test_perc = test_perc / (train_perc + test_perc)
+        self.batch_size = data_loader_config_dict[self.BATCH_SIZE_KEY]
+        self.data_dir = data_loader_config_dict[self.DATA_DIR_KEY]
+        self.train_perc = data_loader_config_dict[self.TRAIN_PERC_KEY]
+        self.test_perc = 1 - self.train_perc
+        assert self.test_perc > 0
         # print(self.train_perc)
         # print(self.test_perc)
         # exit()
-        self.enable_log_predction = enable_log_prediction
-        self.enable_data_augment = enable_data_augment
-        self.select_validation_set_inside = select_validation_set_inside
+        self.enable_log_predction = data_loader_config_dict[
+            self.ENABLE_LOG_PREDICTION_KEY]
+        self.enable_data_augment = data_loader_config_dict[
+            self.ENABLE_DATA_AUGMENT_KEY]
+        self.select_validation_set_inside = data_loader_config_dict[
+            self.ENABLE_SELECT_VALIDATION_SET_INSIDE_KEY]
+
         self._init_vars()
         self._load_data(only_load_statistic_data)
         # self.__split_data()
@@ -219,7 +234,9 @@ class DataLoader():
                             test_id.append(idx)
                     else:
                         train_id.append(idx)
-                assert len(test_id) == test_size, f"ideal test size {test_size} real test_size {len(test_id)}"
+                assert len(
+                    test_id
+                ) == test_size, f"ideal test size {test_size} real test_size {len(test_id)}"
                 assert len(train_id) == train_size
             # print(f"--------- begin to check test id --------------")
             # for _idx, i in enumerate(test_id):
@@ -244,15 +261,19 @@ class DataLoader():
             output_X, output_Y = self.test_X[st:st +
                                              incre], self.test_Y[st:st + incre]
 
-            # if self.enable_data_augment is True:
-            #     size = output_X[0].shape[0]
-            #     for _idx in range(len(output_X)):
-            #         noise = (np.random.rand(3) - 0.5) / 20
-            #         noise_all = np.tile(noise, size // 3)
-            #         output_X[_idx] += noise_all
-
             yield output_X, output_Y
             st += incre
+
+    def apply_noise(self, inputs):
+        assert type(inputs) is list
+        assert type(inputs[0]) is np.ndarray
+        assert len(inputs[0].shape) == 1
+
+        size = inputs[0].shape[0]
+        for _idx in range(len(inputs)):
+            noise = (np.random.rand(3) - 0.5) / 10  # +-5cm
+            noise_all = np.tile(noise, size // 3)
+            inputs[_idx] += noise_all
 
     def get_train_data(self):
         st = 0
@@ -267,9 +288,14 @@ class DataLoader():
             if self.enable_data_augment is True:
                 size = output_X[0].shape[0]
                 for _idx in range(len(output_X)):
-                    noise = (np.random.rand(3) - 0.5) / 10  # +-1.5cm
+                    noise = (np.random.rand(3) - 0.5) / 10  # +-5cm
                     noise_all = np.tile(noise, size // 3)
                     output_X[_idx] += noise_all
+
+                # print(f"old norm {np.linalg.norm(np.array(output_X))}")
+                # self.apply_noise(output_X)
+                # print(f"new norm {np.linalg.norm(np.array(output_X))}")
+
             yield output_X, output_Y
             st += incre
 

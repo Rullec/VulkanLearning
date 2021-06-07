@@ -27,13 +27,15 @@ class CNNParamNet(ParamNet):
     def _build_dataloader(self, only_load_statistic_data):
         print("[log] begin to build dataloader in resnet")
         if self.image_dataloader_type == "image_dataloader":
-            self.data_loader = ImageDataLoader(
-                self.data_dir,
-                0.8,
-                0.2,
-                self.batch_size,
-                enable_log_prediction=self.enable_log_prediction,
-                only_load_statistic_data=only_load_statistic_data)
+            # self.data_loader = ImageDataLoader(
+            #     self.data_dir,
+            #     0.8,
+            #     0.2,
+            #     self.batch_size,
+            #     enable_log_prediction=self.enable_log_prediction,
+            #     only_load_statistic_data=only_load_statistic_data)
+            self.data_loader = ImageDataLoader(self.conf[self.DATA_LOADER_KEY],
+                                               only_load_statistic_data)
         elif self.image_dataloader_type == "image_dataloader_dist":
             self.data_loader = ImageDataLoaderDist(
                 self.data_dir,
@@ -110,7 +112,20 @@ class CNNParamNet(ParamNet):
                 # print(f"pred {pred}")
                 # print(f"Y {Y}")
                 # print(f"loss {loss}")
-                # exit(0)
+                if np.isnan(loss.cpu().detach()) == True:
+
+                    print(f"input has Nan: {np.isnan(inputs.cpu()).any()}")
+                    print(
+                        f"pred has Nan: {np.isnan(pred.cpu().detach()).any()}")
+                    print(f"gt has Nan: {np.isnan(Y.cpu()).any()}")
+                    print(f"loss: {loss.cpu()}")
+                    for i in self.net.parameters():
+                        print(
+                            f"weight has Nan: {np.isnan( i.cpu().detach()).any()}"
+                        )
+                    exit(0)
+                # else:
+                #     print(f"loss is {loss}")
                 loss.backward()
                 self.optimizer.step()
                 # print(f"[train] single mse {loss} num {inputs.shape[0]}")
@@ -129,7 +144,7 @@ class CNNParamNet(ParamNet):
                 step = epoch / self.iters_logging
                 validation_err = self._calc_validation_error()
                 print(
-                    f"iter {epoch} train loss {mean_train_loss} validation loss {validation_err}, avg cost {(time.time() - st_time)/(epoch + 1)}, device {self.device}"
+                    f"iter {epoch} train loss {mean_train_loss:5.5f} validation loss {validation_err:5.5f}, avg cost {(time.time() - st_time)/(epoch + 1):5.5f}, device {self.device}"
                 )
                 self.writer.add_scalar("train_loss", mean_train_loss, step)
                 self.writer.add_scalar("validation_error", validation_err,
