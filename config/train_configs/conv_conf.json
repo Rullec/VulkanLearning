@@ -40,13 +40,29 @@
             "kernel_size": 3,
             "stride": 1,
             "inplanes": 64,
+            "outplanes": 128,
+            "padding": 1
+        },
+        {
+            "type": "conv2d",
+            "kernel_size": 3,
+            "stride": 1,
+            "inplanes": 128,
+            "outplanes": 64,
+            "padding": 1
+        },
+        {
+            "type": "conv2d",
+            "kernel_size": 3,
+            "stride": 1,
+            "inplanes": 64,
             "outplanes": 32,
             "padding": 1
         },
         {
             "type": "conv2d",
             "kernel_size": 3,
-            "stride": 2,
+            "stride": 1,
             "inplanes": 32,
             "outplanes": 8,
             "padding": 1
@@ -60,20 +76,17 @@
             "padding": 1
         },
         {
-            "type": "conv2d",
-            "kernel_size": 3,
-            "stride": 1,
-            "inplanes": 4,
-            "outplanes": 2,
-            "padding": 1
-        },
-        {
             "type": "avgpool",
-            "output": 4096
+            "output": 8192
         },
         {
             "type": "fc",
-            "input": 4096,
+            "input": 8192,
+            "output": 512
+        },
+        {
+            "type": "fc",
+            "input": 512,
             "output": 128
         },
         {
@@ -93,11 +106,11 @@
     "dropout": 0.0,
     "mode": "train",
     "data_loader_config": {
-        "batch_size": 256,
+        "batch_size": 64,
         "enable_log_prediction": false,
-        "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\500_5000_feature2_nonoise_500sample_real_4views_8_rot_gen",
+        "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\500_5000_feature2_nonoise_200sample_real_4views_2rot_gen",
         "train_perc": 0.8,
-        "enable_data_augment": false,
+        "enable_data_augment": true,
         "enable_select_validation_set_inside": true,
         "enable_split_same_rot_image_into_one_set": true
     }

@@ -286,6 +286,7 @@ class DataLoader():
                                                                    incre]
 
             if self.enable_data_augment is True:
+                assert len(output_X[0].shape) == 1
                 size = output_X[0].shape[0]
                 for _idx in range(len(output_X)):
                     noise = (np.random.rand(3) - 0.5) / 10  # +-5cm

@@ -6,6 +6,8 @@ import numpy as np
 import json
 from tqdm import tqdm
 from image_data_loader_dist import get_subdirs, get_mesh_data
+import torch
+from torchvision.transforms import RandomAffine, GaussianBlur
 
 
 class ImageDataLoader(DataLoader):
@@ -32,6 +34,7 @@ class ImageDataLoader(DataLoader):
         self.enable_split_same_rot_image_into_one_set = data_loader_config_dict[
             self.ENABLE_SPLIT_SAME_ROT_IMAGE_INTO_ONE_SET_KEY]
         super().__init__(data_loader_config_dict, only_load_statistic_data)
+        self._init_aug_torch()
 
     @staticmethod
     def __load_single_data(png_files, feature_path, enable_log_pred):
@@ -81,6 +84,28 @@ class ImageDataLoader(DataLoader):
 
         # each element of mesh_data_lst is all rotated data points of a property
         return mesh_data_lst
+
+    def _init_aug_torch(self):
+        ########### hard to train
+        # self.affine = RandomAffine(degrees=(-10, 10), translate = (0.1, 0.1), scale = (1, 1.2), shear = None)
+        # self.blur = GaussianBlur(kernel_size=5)
+        # self.noise_gaussian_std = 0.02
+
+        ########## small noise test
+        self.affine = RandomAffine(degrees=(-5, 5), translate = (0.01, 0.01), scale = (1, 1), shear = None)
+        self.blur = GaussianBlur(kernel_size=1)
+        self.noise_gaussian_std = 0
+
+    def aug_torch(self, all_imgs):
+        torch_all_imgs = torch.from_numpy(np.array(all_imgs))
+        # height, width = all_imgs[0].shape[1], all_imgs[0].shape[2]
+
+        torch_all_imgs = self.affine(torch_all_imgs)
+        torch_all_imgs = self.blur(torch_all_imgs)
+
+        noise = torch.randn_like(torch_all_imgs[0]) * self.noise_gaussian_std
+        torch_all_imgs += noise 
+        return np.array(torch_all_imgs)
 
     def _init_vars(self):
         '''
@@ -163,16 +188,27 @@ class ImageDataLoader(DataLoader):
                         # load all data points of this property
                         mesh_data_of_this_property_sample_X_lst, mesh_data_of_this_property_sample_Y_lst = self._load_data_of_this_property(
                             mesh_data_of_this_property)
-                        
+
                         # mesh_data_of_this_property_sample_X_lst: 4 x [6, 300, 300]
                         X_lst.append(mesh_data_of_this_property_sample_X_lst)
                         Y_lst.append(mesh_data_of_this_property_sample_Y_lst)
-                
-                
-                self.input_mean = np.stack([init_rot_angle for prop in X_lst for init_rot_angle in prop], axis=0).mean(axis=0)
-                self.input_std = np.stack([init_rot_angle for prop in X_lst for init_rot_angle in prop], axis=0).std(axis=0)
-                self.output_mean = np.stack([init_rot_angle for prop in Y_lst for init_rot_angle in prop], axis=0).mean(axis=0)
-                self.output_std = np.stack([init_rot_angle for prop in Y_lst for init_rot_angle in prop], axis=0).std(axis=0)
+
+                self.input_mean = np.stack([
+                    init_rot_angle for prop in X_lst for init_rot_angle in prop
+                ],
+                                           axis=0).mean(axis=0)
+                self.input_std = np.stack([
+                    init_rot_angle for prop in X_lst for init_rot_angle in prop
+                ],
+                                          axis=0).std(axis=0)
+                self.output_mean = np.stack([
+                    init_rot_angle for prop in Y_lst for init_rot_angle in prop
+                ],
+                                            axis=0).mean(axis=0)
+                self.output_std = np.stack([
+                    init_rot_angle for prop in Y_lst for init_rot_angle in prop
+                ],
+                                           axis=0).std(axis=0)
 
                 # self.input_mean, self.input_std, self.output_mean, self.output_std = self._calc_statistics(
                 #     X_lst, Y_lst)
@@ -215,15 +251,15 @@ class ImageDataLoader(DataLoader):
                     # print(single_point_shape)
                     # exit()
                     # before = X_lst[i, size/2, size/2]
-                    # print(X_lst[i][property_all_data_id].shape) 
+                    # print(X_lst[i][property_all_data_id].shape)
                     X_lst[i][property_all_data_id] = (
                         (X_lst[i][property_all_data_id] - self.input_mean) /
                         self.input_std).astype(np.float32)
                     Y_lst[i][property_all_data_id] = (
                         (Y_lst[i][property_all_data_id] - self.output_mean) /
                         self.output_std).astype(np.float32)
-                    # print(X_lst[i][property_all_data_id].shape) 
-                    # print(self.input_mean.shape) 
+                    # print(X_lst[i][property_all_data_id].shape)
+                    # print(self.input_mean.shape)
 
                     # exit()
                 # after = X_lst[i, size/2, size/2]
@@ -279,8 +315,54 @@ class ImageDataLoader(DataLoader):
             # print(type(self.test_X[0]))
             # print(np.array(self.test_X[0]).shape)
             # exit()
-            print(f"test X len {len(self.test_X)} X[0] shape {self.test_X[0].shape}")
-            print(f"test Y len {len(self.test_Y)}, Y[0] shape {self.test_Y[0].shape}")
-            print(f"train X len {len(self.train_X)} X[0] shape {self.train_X[0].shape}")
-            print(f"train Y len {len(self.train_Y)}, Y[0] shape {self.train_Y[0].shape}")
+            print(
+                f"test X len {len(self.test_X)} X[0] shape {self.test_X[0].shape}"
+            )
+            print(
+                f"test Y len {len(self.test_Y)}, Y[0] shape {self.test_Y[0].shape}"
+            )
+            print(
+                f"train X len {len(self.train_X)} X[0] shape {self.train_X[0].shape}"
+            )
+            print(
+                f"train Y len {len(self.train_Y)}, Y[0] shape {self.train_Y[0].shape}"
+            )
             # exit()
+
+    def get_train_data(self):
+        st = 0
+        while st < len(self.train_X):
+            incre = min(st + self.batch_size, len(self.train_X)) - st
+            if incre <= 0:
+                break
+            output_X, output_Y = self.train_X[st:st +
+                                              incre], self.train_Y[st:st +
+                                                                   incre]
+            # import pickle
+            # with open("img.pkl", 'wb') as f:
+            #     pickle.dump(output_X, f)
+            #     print("dump done")
+            #     exit()
+            if self.enable_data_augment is True:
+                # print("image channels reordering augmentation")
+                for id in range(len(output_X)):
+                    # print(output_X[id].shape)
+                    rand = np.random.randint(0, output_X[id].shape[0] - 1)
+                    output_X[id] = np.roll(output_X[id], rand, axis=0)
+                
+                # begin to apply screen space data aug
+                output_X = self.aug_torch(output_X)
+                # exit()
+                # assert len(output_X[0].shape) == 1
+                # size = output_X[0].shape[0]
+                # for _idx in range(len(output_X)):
+                #     noise = (np.random.rand(3) - 0.5) / 10  # +-5cm
+                #     noise_all = np.tile(noise, size // 3)
+                #     output_X[_idx] += noise_all
+
+                # print(f"old norm {np.linalg.norm(np.array(output_X))}")
+                # self.apply_noise(output_X)
+                # print(f"new norm {np.linalg.norm(np.array(output_X))}")
+
+            yield output_X, output_Y
+            st += incre
