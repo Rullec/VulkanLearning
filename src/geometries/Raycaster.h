@@ -7,15 +7,28 @@
  * \brief               do raycasting for the triangle-based scene
  */
 SIM_DECLARE_CLASS_AND_PTR(CameraBase);
+SIM_DECLARE_CLASS_AND_PTR(cBaseObject);
+
 class cRaycaster : std::enable_shared_from_this<cRaycaster>
 {
 public:
+    struct tRaycastResult
+    {
+        tRaycastResult();
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+        // object pointer
+        cBaseObjectPtr mObject; // casted object pointer
+
+        // local triangle id on this object
+        int mLocalTriangleId;
+        tVector mIntersectionPoint;
+    };
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     explicit cRaycaster(bool enable_only_exporting_cutted_window);
-    virtual void AddResources(const std::vector<tTriangle *> triangles,
-                              const std::vector<tVertex *> vertices);
-    void RayCast(const tRay *ray, tTriangle **selected_tri,
-                 int &selected_tri_id, tVector &raycast_point) const;
+    // virtual void AddResources(const std::vector<tTriangle *> triangles,
+    //                           const std::vector<tVertex *> vertices);
+    virtual void AddResources(cBaseObjectPtr object);
+    tRaycastResult RayCast(const tRay *ray) const;
     virtual void CalcDepthMap(const tMatrix2i &cast_range_window, int height,
                               int width, CameraBasePtr camera,
                               std::string path);
@@ -24,6 +37,7 @@ public:
                                    tVector2i &st);
 
 protected:
+    std::vector<cBaseObjectPtr> mObjects;
     std::vector<std::vector<tTriangle *>> mTriangleArray_lst;
     std::vector<std::vector<tVertex *>> mVertexArray_lst;
     bool mEnableOnlyExportCuttedWindow; // only save the interested window

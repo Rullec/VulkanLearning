@@ -59,10 +59,10 @@
             },
             "bending_bias": {
                 "range": [
-                    5e2,
-                    5e3
+                    1e3,
+                    2e3
                 ],
-                "num_of_samples": 500,
+                "num_of_samples": 200,
                 "visible": true,
                 "index": 2
             }
@@ -79,7 +79,7 @@
             ]
         ]
     },
-    "enable_noise": false,
+    "enable_noise": true,
     "noise": {
         "noised_samples": 3,
         "enable_low_freq_noise": true,
@@ -88,7 +88,7 @@
         "max_fold_num": 3
     },
     "convergence_threshold": 0.001,
-    "enable_data_cleaner": false,
+    "enable_data_cleaner": true,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false
 }

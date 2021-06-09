@@ -1,5 +1,5 @@
 {
-    "scene_type": "semi_implicit",
+    "cloth_type": "semi_implicit",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -22,7 +22,7 @@
     "subdivision": 50,
     "damping": 1e-3,
     "stiffness": 10000,
-    "bending_stiffness": 1e-2,
+    "bending_stiffness": 1e-1,
     "enable_Q_bending": true,
     "default_timestep": 1e-4,
     "constraints": {
@@ -53,5 +53,6 @@
         "near": 0.01,
         "far": 100
     },
-    "enable_profiling": false
+    "enable_profiling": false,
+    "enable_collision_detection": false
 }

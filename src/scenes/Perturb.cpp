@@ -5,12 +5,8 @@
 tPerturb::tPerturb()
 {
     mPerturbForce.setZero();
-    for (int i = 0; i < 3; i++)
-    {
-
-        mAffectedVertices[i] = nullptr;
-        mAffectedVerticesId[i] = -1;
-    }
+    mObject = nullptr;
+    mAffectedTriId = -1;
     mBarycentricCoords.setZero();
     mShiftPlaneEquation.setZero();
 }
@@ -68,17 +64,17 @@ void tPerturb::UpdatePerturb(const tVector &cur_camera_pos, const tVector &dir)
     // std::cout << "[update] cur perturb pos = " << cur_perturb_pos.transpose()
     //           << " goal pos = " << goal_pos.transpose() << std::endl;
 }
-
+#include "sim/BaseObject.h"
 tVector tPerturb::CalcPerturbPos() const
 {
     tVector center_pos = tVector::Zero();
     // std::cout << "[calc perurb pos] bary = " <<
     // mBarycentricCoords.transpose() << std::endl;
+    auto tri = mObject->GetTriangleArray()[this->mAffectedTriId];
+    auto ver_array = mObject->GetVertexArray();
     for (int i = 0; i < 3; i++)
     {
-        // std::cout << "affected " << i << " = " <<
-        // mAffectedVertices[i]->mPos.transpose() << std::endl;
-        center_pos += mAffectedVertices[i]->mPos * mBarycentricCoords[i];
+        center_pos += ver_array[tri->mId0]->mPos * mBarycentricCoords[i];
     }
     center_pos[3] = 1;
     return center_pos;

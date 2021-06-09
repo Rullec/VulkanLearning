@@ -35,13 +35,11 @@ struct tPerturb;
 SIM_DECLARE_CLASS_AND_PTR(cKinematicBody)
 SIM_DECLARE_CLASS_AND_PTR(cRaycaster)
 SIM_DECLARE_CLASS_AND_PTR(cCollisionDetecter)
+SIM_DECLARE_CLASS_AND_PTR(cBaseCloth)
 class cSimScene : public cScene
 {
 public:
-    inline static const std::string DAMPING_KEY = "damping",
-                                    ENABLE_PROFLINE_KEY = "enable_profiling",
-                                    DEFAULT_TIMESTEP_KEY = "default_timestep",
-                                    SCENE_TYPE_KEY = "scene_type",
+    inline static const std::string ENABLE_PROFLINE_KEY = "enable_profiling",
                                     ENABLE_OBSTACLE_KEY = "enable_obstacle",
                                     OBSTACLE_CONF_KEY = "obstacle_conf",
                                     ENABLE_COLLISION_DETECTION_KEY =
@@ -67,12 +65,9 @@ public:
                       tVector &ray_cast_position) const;
 
 protected:
-    double mClothWidth;
-    double mClothMass;
     tPerturb *mPerturb;
-    tVectorXd mInvMassMatrixDiag; // diag inv mass matrix
-    std::string mGeometryType;
-    eSceneType mSceneType;
+
+    // eSceneType mSceneType;
     bool mEnableProfiling;
     bool mEnableObstacle; // using obstacle?
     bool mEnableCollisionDetection;
@@ -83,44 +78,36 @@ protected:
     // double mClothMass;            // cloth mass
     // tVector mClothInitPos;        //
     // int mSubdivision;             // division number along with the line
-    double mDamping;              // damping coeff
-    double mIdealDefaultTimestep; // default substep dt
+
     tVectorXf mTriangleDrawBuffer,
         mEdgesDrawBuffer; // buffer to triangle buffer drawing (should use index
                           // buffer to improve the velocity)
     std::vector<tRay *> mRayArray;
-    std::vector<tVertex *> mVertexArray;     // vertices info
-    std::vector<tEdge *> mEdgeArray;         // springs info
-    std::vector<tTriangle *> mTriangleArray; // triangles info
-    tVectorXd mIntForce;                     // internal force
-    tVectorXd mExtForce;                     // external force
-    tVectorXd mDampingForce;                 // external force
+    // std::vector<tVertex *> mVertexArray;     // total vertices
+    // std::vector<tEdge *> mEdgeArray;         // total edges
+    // std::vector<tTriangle *> mTriangleArray; // total triangles
 
-    tVectorXd mXpre, mXcur; // previous node position & current node position
-    std::vector<int> mFixedPointIds;    // fixed constraint point
-    tVectorXd mClothInitPos;            // init position of the cloth
-    cCollisionDetecterPtr mColDetecter; // collision detecter
+    // cCollisionDetecterPtr mColDetecter; // collision detecter
+    cBaseClothPtr mCloth;
 
     // base methods
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     virtual void InitDrawBuffer();
     virtual void InitRaycaster();
-    virtual void InitGeometry(
-        const Json::Value &conf); // discretazation from square cloth to
-    void ClearForce();            // clear all forces
-    virtual void CalcIntForce(const tVectorXd &xcur,
-                              tVectorXd &int_force) const;
-    virtual void CalcExtForce(tVectorXd &ext_force) const;
+
+    void ClearForce(); // clear all forces
+
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //
     void GetVertexRenderingData();
     int GetNumOfVertices() const;
     int GetNumOfFreedom() const;
     int GetNumOfEdges() const;
+    int GetNumOfTriangles() const;
     void CalcNodePositionVector(tVectorXd &pos) const;
-    virtual void InitConstraint(const Json::Value &root);
-    virtual void UpdateCurNodalPosition(const tVectorXd &xcur);
-    virtual void UpdateSubstep() = 0;
+    // virtual void InitConstraint(const Json::Value &root);
+    // virtual void UpdateCurNodalPosition(const tVectorXd &xcur);
+    // virtual void UpdateSubstep() = 0;
 
     // virtual void CreatePerturb(tRay *ray);
 
@@ -128,4 +115,6 @@ protected:
     virtual void CreateCollisionDetecter();
     bool mPauseSim;
     virtual void PauseSim();
+    void CreateCloth(const Json::Value &conf);
+    // virtual int GetNumOfTriangles() const;
 };

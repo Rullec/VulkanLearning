@@ -342,7 +342,7 @@ void cDrawScene::CreateInstance()
     // given the instance info, create the instance
     SIM_ASSERT(vkCreateInstance(&createInfo, nullptr, &mInstance) ==
                VK_SUCCESS);
-    SIM_INFO("CreateInstance succ");
+    // SIM_INFO("CreateInstance succ");
     // CheckAvaliableExtensions();
     // exit(0);
 }
@@ -618,7 +618,7 @@ void cDrawScene::CreateSwapChain()
                             mSwapChainImages.data());
     mSwapChainImageFormat = format.format;
     mSwapChainExtent = extent;
-    SIM_INFO("swapchain is created successfully");
+    // SIM_INFO("swapchain is created successfully");
 }
 
 /**
@@ -837,7 +837,7 @@ void cDrawScene::CreateCommandPool()
     info.queueFamilyIndex = queue_families.graphicsFamily.value();
     SIM_ASSERT(vkCreateCommandPool(mDevice, &info, nullptr, &mCommandPool) ==
                VK_SUCCESS);
-    SIM_INFO("Create Command Pool succ");
+    // SIM_INFO("Create Command Pool succ");
 }
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -867,7 +867,7 @@ void cDrawScene::CreateSemaphores()
             (vkCreateFence(mDevice, &fence_info, nullptr,
                            &minFlightFences[i]) == VK_SUCCESS));
     }
-    SIM_INFO("Create semaphores succ");
+    // SIM_INFO("Create semaphores succ");
 }
 
 /**
@@ -1223,7 +1223,7 @@ void cDrawScene::CreateTextureImage()
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 
-    SIM_INFO("Create texture image succ");
+    // SIM_INFO("Create texture image succ");
 }
 
 /**
@@ -1234,7 +1234,7 @@ void cDrawScene::CreateTextureImageView()
     mTextureImageView =
         CreateImageView(mDevice, mTextureImage, VK_FORMAT_R8G8B8A8_SRGB,
                         VK_IMAGE_ASPECT_COLOR_BIT);
-    SIM_INFO("create texture image view succ");
+    // SIM_INFO("create texture image view succ");
 }
 
 /**

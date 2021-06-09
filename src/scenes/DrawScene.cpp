@@ -266,7 +266,7 @@ std::vector<char> ReadFile(const std::string &filename)
     file.seekg(0);
     file.read(buffer.data(), fileSize);
     file.close();
-    SIM_INFO("read file {} size {} succ", filename, fileSize);
+    // SIM_INFO("read file {} size {} succ", filename, fileSize);
     return buffer;
 }
 
@@ -480,7 +480,7 @@ void cDrawScene::CreateGraphicsPipeline(const std::string mode,
     vkDestroyShaderModule(mDevice, VertShaderModule, nullptr);
     vkDestroyShaderModule(mDevice, FragShaderModule, nullptr);
 
-    SIM_INFO("Create graphics pipeline succ");
+    // SIM_INFO("Create graphics pipeline succ");
 }
 
 /**
@@ -509,8 +509,8 @@ void cDrawScene::Init(const std::string &conf_path)
         mCameraInitFov = cJsonUtil::ParseAsFloat("fov", camera_json);
         near_plane_dist = cJsonUtil::ParseAsFloat("near", camera_json);
         far_plane_dist = cJsonUtil::ParseAsFloat("far", camera_json);
-        SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(),
-                 mCameraInitFocus.transpose());
+        // SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(),
+                //  mCameraInitFocus.transpose());
     }
 
     mCamera = std::make_shared<cArcBallCamera>(
@@ -628,33 +628,33 @@ void cDrawScene::Scroll(double xoff, double yoff)
 /**
  * \brief           Reset the whole scene
  */
-#include "scenes/LinctexScene.h"
+// #include "scenes/LinctexScene.h"
 void cDrawScene::Reset()
 {
     mSimScene->Reset();
-#ifdef _WIN32
-    auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
-    if (lin_scene != nullptr)
-    {
+// #ifdef _WIN32
+//     auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
+//     if (lin_scene != nullptr)
+//     {
 
-        double a = 1.5;
-        tVector3d principle_axis = tVector3d::Random();
-        principle_axis[1] = 0;
-        principle_axis.normalize();
-        // principle_axis = tVector3d(1, 0, 0);
-        // lin_scene->ApplyFoldNoise(principle_axis, a);
-        // naive gaussian noise
-        double angle = 0;
-        double std = 0.02;
-        // lin_scene->ApplyNoise(true, angle, false, 0);
-        // lin_scene->ApplyNoise(true, angle, true, std);
+//         double a = 1.5;
+//         tVector3d principle_axis = tVector3d::Random();
+//         principle_axis[1] = 0;
+//         principle_axis.normalize();
+//         // principle_axis = tVector3d(1, 0, 0);
+//         // lin_scene->ApplyFoldNoise(principle_axis, a);
+//         // naive gaussian noise
+//         double angle = 0;
+//         double std = 0.02;
+//         // lin_scene->ApplyNoise(true, angle, false, 0);
+//         // lin_scene->ApplyNoise(true, angle, true, std);
 
-        // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
-        lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10), 0.05);
-        std::cout << "apply multiple folds noise\n";
-        // std::cout << "apply noise in draw scene, std = " << std << std::endl;
-    }
-#endif
+//         // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
+//         lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10), 0.05);
+//         std::cout << "apply multiple folds noise\n";
+//         // std::cout << "apply noise in draw scene, std = " << std << std::endl;
+//     }
+// #endif
 }
 
 /**
@@ -1321,7 +1321,7 @@ void cDrawScene::CreateCommandBuffers()
 
         SIM_ASSERT(VK_SUCCESS == vkEndCommandBuffer(mCommandBuffers[i]));
     }
-    SIM_INFO("Create Command buffers succ");
+    // SIM_INFO("Create Command buffers succ");
 }
 
 void cDrawScene::CreateVertexBufferGround()

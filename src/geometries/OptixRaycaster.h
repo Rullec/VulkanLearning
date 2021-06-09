@@ -12,8 +12,10 @@ class cOptixRaycaster : public cRaycaster
 {
 public:
     explicit cOptixRaycaster(bool enable_only_exporting_cutted_window);
-    virtual void AddResources(const std::vector<tTriangle *> triangles,
-                              const std::vector<tVertex *> vertices) override;
+    // virtual void AddResources(const std::vector<tTriangle *> triangles,
+    //                           const std::vector<tVertex *> vertices)
+    //                           override;
+    virtual void AddResources(cBaseObjectPtr object);
     virtual void CalcDepthMap(const tMatrix2i &cast_range, int height,
                               int width, CameraBasePtr camera,
                               std::string path) override final;
@@ -51,7 +53,7 @@ protected:
     int visible_window_width,
         visible_window_height; // we may only be insterested in a small fraction
                                // window of the whole picture
-    tVector2i visible_window_st;    // [width_st, height_st]
+    tVector2i visible_window_st; // [width_st, height_st]
     CUcontext cudaContext;
     CUstream stream;
     cudaDeviceProp deviceProps;

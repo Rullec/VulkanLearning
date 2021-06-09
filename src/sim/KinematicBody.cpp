@@ -141,12 +141,12 @@ void cKinematicBody::BuildCustomKinematicBody()
     cTriangulator::ValidateGeometry(mVertexArray, mEdgeArray, mTriangleArray);
 }
 
-int cKinematicBody::GetDrawNumOfTriangles() const
-{
-    return mTriangleArray.size();
-}
+// int cKinematicBody::GetDrawNumOfTriangles() const
+// {
+//     return mTriangleArray.size();
+// }
 
-int cKinematicBody::GetDrawNumOfEdges() const { return mEdgeArray.size(); }
+// int cKinematicBody::GetDrawNumOfEdges() const { return mEdgeArray.size(); }
 extern void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
                                          Eigen::Map<tVectorXf> &buffer,
                                          int &st_pos);
@@ -154,24 +154,24 @@ extern void CalcEdgeDrawBufferSingle(tVertex *v0, tVertex *v1,
                                      Eigen::Map<tVectorXf> &buffer,
                                      int &st_pos);
 
-void cKinematicBody::CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res) const
+void cKinematicBody::CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res,
+                                            int &st) const
 {
-    int st_pos = 0;
     for (auto &x : mTriangleArray)
     {
         CalcTriangleDrawBufferSingle(mVertexArray[x->mId0],
                                      mVertexArray[x->mId1],
-                                     mVertexArray[x->mId2], res, st_pos);
+                                     mVertexArray[x->mId2], res, st);
     }
 }
 
-void cKinematicBody::CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res) const
+void cKinematicBody::CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res,
+                                        int &st) const
 {
-    int st_pos = 0;
     for (auto &x : mEdgeArray)
     {
         CalcEdgeDrawBufferSingle(mVertexArray[x->mId0], mVertexArray[x->mId1],
-                                 res, st_pos);
+                                 res, st);
     }
 }
 #include <cfloat>
@@ -191,15 +191,22 @@ void cKinematicBody::CalcAABB(tVector &min, tVector &max) const
     }
 }
 
-const std::vector<tVertex *> &cKinematicBody::GetVertexArray() const
-{
-    return mVertexArray;
-}
-const std::vector<tEdge *> &cKinematicBody::GetEdgeArray() const
-{
-    return mEdgeArray;
-}
-const std::vector<tTriangle *> &cKinematicBody::GetTriangleArray() const
-{
-    return mTriangleArray;
-}
+// const std::vector<tVertex *> &cKinematicBody::GetVertexArray() const
+// {
+//     return mVertexArray;
+// }
+// const std::vector<tEdge *> &cKinematicBody::GetEdgeArray() const
+// {
+//     return mEdgeArray;
+// }
+// const std::vector<tTriangle *> &cKinematicBody::GetTriangleArray() const
+// {
+//     return mTriangleArray;
+// }
+
+// void cKinematicBody::Update(double dt) {}
+
+// int cKinematicBody::GetDrawNumOfVertices() const
+// {
+//     return this->mVertexArray.size();
+// }

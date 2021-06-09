@@ -59,10 +59,11 @@ cOptixRaycaster::cOptixRaycaster(bool enable_only_export_cutted_window)
     CreateHitgroupPrograms();
 }
 
-void cOptixRaycaster::AddResources(const std::vector<tTriangle *> triangles,
-                                   const std::vector<tVertex *> vertices)
+// void cOptixRaycaster::AddResources(const std::vector<tTriangle *> triangles,
+//                                    const std::vector<tVertex *> vertices)
+void cOptixRaycaster::AddResources(cBaseObjectPtr object)
 {
-    cRaycaster::AddResources(triangles, vertices);
+    cRaycaster::AddResources(object);
 
     launchParams.traversable = BuildAccel();
     // auto a = <=>(1, 2);

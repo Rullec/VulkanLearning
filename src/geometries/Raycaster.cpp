@@ -1,8 +1,15 @@
 #include "Raycaster.h"
 #include "utils/LogUtil.h"
-// cRaycaster::cRaycaster(const std::vector<tTriangle *> triangles,
-//                        const std::vector<tVertex *> vertices) :
-//                        mTriangleArray(triangles), mVertexArray(vertices)
+#include <iostream>
+
+cRaycaster::tRaycastResult::tRaycastResult()
+{
+    mObject = nullptr;
+    mLocalTriangleId = -1;
+    mIntersectionPoint =
+        tVector::Ones() * std::numeric_limits<double>::quiet_NaN();
+}
+
 cRaycaster::cRaycaster(bool enable_only_export_cutted_window)
     : mEnableOnlyExportCuttedWindow(enable_only_export_cutted_window)
 {
@@ -12,25 +19,39 @@ cRaycaster::cRaycaster(bool enable_only_export_cutted_window)
     // SIM_ASSERT(triangles != nullptr);
 }
 
-void cRaycaster::AddResources(const std::vector<tTriangle *> triangles,
-                              const std::vector<tVertex *> vertices)
+// void cRaycaster::AddResources(const std::vector<tTriangle *> triangles,
+//                               const std::vector<tVertex *> vertices)
+// {
+//     mTriangleArray_lst.push_back(triangles);
+//     mVertexArray_lst.push_back(vertices);
+// }
+#include "sim/BaseObject.h"
+void cRaycaster::AddResources(cBaseObjectPtr object)
 {
-    mTriangleArray_lst.push_back(triangles);
-    mVertexArray_lst.push_back(vertices);
+    mObjects.push_back(object);
+
+    std::vector<tTriangle *> tri = object->GetTriangleArray();
+    std::vector<tVertex *> ver = object->GetVertexArray();
+
+    mTriangleArray_lst.push_back(tri);
+    // std::cout << mTriangleArray_lst.size() << std::endl;
+    mVertexArray_lst.push_back(ver);
+    // std::cout << mVertexArray_lst.size() << std::endl;
 }
 
 /**
  * \brief               Do raycast, calculate the intersection
  */
-void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
-                         int &selected_tri_id, tVector &raycast_point) const
+// void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
+//                          int &selected_tri_id, tVector &raycast_point) const
+cRaycaster::tRaycastResult cRaycaster::RayCast(const tRay *ray) const
 {
     // 1. init
-    *selected_tri = nullptr;
-    selected_tri_id = -1;
+    tRaycastResult res;
     double min_depth = std::numeric_limits<double>::max();
-    raycast_point.noalias() = tVector::Ones() * std::nan("");
-
+    // raycast_point.noalias() = tVector::Ones() * std::nan("");
+    // std::cout << "triangle array lst size = " << mTriangleArray_lst.size()
+    //           << std::endl;
     // 2. iterate on each triangle
     for (int obj_id = 0; obj_id < mTriangleArray_lst.size(); obj_id++)
     {
@@ -50,14 +71,15 @@ void cRaycaster::RayCast(const tRay *ray, tTriangle **selected_tri,
                 double cur_depth = (tmp - ray->mOrigin).segment(0, 3).norm();
                 if (cur_depth < min_depth)
                 {
-                    *selected_tri = tri;
-                    selected_tri_id = i;
                     min_depth = cur_depth;
-                    raycast_point = tmp;
+                    res.mObject = mObjects[obj_id];
+                    res.mLocalTriangleId = i;
+                    res.mIntersectionPoint = tmp;
                 }
             }
         }
     }
+    return res;
 }
 
 /**

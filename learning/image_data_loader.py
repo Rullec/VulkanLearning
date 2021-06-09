@@ -91,10 +91,15 @@ class ImageDataLoader(DataLoader):
         # self.blur = GaussianBlur(kernel_size=5)
         # self.noise_gaussian_std = 0.02
 
-        ########## small noise test
-        self.affine = RandomAffine(degrees=(-5, 5), translate = (0.01, 0.01), scale = (1, 1), shear = None)
-        self.blur = GaussianBlur(kernel_size=1)
-        self.noise_gaussian_std = 0
+        ########## small noise test： succ
+        # self.affine = RandomAffine(degrees=(-5, 5), translate = (0.01, 0.01), scale = (1, 1), shear = None)
+        # self.blur = GaussianBlur(kernel_size=1)
+        # self.noise_gaussian_std = 0
+
+        ######### bigger noise test： succ
+        self.affine = RandomAffine(degrees=(-5, 5), translate = (0.05, 0.05), scale = (1, 1), shear = None)
+        self.blur = GaussianBlur(kernel_size=3)
+        self.noise_gaussian_std = 0.02
 
     def aug_torch(self, all_imgs):
         torch_all_imgs = torch.from_numpy(np.array(all_imgs))

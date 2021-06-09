@@ -33,16 +33,13 @@ public:
     bool IsStatic() const;
     eKinematicBodyShape GetBodyShape() const;
 
-    virtual int GetDrawNumOfTriangles() const override final;
-    virtual int GetDrawNumOfEdges() const override final;
-    virtual void
-    CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res) const override final;
-    virtual void
-    CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res) const override final;
+    virtual void CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res,
+                                        int &st) const override final;
+    virtual void CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res,
+                                    int &st) const override final;
 
-    const std::vector<tVertex *> &GetVertexArray() const;
-    const std::vector<tEdge *> &GetEdgeArray() const;
-    const std::vector<tTriangle *> &GetTriangleArray() const;
+    // virtual void UpdatePos(double dt) override final;
+    // virtual void UpdateRenderingResource() override final;
 
 protected:
     eKinematicBodyShape mBodyShape;
@@ -51,13 +48,11 @@ protected:
     tVector mInitPos;
     tVector mInitOrientation;
     bool mIsStatic;
-    std::vector<tVertex *> mVertexArray;
-    std::vector<tEdge *> mEdgeArray;
-    std::vector<tTriangle *> mTriangleArray;
     tVector mPlaneEquation;
     double mPlaneScale;
     // methods
     void BuildCustomKinematicBody();
     void BuildPlane();
     virtual void CalcAABB(tVector &min, tVector &max) const;
+    // virtual void InitDrawBuffer() override final;
 };

@@ -5,6 +5,8 @@ set(
     ClothPropertyManager.cpp
     ClothProperty.cpp
     CollisionDetecter.cpp
+    BaseCloth.cpp
+    SemiCloth.cpp
 )
 
 add_library(sim_lib ${SIM_SRC})
