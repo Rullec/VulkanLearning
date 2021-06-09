@@ -1,6 +1,6 @@
 #pragma once
-#include "sim/BaseObject.h"
 #include "geometries/Primitives.h"
+#include "sim/BaseObject.h"
 
 enum eClothType
 {
@@ -21,6 +21,7 @@ public:
     explicit cBaseCloth(eClothType cloth_type);
     virtual ~cBaseCloth();
     virtual void Init(const Json::Value &conf);
+    virtual void Reset();
     virtual void CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res,
                                         int &st) const;
     virtual void CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res, int &st) const;
@@ -50,12 +51,12 @@ protected:
     tVectorXd mClothInitPos;         // init position of the cloth
     virtual void InitGeometry(
         const Json::Value &conf); // discretazation from square cloth to
+    virtual void InitConstraint(const Json::Value &root);
     virtual void CalcIntForce(const tVectorXd &xcur,
                               tVectorXd &int_force) const;
     virtual void CalcExtForce(tVectorXd &ext_force) const;
     virtual void CalcDampingForce(const tVectorXd &vel,
                                   tVectorXd &damping) const;
-    void cBaseCloth::InitConstraint(const Json::Value &root);
     int GetNumOfFreedom() const;
     void CalcNodePositionVector(tVectorXd &pos) const;
 };

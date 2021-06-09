@@ -8,6 +8,8 @@ add_library(sim_scenes_lib
 Scene.cpp
 SimScene.cpp
 Perturb.cpp
+LinctexScene.cpp
+LinctexCloth.cpp
 cameras/CameraBase.cpp
 cameras/FPSCamera.cpp
 cameras/ArcBallCamera.cpp

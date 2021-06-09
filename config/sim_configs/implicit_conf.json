@@ -1,5 +1,5 @@
 {
-    "cloth_type": "implicit",
+    "scene_type" : "sim", "cloth_type": "implicit",
     "enable_draw": true,
     "cloth_size": 1,
     "cloth_mass": 1,

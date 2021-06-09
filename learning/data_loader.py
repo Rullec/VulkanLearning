@@ -158,8 +158,9 @@ class DataLoader():
                 from tqdm import tqdm
                 X_lst, Y_lst = [], []
                 if os.path.exists(self.data_dir) == True:
+                    
                     for f in tqdm(os.listdir(self.data_dir),
-                                  f"Loading data from {self.data_dir}"):
+                                  f"Loading data from {os.path.split(self.data_dir)[-1]}"):
                         # if f[-4:] == "json":
                         tar_f = os.path.join(self.data_dir, f)
                         X, Y = DataLoader._load_single_data(

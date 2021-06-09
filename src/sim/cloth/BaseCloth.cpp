@@ -27,6 +27,7 @@ void cBaseCloth::Init(const Json::Value &conf)
     InitConstraint(conf);
 }
 
+void cBaseCloth::Reset() { SetPos(mClothInitPos); }
 void CalcTriangleDrawBufferSingle(tVertex *v0, tVertex *v1, tVertex *v2,
                                   Eigen::Map<tVectorXf> &buffer, int &st_pos)
 {

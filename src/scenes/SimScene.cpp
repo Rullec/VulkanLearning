@@ -2,16 +2,14 @@
 #include "Perturb.h"
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
-#include "sim/cloth/BaseCloth.h"
 #include "sim/CollisionDetecter.h"
 #include "sim/KinematicBody.h"
+#include "sim/cloth/BaseCloth.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
 
 std::string gSceneTypeStr[eSceneType::NUM_OF_SCENE_TYPES] = {
-    "semi_implicit", "implicit", "projective_dynamic", "pbd",
-    "tri_baraff",    "se",       "data_synthesis",     "data_process",
-    "mesh_vis"};
+    "sim", "se", "data_synthesis", "data_process", "mesh_vis"};
 
 eSceneType cSimScene::BuildSceneType(const std::string &str)
 {

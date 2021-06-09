@@ -1,5 +1,5 @@
 {
-    "cloth_type": "pbd",
+    "scene_type" : "sim", "cloth_type": "pbd",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [

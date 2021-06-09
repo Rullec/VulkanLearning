@@ -10,16 +10,8 @@ class Value;
 
 enum eSceneType
 {
-    // MS means mass-spring system
-    SCENE_SEMI_IMPLICIT = 0,
-    SCENE_IMPLICIT,
-    SCENE_PROJECTIVE_DYNAMIC, // see Liu Et al, "Fast simulation of mass spring
-                              // system", equivalent to "optimization implicit
-                              // euler"
-    SCENE_POSITION_BASED_DYNAMIC, // trimesh modeling, position based dynamics
-    SCENE_BARAFF, // trimesh modeling, baraff 98 siggraph "large step for cloth
-                  // simulation"
-    SCENE_SE,     // style 3d engine
+    SCENE_SIM = 0,      // default simulation scene
+    SCENE_SE,           // style 3d engine
     SCENE_SYN_DATA,     // synthetic train scene
     SCENE_PROCESS_DATA, // process train scene
     SCENE_MESH_VIS,     // mesh visualization scene
@@ -115,6 +107,6 @@ protected:
     virtual void CreateCollisionDetecter();
     bool mPauseSim;
     virtual void PauseSim();
-    void CreateCloth(const Json::Value &conf);
+    virtual void CreateCloth(const Json::Value &conf);
     // virtual int GetNumOfTriangles() const;
 };
