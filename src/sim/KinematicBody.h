@@ -1,4 +1,4 @@
-#include "BaseObject.h"
+#include "sim/BaseObject.h"
 #include "utils/MathUtil.h"
 
 struct tTriangle;

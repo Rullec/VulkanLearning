@@ -1,5 +1,5 @@
 {
-    "scene_type": "projective_dynamic",
+    "cloth_type": "pd",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [

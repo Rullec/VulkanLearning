@@ -60,9 +60,9 @@
             "bending_bias": {
                 "range": [
                     1e3,
-                    2e3
+                    1.2e3
                 ],
-                "num_of_samples": 200,
+                "num_of_samples": 40,
                 "visible": true,
                 "index": 2
             }
@@ -81,14 +81,14 @@
     },
     "enable_noise": true,
     "noise": {
-        "noised_samples": 3,
+        "noised_samples": 200,
         "enable_low_freq_noise": true,
         "max_fold_amp": 0.05,
         "min_fold_num": 3,
         "max_fold_num": 3
     },
     "convergence_threshold": 0.001,
-    "enable_data_cleaner": true,
+    "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false
 }

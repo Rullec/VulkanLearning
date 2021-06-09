@@ -1,5 +1,5 @@
 #pragma once
-#include "BaseObject.h"
+#include "sim/BaseObject.h"
 #include "geometries/Primitives.h"
 
 enum eClothType

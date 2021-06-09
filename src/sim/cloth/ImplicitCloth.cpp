@@ -1,48 +1,53 @@
-#include "ImplicitScene.h"
-#include "geometries/Primitives.h"
+#include "ImplicitCloth.h"
 #include "utils/JsonUtil.h"
-#include "utils/TimeUtil.hpp"
 #include <iostream>
-cImplicitScene::cImplicitScene() {}
-cImplicitScene::~cImplicitScene() {}
-void cImplicitScene::Init(const std::string &conf_path)
-{
-    cSimScene::Init(conf_path);
-    Json::Value root;
-    cJsonUtil::LoadJson(conf_path, root);
-    mMaxNewtonIters = cJsonUtil::ParseAsInt("max_newton_iters", root);
-    mStiffness = cJsonUtil::ParseAsInt("stiffness", root);
-    InitGeometry(root);
-    InitRaycaster();
-    InitConstraint(root);
-    InitDrawBuffer();
 
-    // 3. set up the init pos
+cImplicitCloth::cImplicitCloth() : cBaseCloth(eClothType::IMPLICIT_CLOTH) {}
+cImplicitCloth::~cImplicitCloth() {}
+
+void cImplicitCloth::Init(const Json::Value &conf)
+{
+    mMaxNewtonIters = cJsonUtil::ParseAsInt("max_newton_iters", conf);
+    mStiffness = cJsonUtil::ParseAsInt("stiffness", conf);
+    cBaseCloth::Init(conf);
     CalcNodePositionVector(mXpre);
     mXcur.noalias() = mXpre;
-    std::cout << "init sim scene done\n";
-}
 
-void cImplicitScene::InitGeometry(const Json::Value &conf)
-{
-    cSimScene::InitGeometry(conf);
-    // int gap = mSubdivision + 1;
-
-    // set up the vertex pos data
-    // in XOY plane
-
-    mStiffness = cJsonUtil::ParseAsDouble("stiffness", conf);
     for (auto &x : mEdgeArray)
         x->mK_spring = mStiffness;
 }
-void cImplicitScene::Reset() {}
 
-/**
- * \brief           Calcualte Xnext by implicit integration, which means, solve
- * the system equation by newton iteration
- */
-#include <Eigen/SparseLU>
-tVectorXd cImplicitScene::CalcNextPositionImplicit()
+void cImplicitCloth::InitGeometry(const Json::Value &conf)
+{
+    cBaseCloth::InitGeometry(conf);
+    for (auto &x : mEdgeArray)
+        x->mK_spring = mStiffness;
+}
+void cImplicitCloth::UpdatePos(double dt)
+{
+    // std::cout << "mInt force = " << mIntForce.transpose() << std::endl;
+    // std::cout << "mExt force = " << mExtForce.transpose() << std::endl;
+    // 3. forward simulation
+    tVectorXd mXnext = tVectorXd::Zero(GetNumOfFreedom());
+
+    // 2. calculate force
+    CalcIntForce(mXcur, mIntForce);
+    CalcExtForce(mExtForce);
+    CalcDampingForce((mXcur - mXpre) / mIdealDefaultTimestep, mDampingForce);
+
+    // std::cout << "before x = " << mXcur.transpose() << std::endl;
+    // std::cout << "fint = " << mIntForce.transpose() << std::endl;
+    // std::cout << "fext = " << mExtForce.transpose() << std::endl;
+    // std::cout << "fdamp = " << mDampingForce.transpose() << std::endl;
+    mXnext = CalcNextPositionImplicit();
+
+    // std::cout << "mXnext = " << mXnext.transpose() << std::endl;
+    mXpre.noalias() = mXcur;
+    mXcur.noalias() = mXnext;
+    SetPos(mXcur);
+}
+
+tVectorXd cImplicitCloth::CalcNextPositionImplicit()
 {
     /*
         Let X = Xnext is what we want have, the equation is:
@@ -69,7 +74,8 @@ tVectorXd cImplicitScene::CalcNextPositionImplicit()
 
     while (true)
     {
-        ClearForce();
+        mIntForce.setZero();
+        mDampingForce.setZero();
         // step 1
         CalcGxImplicit(x0, res, mIntForce, mExtForce, mDampingForce);
         double res_norm = res.norm();
@@ -117,35 +123,28 @@ tVectorXd cImplicitScene::CalcNextPositionImplicit()
         // exit(0);
     }
 
-    printf("[debug] newton solver done, iters %d/%d, res norm %.5f\n", cur_iter,
-           max_iters, res.norm());
+    // printf("[debug] newton solver done, iters %d/%d, res norm %.5f\n", cur_iter,
+    //        max_iters, res.norm());
     // exit(0);
     return x0;
 }
-
-/**
- * \brief           given current pos, calculate the value of dynamic equation
- *      G(x) = 2 * Xcur - Xpre - X + Minv * dt2 * (Fext + Fint) = 0
- */
-void cImplicitScene::CalcGxImplicit(const tVectorXd &xcur, tVectorXd &Gx,
+void cImplicitCloth::CalcGxImplicit(const tVectorXd &xcur, tVectorXd &Gx,
                                     tVectorXd &fint_buf, tVectorXd &fext_buf,
                                     tVectorXd &fdamp_buffer) const
 {
     CalcIntForce(xcur, fint_buf);
-    CalcExtForce(fext_buf);
-    CalcDampingForce((mXcur - mXpre) / mCurdt, fdamp_buffer);
+    // CalcExtForce(fext_buf);
+    CalcDampingForce((mXcur - mXpre) / mIdealDefaultTimestep, fdamp_buffer);
     Gx.noalias() =
         2 * mXcur - mXpre - xcur +
-        mCurdt * mCurdt *
+        mIdealDefaultTimestep * mIdealDefaultTimestep *
             mInvMassMatrixDiag.cwiseProduct(fext_buf + fint_buf + fdamp_buffer);
 }
 
-/**
- * \brief               Given x, Calculate d(Gx)/dx
- */
-void cImplicitScene::CalcdGxdxImplicit(const tVectorXd &x,
+void cImplicitCloth::CalcdGxdxImplicit(const tVectorXd &x,
                                        tMatrixXd &dGdx) const
 {
+
     dGdx.noalias() = tMatrixXd::Zero(GetNumOfFreedom(), GetNumOfFreedom());
     int id0, id1;
     double dist;
@@ -208,12 +207,11 @@ void cImplicitScene::CalcdGxdxImplicit(const tVectorXd &x,
 
     // std::cout << "dFdx = \n" << dGdx << std::endl;
     // dGdx = dt2 * Minv * dFdX - I
-    dGdx = mCurdt * mCurdt * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() *
-               dGdx -
+    dGdx = mIdealDefaultTimestep * mIdealDefaultTimestep *
+               mInvMassMatrixDiag.asDiagonal().toDenseMatrix() * dGdx -
            tMatrixXd::Identity(GetNumOfFreedom(), GetNumOfFreedom());
 }
-
-void cImplicitScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
+void cImplicitCloth::CalcdGxdxImplicitSparse(const tVectorXd &x,
                                              tSparseMat &dGdx) const
 {
     int dof = GetNumOfFreedom();
@@ -221,7 +219,7 @@ void cImplicitScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
     int id0, id1;
     double dist;
     tVector3d pos0, pos1;
-    double dt2 = mCurdt * mCurdt;
+    double dt2 = mIdealDefaultTimestep * mIdealDefaultTimestep;
     tEigenArr<tTriplet> tri_lst(0);
     for (auto &spr : this->mEdgeArray)
     {
@@ -275,16 +273,13 @@ void cImplicitScene::CalcdGxdxImplicitSparse(const tVectorXd &x,
     */
     // std::cout << "dFdx = \n" << dGdx << std::endl;
     // dGdx = dt2 * Minv * dFdX - I
-    // dGdx = mCurdt * mCurdt * mInvMassMatrixDiag.asDiagonal().toDenseMatrix()
+    // dGdx = mIdealDefaultTimestep * mIdealDefaultTimestep *
+    // mInvMassMatrixDiag.asDiagonal().toDenseMatrix()
     // *
     //            dGdx -
     //        tMatrixXd::Identity(GetNumOfFreedom(), GetNumOfFreedom());
 }
-
-/**
- * \brief           Given x0, test whehter the analytic gradient is correct
- */
-void cImplicitScene::TestdGxdxImplicit(const tVectorXd &x0,
+void cImplicitCloth::TestdGxdxImplicit(const tVectorXd &x0,
                                        const tMatrixXd &Gx_ana)
 {
     double eps = 1e-6;
@@ -310,38 +305,4 @@ void cImplicitScene::TestdGxdxImplicit(const tVectorXd &x0,
         x_now[i] -= eps;
     }
     SIM_INFO("test dG/dx succ");
-}
-
-void cImplicitScene::UpdateSubstep()
-{
-    // std::cout << "-----------------\n";
-    if (mEnableProfiling == true)
-        cTimeUtil::Begin("substep");
-    SIM_ASSERT(std::fabs(mCurdt - mIdealDefaultTimestep) < 1e-10);
-    // std::cout << "[update] x = " << mXcur.transpose() << std::endl;
-    // 1. clear force
-    ClearForce();
-
-    // std::cout << "mInt force = " << mIntForce.transpose() << std::endl;
-    // std::cout << "mExt force = " << mExtForce.transpose() << std::endl;
-    // 3. forward simulation
-    tVectorXd mXnext = tVectorXd::Zero(GetNumOfFreedom());
-
-    // 2. calculate force
-    CalcIntForce(mXcur, mIntForce);
-    CalcExtForce(mExtForce);
-    CalcDampingForce((mXcur - mXpre) / mCurdt, mDampingForce);
-
-    // std::cout << "before x = " << mXcur.transpose() << std::endl;
-    // std::cout << "fint = " << mIntForce.transpose() << std::endl;
-    // std::cout << "fext = " << mExtForce.transpose() << std::endl;
-    // std::cout << "fdamp = " << mDampingForce.transpose() << std::endl;
-    mXnext = CalcNextPositionImplicit();
-
-    // std::cout << "mXnext = " << mXnext.transpose() << std::endl;
-    mXpre.noalias() = mXcur;
-    mXcur.noalias() = mXnext;
-    UpdateCurNodalPosition(mXcur);
-    if (mEnableProfiling == true)
-        cTimeUtil::End("substep");
 }

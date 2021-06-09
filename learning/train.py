@@ -41,8 +41,8 @@ if __name__ == "__main__":
         device = torch.device("cpu", 0)
     # net = ParamNet(conf_path, device)
 
-    conf_path = "..\config\\train_configs\\conv_conf.json"
-    # conf_path = "..\config\\train_configs\\fc_conf.json"
+    # conf_path = "..\config\\train_configs\\conv_conf.json"
+    conf_path = "..\config\\train_configs\\fc_conf.json"
 
     with open(conf_path) as f:
         mode = json.load(f)["mode"]

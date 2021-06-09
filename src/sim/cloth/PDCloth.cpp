@@ -1,29 +1,22 @@
-#include "PDScene.h"
-#include "geometries/Primitives.h"
+#include "sim/cloth/PDCloth.h"
 #include "utils/JsonUtil.h"
-#include "utils/TimeUtil.hpp"
 #include <iostream>
 
 extern int SelectAnotherVerteix(tTriangle *tri, int v0, int v1);
 extern tVector CalculateCotangentCoeff(const tVector &x0, tVector &x1,
                                        tVector &x2, tVector &x3);
 
-cPDScene::cPDScene() { mMaxSteps_Opt = 0; }
+cPDCloth::cPDCloth() : cBaseCloth(eClothType::PD_CLOTH) { mMaxSteps_Opt = 0; }
 
-void cPDScene::Init(const std::string &conf_path)
+cPDCloth::~cPDCloth() {}
+void cPDCloth::Init(const Json::Value &conf)
 {
 
-    Json::Value root;
-    cJsonUtil::LoadJson(conf_path, root);
+    mMaxSteps_Opt = cJsonUtil::ParseAsInt("max_steps_opt", conf);
+    mEnableBending = cJsonUtil::ParseAsBool("enable_bending", conf);
+    mBendingStiffness = cJsonUtil::ParseAsDouble("bending_stiffness", conf);
 
-    cSimScene::Init(conf_path);
-    mMaxSteps_Opt = cJsonUtil::ParseAsInt("max_steps_opt", root);
-    mEnableBending = cJsonUtil::ParseAsBool("enable_bending", root);
-    mBendingStiffness = cJsonUtil::ParseAsDouble("bending_stiffness", root);
-    InitGeometry(root);
-    InitRaycaster();
-    InitConstraint(root);
-    InitDrawBuffer();
+    cBaseCloth::Init(conf);
 
     // 3. set up the init pos
     CalcNodePositionVector(mXpre);
@@ -38,9 +31,9 @@ void cPDScene::Init(const std::string &conf_path)
         I_plus_dt2_Minv_L_sparse_fast);
 }
 
-void cPDScene::InitGeometry(const Json::Value &conf)
+void cPDCloth::InitGeometry(const Json::Value &conf)
 {
-    cSimScene::InitGeometry(conf);
+    cBaseCloth::InitGeometry(conf);
     double mStiffness = cJsonUtil::ParseAsDouble("stiffness", conf);
     for (auto &e : mEdgeArray)
     {
@@ -50,7 +43,7 @@ void cPDScene::InitGeometry(const Json::Value &conf)
 /**
  * \brief           initialize sparse variables for paper "fast simulation"
  */
-void cPDScene::InitVarsOptImplicitSparse()
+void cPDCloth::InitVarsOptImplicitSparse()
 {
     int num_of_sprs = GetNumOfEdges();
     int node_dof = GetNumOfFreedom();
@@ -139,7 +132,7 @@ void cPDScene::InitVarsOptImplicitSparse()
                                              I_plus_dt2_Minv_L.end());
 }
 
-void cPDScene::InitVarsOptImplicitSparseFast()
+void cPDCloth::InitVarsOptImplicitSparseFast()
 {
     int dof_3 = GetNumOfVertices();
     I_plus_dt2_Minv_L_sparse_fast.resize(dof_3, dof_3);
@@ -228,7 +221,7 @@ void SolveFast(const tSparseMat &A, const T &solver, tVectorXd &residual,
     // exit(0);
 }
 tVectorXd tmp;
-tVectorXd cPDScene::CalcNextPosition() const
+tVectorXd cPDCloth::CalcNextPosition() const
 {
     // cTimeUtil::Begin("fast simulation calc next");
     // std::cout << "begin CalcNextPosition\n";
@@ -238,16 +231,17 @@ tVectorXd cPDScene::CalcNextPosition() const
 
     // 1. calculate b = dt2 * fext - M * y
     // y = 2 * xcur - xpre
-    tVectorXd fext = tVectorXd::Zero(GetNumOfFreedom());
+    tVectorXd fext = mExtForce;
     tVectorXd fdamping = tVectorXd::Zero(GetNumOfFreedom());
     CalcExtForce(fext);
 
-    CalcDampingForce((mXcur - mXpre) / mCurdt, fdamping);
+    CalcDampingForce((mXcur - mXpre) / mIdealDefaultTimestep, fdamping);
     fext += fdamping;
     // tVectorXd b;
-    double dt2 = mCurdt * mCurdt;
+    double dt2 = mIdealDefaultTimestep * mIdealDefaultTimestep;
 
-    SIM_ASSERT(std::fabs(mCurdt - mIdealDefaultTimestep) < 1e-10);
+    SIM_ASSERT(std::fabs(mIdealDefaultTimestep - mIdealDefaultTimestep) <
+               1e-10);
     // std::cout << "max step = " << mMaxSteps_Opt << std::endl;
     for (int i = 0; i < mMaxSteps_Opt; i++)
     {
@@ -329,10 +323,10 @@ tVectorXd cPDScene::CalcNextPosition() const
     return Xnext;
 }
 #include "sim/CollisionDetecter.h"
-void cPDScene::UpdateSubstep()
+void cPDCloth::UpdatePos(double dt)
 {
     // cTimeUtil::Begin("substep");
-    ClearForce();
+    // ClearForce();
 
     // if (mColDetecter != nullptr)
     // {
@@ -344,14 +338,14 @@ void cPDScene::UpdateSubstep()
     mXpre.noalias() = mXcur;
     mXcur.noalias() = Xnext;
     // cTimeUtil::Begin("substep_update_pos");
-    UpdateCurNodalPosition(mXcur);
+    SetPos(mXcur);
     // cTimeUtil::End("substep_update_pos");
     // cTimeUtil::End("substep");
 }
 
-void cPDScene::Reset() { cSimScene::Reset(); }
+// void cPDCloth::Reset() { cSimScene::Reset(); }
 
-void cPDScene::Update(double dt) { cSimScene::Update(dt); }
+// void cPDCloth::Update(double dt) { cSimScene::Update(dt); }
 
 double CalcTriangleSquare(const tVector &v0, const tVector &v1,
                           const tVector &v2)
@@ -375,7 +369,8 @@ double CalcTriangleSquare(tTriangle *tri, std::vector<tVertex *> v_array)
  * According to the note, we only need to add some more entries into the system
  * matrix to support bending These triplets are calcualted here
  */
-void cPDScene::AddBendTriplet(tEigenArr<tTriplet> &old_lst) const
+#include "utils/TimeUtil.hpp"
+void cPDCloth::AddBendTriplet(tEigenArr<tTriplet> &old_lst) const
 {
     cTimeUtil::Begin("build bending triplet");
     printf("[debug] bending stiffness %.4f\n", mBendingStiffness);

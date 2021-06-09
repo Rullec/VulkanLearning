@@ -2,7 +2,7 @@
 #include "Perturb.h"
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
-#include "sim/BaseCloth.h"
+#include "sim/cloth/BaseCloth.h"
 #include "sim/CollisionDetecter.h"
 #include "sim/KinematicBody.h"
 #include "utils/JsonUtil.h"
@@ -70,8 +70,8 @@ void cSimScene::Init(const std::string &conf_path)
     InitDrawBuffer();
     InitRaycaster();
 }
-#include "sim/ClothBuilder.h"
-#include "sim/SemiCloth.h"
+#include "sim/cloth/ClothBuilder.h"
+
 void cSimScene::CreateCloth(const Json::Value &conf)
 {
     // mCloth = std::make_shared<cSemiCloth>();

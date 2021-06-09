@@ -7,15 +7,6 @@ DrawSceneShot.cpp
 add_library(sim_scenes_lib 
 Scene.cpp
 SimScene.cpp
-# SemiImplicitScene.cpp
-# BaraffScene.cpp
-# ImplicitScene.cpp
-# LinctexScene.cpp
-# SynDataScene.cpp
-# MeshVisScene.cpp
-# PDScene.cpp
-# ProcessTrainDataScene.cpp
-# PBDScene.cpp
 Perturb.cpp
 cameras/CameraBase.cpp
 cameras/FPSCamera.cpp

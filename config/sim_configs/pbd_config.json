@@ -1,6 +1,5 @@
 {
-    "scene_type_bak1": "semi_implicit",
-    "scene_type": "pbd",
+    "cloth_type": "pbd",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -22,10 +21,10 @@
     "geometry_type": "regular_triangle",
     "subdivision": 20,
     "damping": 1e-3,
-    "default_timestep": 1e-3,
+    "default_timestep": 1e-2,
     "pbd_config": {
         "enable_parallel_pbd": true,
-        "max_pbd_iters": 4,
+        "max_pbd_iters": 10,
         "stiffness_pbd": 1,
         "enable_bending_pbd": true,
         "bending_stiffness_pbd": 1e-2
