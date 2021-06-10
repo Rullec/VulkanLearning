@@ -86,7 +86,7 @@ protected:
 
     // apply noise on the camera position and orientation
     void InitPreprocessInfo(const Json::Value &conf);
-    virtual void UpdateSubstep() override final;
+    // virtual void UpdateSubstep() override final;
     bool LoadRawData(std::string path, tVectorXd &feature_vec);
     // tMatrixXd CalcDepthImageLegacy(const CameraBasePtr camera);
     void CalcDepthMap(

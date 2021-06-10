@@ -1,8 +1,9 @@
 #ifdef _WIN32
 #include "SynDataScene.h"
 #include "LinctexScene.h"
-#include "sim/ClothProperty.h"
-#include "sim/ClothPropertyManager.h"
+#include "scenes/LinctexCloth.h"
+#include "sim/cloth/ClothProperty.h"
+#include "sim/cloth/ClothPropertyManager.h"
 #include "utils/FileUtil.h"
 #include "utils/JsonUtil.h"
 #include "utils/TimeUtil.hpp"
@@ -11,13 +12,13 @@
 // tVectorXd online_before_nodal_pos;
 
 extern void DumpSimulationData(const tVectorXd &simualtion_result,
-                        const tVectorXd &simulation_property,
-                        // const tVector &init_rot_qua,
-                        // const tVector &init_translation,
-                        const std::string &filename);
+                               const tVectorXd &simulation_property,
+                               // const tVector &init_rot_qua,
+                               // const tVector &init_translation,
+                               const std::string &filename);
 extern void LoadSimulationData(tVectorXd &simualtion_result,
-                        tVectorXd &simulation_property,
-                        const std::string &filename);
+                               tVectorXd &simulation_property,
+                               const std::string &filename);
 cSynDataScene::cSynDataScene()
 {
     mSynDataNoise = nullptr;
@@ -54,10 +55,6 @@ void cSynDataScene::Init(const std::string &conf_path)
     mPropManager = std::make_shared<tPhyPropertyManager>(
         cJsonUtil::ParseAsValue("property_manager", conf_json));
     mEnableDraw = cJsonUtil::ParseAsBool(this->ENABLE_DRAW_KEY, conf_json);
-    {
-        mIdealDefaultTimestep = cJsonUtil::ParseAsDouble(
-            cSimScene::DEFAULT_TIMESTEP_KEY, conf_json);
-    }
     // std::cout << "enable noise = " << mEnableDataAug << std::endl;
     if (mEnableDataAug == true)
     {
@@ -66,6 +63,7 @@ void cSynDataScene::Init(const std::string &conf_path)
     }
     mLinScene = std::make_shared<cLinctexScene>();
     mLinScene->Init(mDefaultConfigPath);
+    mLinCloth = mLinScene->GetLinctexCloth();
     InitExportDataDir();
 
     if (mEnableDraw == false)
@@ -104,9 +102,9 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     Reset();
 
     // mLinScene->ApplyTransform(init_trans);
-    mLinScene->SetSimProperty(props);
+    mLinCloth->SetSimProperty(props);
     bool is_first_frame = true;
-    buffer0.noalias() = tVectorXd::Zero(mLinScene->GetClothFeatureSize());
+    buffer0.noalias() = tVectorXd::Zero(mLinCloth->GetClothFeatureSize());
     double threshold = mConvergenceThreshold;
     int cur_iters = 0;
     int min_iters = 5;
@@ -114,7 +112,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     {
         mLinScene->Update(1e-3);
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        buffer1.noalias() = mLinScene->GetClothFeatureVector();
+        buffer1.noalias() = mLinCloth->GetClothFeatureVector();
 
         // find the biggest movement vertex
         // {
@@ -157,7 +155,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             cFileUtil::ConcatFilename(mExportDataDir, single_name);
         // 2. "input" & output
         DumpSimulationData(
-            mLinScene->GetClothFeatureVector(),
+            mLinCloth->GetClothFeatureVector(),
             props->BuildVisibleFeatureVector(),
             // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
             // init_trans.block(0, 3, 4, 1),
@@ -174,7 +172,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
                 cFileUtil::ConcatFilename(mExportDataDir, single_name);
             // 2. "input" & output
             DumpSimulationData(
-                mLinScene->GetClothFeatureVector(),
+                mLinCloth->GetClothFeatureVector(),
                 props->BuildVisibleFeatureVector(),
                 // cMathUtil::QuaternionToCoef(cMathUtil::RotMatToQuaternion(init_trans)),
                 // init_trans.block(0, 3, 4, 1),
@@ -202,7 +200,7 @@ double calc_dist(const tVectorXd &v0, const tVectorXd &v1)
 bool cSynDataScene::CheckDuplicateWithDataSet() const
 {
     tVectorXd old_res, old_prop;
-    tVectorXd cur_res = mLinScene->GetClothFeatureVector();
+    tVectorXd cur_res = mLinCloth->GetClothFeatureVector();
     for (int i = mTotalSamples_valid - 1; i >= 0; i--)
     {
         std::string single_name = std::to_string(i) + ".json";
@@ -326,8 +324,6 @@ void cSynDataScene::MouseButton(int button, int action, int mods)
     mLinScene->MouseButton(button, action, mods);
 }
 
-void cSynDataScene::UpdateSubstep() {}
-
 /**
  * \brief               Create the export data directory
  */
@@ -356,9 +352,9 @@ void cSynDataScene::InitExportDataDir()
 cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
 {
     mNumOfNoisedSamples = cJsonUtil::ParseAsInt("noised_samples", conf);
-    // mEnableInitYRotation = cJsonUtil::ParseAsBool("enable_init_rotation", conf);
-    // mEnableFoldNoise = cJsonUtil::ParseAsBool("enable_fold_noise", conf);
-    // mEnableInitYPosNoise =
+    // mEnableInitYRotation = cJsonUtil::ParseAsBool("enable_init_rotation",
+    // conf); mEnableFoldNoise = cJsonUtil::ParseAsBool("enable_fold_noise",
+    // conf); mEnableInitYPosNoise =
     //     cJsonUtil::ParseAsBool("enable_gaussian_pos_noise", conf);
     // mInitYPosNoiseStd = cJsonUtil::ParseAsDouble("gaussian_std", conf);
     // mFoldCoef = cJsonUtil::ParseAsDouble("fold_coef", conf);
@@ -392,8 +388,9 @@ void cSynDataScene::ApplyNoiseIfPossible()
         //     principle_axis[1] = 0;
         //     principle_axis.normalize();
 
-        //     mLinScene->ApplyFoldNoise(principle_axis, mSynDataNoise->mFoldCoef);
-        //     std::cout << "[debug] apply fold noise along principle noise "
+        //     mLinScene->ApplyFoldNoise(principle_axis,
+        //     mSynDataNoise->mFoldCoef); std::cout << "[debug] apply fold noise
+        //     along principle noise "
         //               << principle_axis.transpose()
         //               << ", folding coef = " << mSynDataNoise->mFoldCoef
         //               << std::endl;
@@ -414,7 +411,7 @@ void cSynDataScene::ApplyNoiseIfPossible()
         {
             int num = cMathUtil::RandInt(mSynDataNoise->mMinFoldNum,
                                          mSynDataNoise->mMaxFoldNum);
-            mLinScene->ApplyMultiFoldsNoise(num, mSynDataNoise->mMaxFoldAmp);
+            mLinCloth->ApplyMultiFoldsNoise(num, mSynDataNoise->mMaxFoldAmp);
             std::cout << "[debug] apply low freq noise " << num << std::endl;
         }
         // std::cout << "theta = " << theta << std::endl;

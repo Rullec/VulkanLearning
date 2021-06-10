@@ -24,6 +24,7 @@ public:
     std::shared_ptr<StyleEngine::SePiece> GetPiece() const;
     const tVectorXd &GetClothFeatureVector() const;
     tVector CalcCOM() const;
+    int GetClothFeatureSize() const;
 
     // apply the noise
     void ApplyNoise(bool enable_y_random_rotation, double &rotation_angle,
@@ -43,7 +44,6 @@ protected:
     virtual void InitGeometry(const Json::Value &conf);
     void AddPiece(); // add the simulation data into the se engine
 
-    int GetClothFeatureSize() const;
     void InitClothFeatureVector();
     void UpdateClothFeatureVector();
 

@@ -17,6 +17,6 @@ protected:
     int mCurMeshId;
     std::string mMeshDataDir;
     std::vector<std::string> mMeshDataList;
-    virtual void UpdateSubstep() override;
+    virtual void CreateCloth(const Json::Value & conf) override final;
     void SetMeshData(int id);
 };

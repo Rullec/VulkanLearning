@@ -1,9 +1,11 @@
 #include "MeshVisScene.h"
+#include "LinctexScene.h"
+#include "scenes/EmptyCloth.h"
 #include "utils/FileUtil.h"
 #include "utils/JsonUtil.h"
+
 #include <iostream>
 
-#include "LinctexScene.h"
 cMeshVisScene::cMeshVisScene()
 {
     mCurMeshId = -1;
@@ -27,12 +29,7 @@ void cMeshVisScene::Init(const std::string &conf_path)
     Json::Value root;
     cJsonUtil::LoadJson(conf_path, root);
     cSimScene::Init(conf_path);
-    InitGeometry(root);
-    InitRaycaster();
-    InitConstraint(root);
-    InitDrawBuffer();
 
-    mXcur = mClothInitPos;
     mMeshDataDir = cJsonUtil::ParseAsString(MESH_DATA_KEY, root);
     std::cout << "mesh data dir = " << mMeshDataDir << std::endl;
     SIM_ASSERT(cFileUtil::ExistsDir(mMeshDataDir));
@@ -105,10 +102,6 @@ void cMeshVisScene::Key(int key, int scanecode, int action, int mods)
     SetMeshData(mCurMeshId);
 }
 
-void cMeshVisScene::UpdateSubstep()
-{
-    std::cout << mXcur.segment(0, 10).transpose() << std::endl;
-}
 extern void LoadSimulationData(tVectorXd &simualtion_result,
                                tVectorXd &simulation_property,
                                const std::string &filename);
@@ -118,8 +111,14 @@ void cMeshVisScene::SetMeshData(int id)
 
     LoadSimulationData(pos, prop, mMeshDataList[id]);
     // std::cout << "pos = " << pos.segment(0, 10).transpose() << std::endl;
-    UpdateCurNodalPosition(pos);
+    mCloth->SetPos(pos);
     UpdateRenderingResource();
     std::cout << "[log] cur mesh = " << mMeshDataList[id]
               << " feature = " << prop.transpose() << std::endl;
+}
+
+void cMeshVisScene::CreateCloth(const Json::Value &conf)
+{
+    this->mCloth = std::make_shared<cEmptyCloth>();
+    mCloth->Init(conf);
 }

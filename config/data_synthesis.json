@@ -60,9 +60,9 @@
             "bending_bias": {
                 "range": [
                     1e3,
-                    1.2e3
+                    5e3
                 ],
-                "num_of_samples": 40,
+                "num_of_samples": 10,
                 "visible": true,
                 "index": 2
             }
@@ -79,7 +79,7 @@
             ]
         ]
     },
-    "enable_noise": true,
+    "enable_noise": false,
     "noise": {
         "noised_samples": 200,
         "enable_low_freq_noise": true,

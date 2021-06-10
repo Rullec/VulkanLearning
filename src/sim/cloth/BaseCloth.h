@@ -9,6 +9,7 @@ enum eClothType
     PBD_CLOTH,
     PD_CLOTH,
     LINCTEX_CLOTH,
+    EMPTY_CLOTH, // cannot be simulated
     NUM_OF_CLOTH_TYPE
 };
 
@@ -32,6 +33,7 @@ public:
     virtual void UpdatePos(double dt) = 0;
 
     virtual void SetPos(const tVectorXd &newpos);
+    virtual const tVectorXd &GetPos() const;
     virtual double GetDefaultTimestep() { return mIdealDefaultTimestep; }
 
 protected:

@@ -10,6 +10,10 @@ SimScene.cpp
 Perturb.cpp
 LinctexScene.cpp
 LinctexCloth.cpp
+EmptyCloth.cpp
+MeshVisScene.cpp
+SynDataScene.cpp
+ProcessTrainDataScene.cpp
 cameras/CameraBase.cpp
 cameras/FPSCamera.cpp
 cameras/ArcBallCamera.cpp

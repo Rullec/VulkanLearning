@@ -1,9 +1,9 @@
 #include "SceneBuilder.h"
 #include "DrawScene.h"
 #include "LinctexScene.h"
-// #include "MeshVisScene.h"
-// #include "ProcessTrainDataScene.h"
-// #include "SynDataScene.h"
+#include "MeshVisScene.h"
+#include "ProcessTrainDataScene.h"
+#include "SynDataScene.h"
 #include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 
@@ -39,16 +39,16 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
     case eSceneType::SCENE_SE:
         scene = std::make_shared<cLinctexScene>();
         break;
-        // case eSceneType::SCENE_SYN_DATA:
-        //     scene = std::make_shared<cSynDataScene>();
-        //     break;
-        // case eSceneType::SCENE_PROCESS_DATA:
-        //     scene = std::make_shared<cProcessTrainDataScene>();
-        //     break;
+    case eSceneType::SCENE_SYN_DATA:
+        scene = std::make_shared<cSynDataScene>();
+        break;
+    case eSceneType::SCENE_PROCESS_DATA:
+        scene = std::make_shared<cProcessTrainDataScene>();
+        break;
 #endif
-    // case eSceneType::SCENE_MESH_VIS:
-    //     scene = std::make_shared<cMeshVisScene>();
-    //     break;
+    case eSceneType::SCENE_MESH_VIS:
+        scene = std::make_shared<cMeshVisScene>();
+        break;
     default:
         SIM_ERROR("unsupported sim scene {}", type);
         break;

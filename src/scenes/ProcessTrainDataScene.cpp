@@ -15,6 +15,7 @@ cProcessTrainDataScene::cProcessTrainDataScene()
     mHeight = 0;
 }
 cProcessTrainDataScene::~cProcessTrainDataScene() {}
+#include "scenes/EmptyCloth.h"
 void cProcessTrainDataScene::Init(const std::string &conf_path)
 {
     Json::Value root;
@@ -69,8 +70,10 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
 
     InitPreprocessInfo(root["preprocess_info"]);
     InitObstacle(root);
-    cTriangulator::LoadGeometry(mVertexArray, mEdgeArray, mTriangleArray,
-                                mGeometryInfoPath);
+    mCloth = std::make_shared<cEmptyCloth>();
+    std::dynamic_pointer_cast<cEmptyCloth>(mCloth)->LoadGeometry(
+        this->mGeometryInfoPath);
+
     GenerateCameraViews();
 
     InitDrawBuffer();
@@ -156,9 +159,28 @@ void cProcessTrainDataScene::CalcDepthMapNoCloth()
  * \brief           main loop to calculate the depth map for each data point
  */
 #include "utils/SysUtil.h"
+#include <algorithm>
+extern bool comp_filename(const std::string &name0, const std::string &name1);
 void cProcessTrainDataScene::CalcDepthMapLoop()
 {
     std::vector<std::string> paths = cFileUtil::ListDir(this->mRawDataDir);
+    std::vector<std::string>::iterator it = paths.begin();
+    while (it != paths.end())
+    {
+        if ((*it).find(".json") == -1)
+        {
+            paths.erase(it);
+            it = paths.begin();
+        }
+        else
+        {
+            it++;
+        }
+    }
+
+    // sort the paths
+    std::sort(paths.begin(), paths.end(), comp_filename);
+
     SIM_ASSERT(paths.size() > 0);
     cTimeUtil::Begin("total");
     tVectorXd feature_vec_buf;
@@ -179,7 +201,8 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         tVectorXd mesh_feature_vec;
         SIM_ASSERT(true == LoadRawData(mesh_path, mesh_feature_vec));
         // the feature vector will be saved in the mesh directory
-        mesh_pos_vector = mXcur;
+        tVectorXd now_cloth_pos = mCloth->GetPos();
+        mesh_pos_vector = now_cloth_pos;
         double rot_unit =
             (2 * M_PI / mPreprocessInfo.mNumOfClothRotationViews) /
             mPreprocessInfo.mNumOfInitRotationAngles;
@@ -188,7 +211,7 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
              init_rot_id++)
         {
             // 4. restore the mesh
-            mXcur.noalias() = mesh_pos_vector;
+            now_cloth_pos.noalias() = mesh_pos_vector;
             std::string raycast_output_dir_level1 = raycast_output_dir_level0 +
                                                     "\\init_rot" +
                                                     std::to_string(init_rot_id);
@@ -199,11 +222,12 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
             tMatrix3d rotmat = cMathUtil::AxisAngleToRotmat(
                                    tVector(0, 1, 0, 0) * rot_unit * init_rot_id)
                                    .topLeftCorner<3, 3>();
-            for (int i = 0; i < mXcur.size(); i += 3)
+            for (int i = 0; i < now_cloth_pos.size(); i += 3)
             {
-                mXcur.segment(i, 3) = rotmat * mXcur.segment(i, 3);
+                now_cloth_pos.segment(i, 3) =
+                    rotmat * now_cloth_pos.segment(i, 3);
             }
-            UpdateCurNodalPosition(mXcur);
+            mCloth->SetPos(now_cloth_pos);
 
             // 5. given the camera list, given the num of cloth rotation views
             // printf("[debug] mesh %d init_rot_id %d output_dir: %s\n",
@@ -246,7 +270,8 @@ void cProcessTrainDataScene::InitRaycaster()
 #endif
     if (mEnableClothGeometry == true)
     {
-        mRaycaster->AddResources(mTriangleArray, mVertexArray);
+        mRaycaster->AddResources(this->mCloth);
+        // mRaycaster->AddResources(mTriangleArray, mVertexArray);
     }
     else
     {
@@ -254,9 +279,10 @@ void cProcessTrainDataScene::InitRaycaster()
     }
     for (auto &x : mObstacleList)
     {
-        auto obstacle_v_array = x->GetVertexArray();
-        auto obstacle_triangle_array = x->GetTriangleArray();
-        mRaycaster->AddResources(obstacle_triangle_array, obstacle_v_array);
+        mRaycaster->AddResources(x);
+        // auto obstacle_v_array = x->GetVertexArray();
+        // auto obstacle_triangle_array = x->GetTriangleArray();
+        // mRaycaster->AddResources(obstacle_triangle_array, obstacle_v_array);
     }
     std::cout << "[debug] add resources to raycaster done, num of obstacles = "
               << mObstacleList.size() << std::endl;
@@ -334,10 +360,17 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
     for (int i = 0; i < num_of_rotation_view; i++)
     {
         // 3.1 apply current rotmat onto the vertex positions
-        for (auto &x : mVertexArray)
+        tVectorXd pos_vec = this->mCloth->GetPos();
+        for (int i = 0; i < pos_vec.size(); i += 3)
         {
-            x->mPos = cloth_yaxis_rotmat * x->mPos;
+            pos_vec.segment(i, 3) = cloth_yaxis_rotmat.topLeftCorner<3, 3>() *
+                                    pos_vec.segment(i, 3);
         }
+        // for (auto &x : mVertexArray)
+        // {
+        //     x->mPos = cloth_yaxis_rotmat * x->mPos;
+        // }
+        mCloth->SetPos(pos_vec);
         std::vector<std::string> png_array(0);
         for (int j = 0; j < camera_array.size(); j++)
         {
@@ -424,23 +457,20 @@ void cProcessTrainDataScene::UpdateRenderingResource()
 }
 void cProcessTrainDataScene::Reset() {}
 
-void cProcessTrainDataScene::UpdateSubstep() {}
-
 /**
  * \brief           Load raw data
  */
-bool cProcessTrainDataScene::LoadRawData(std::string path,
-                                         tVectorXd &feature_vec)
+bool cProcessTrainDataScene::LoadRawData(std::string path, tVectorXd &prop_vec)
 {
     Json::Value root;
     cJsonUtil::LoadJson(path, root);
     tVectorXd input = cJsonUtil::ReadVectorJson(root["input"]);
     if (input.size() == 0)
         return false;
-    feature_vec.noalias() = cJsonUtil::ReadVectorJson(root["output"]);
+    prop_vec.noalias() = cJsonUtil::ReadVectorJson(root["output"]);
     // std::cout << "input size = " << input.size() << std::endl;
-    SIM_ASSERT(input.size() == mVertexArray.size() * 3);
-    UpdateCurNodalPosition(input);
+    SIM_ASSERT(input.size() == mCloth->GetNumOfVertices() * 3);
+    mCloth->SetPos(input);
     return true;
 }
 

@@ -132,6 +132,7 @@ void cBaseCloth::SetPos(const tVectorXd &newpos)
     }
 }
 
+const tVectorXd &cBaseCloth::GetPos() const { return this->mXcur; }
 void cBaseCloth::CalcExtForce(tVectorXd &ext_force) const
 {
     // 1. apply gravity

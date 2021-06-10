@@ -25,6 +25,7 @@ public:
     virtual bool CreatePerturb(tRay *ray) override final;
     virtual void ReleasePerturb() override final;
     virtual void Reset() override final;
+    cLinctexClothPtr GetLinctexCloth() const;
     // external cloth property settings
     // virtual void SetSimProperty(const tPhyPropertyPtr &prop);
     // virtual void ApplyTransform(const tMatrix &trans);
@@ -68,7 +69,6 @@ protected:
                                // position vector
     virtual void CreateCloth(const Json::Value &conf) override final;
 
-    cLinctexClothPtr GetLinctexCloth() const;
     virtual void CreateObstacle(const Json::Value &conf) override final;
 };
 #endif

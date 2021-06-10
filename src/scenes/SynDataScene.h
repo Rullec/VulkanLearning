@@ -8,6 +8,7 @@
  * \brief           scene for synthetic data
  */
 SIM_DECLARE_CLASS_AND_PTR(cLinctexScene);
+SIM_DECLARE_CLASS_AND_PTR(cLinctexCloth);
 SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
 SIM_DECLARE_CLASS_AND_PTR(tPhyPropertyManager);
 class cSynDataScene : public cSimScene
@@ -47,6 +48,7 @@ protected:
     bool mEnableDraw; // enable drawing when sampling (for debug purpose)
     std::shared_ptr<tSyncDataNoise> mSynDataNoise;
     cLinctexScenePtr mLinScene;
+    cLinctexClothPtr mLinCloth;
     std::string mDefaultConfigPath;      // config used to build simulation
     bool mEnableDataAug;                 // enable data augmentation
     tPhyPropertyManagerPtr mPropManager; // physical property manager
@@ -55,7 +57,6 @@ protected:
 
     bool mEnableDataCleaner;
     double mDataCleanerThreshold;
-    virtual void UpdateSubstep() override final;
     void RunSimulation(tPhyPropertyPtr props);
     void ApplyNoiseIfPossible();
     void InitExportDataDir();
