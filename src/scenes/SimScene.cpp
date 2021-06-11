@@ -337,7 +337,9 @@ bool cSimScene::CreatePerturb(tRay *ray)
 
     cRaycaster::tRaycastResult res = mRaycaster->RayCast(ray);
     if (res.mObject == nullptr)
+    {
         return false;
+    }
     else
     {
         std::cout << "[debug] add perturb on triangle " << res.mLocalTriangleId
@@ -371,7 +373,7 @@ bool cSimScene::CreatePerturb(tRay *ray)
     // mVertexArray[selected_tri->mId0]->mColor = tVector(1, 0, 0, 0);
     // mVertexArray[selected_tri->mId1]->mColor = tVector(1, 0, 0, 0);
     // mVertexArray[selected_tri->mId2]->mColor = tVector(1, 0, 0, 0);
-    // return true;
+    return true;
 }
 
 void cSimScene::ReleasePerturb()

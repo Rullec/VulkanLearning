@@ -1,4 +1,3 @@
-#include "SeMessageCallback.h"
 #include "scenes/LinctexCloth.h"
 #include "utils/JsonUtil.h"
 #include "utils/MathUtil.h"
@@ -41,6 +40,7 @@ void LoadSimulationData(tVectorXd &simualtion_result,
 }
 
 #ifdef _WIN32
+#include "SeMessageCallback.h"
 #include "Core/SeLogger.h"
 #include "LinctexScene.h"
 #include "SePhysicalProperties.h"

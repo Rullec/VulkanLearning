@@ -201,6 +201,10 @@ tVector cDrawScene::CalcCursorPointWorldPos() const
 {
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
+#ifdef __APPLE__
+    xpos /= 2;
+    ypos /= 2;
+#endif
     // return CalcCursorPointWorldPos_tool(xpos, ypos, mSwapChainExtent.height,
     // mSwapChainExtent.width, mCamera->ViewMatrix().inverse().cast<double>());
     return CalcCursorPointWorldPos_tool(
@@ -509,8 +513,9 @@ void cDrawScene::Init(const std::string &conf_path)
         mCameraInitFov = cJsonUtil::ParseAsFloat("fov", camera_json);
         near_plane_dist = cJsonUtil::ParseAsFloat("near", camera_json);
         far_plane_dist = cJsonUtil::ParseAsFloat("far", camera_json);
-        // SIM_INFO("camera init pos {} init focus {}", mCameraInitPos.transpose(),
-                //  mCameraInitFocus.transpose());
+        // SIM_INFO("camera init pos {} init focus {}",
+        // mCameraInitPos.transpose(),
+        //  mCameraInitFocus.transpose());
     }
 
     mCamera = std::make_shared<cArcBallCamera>(
@@ -589,8 +594,8 @@ void cDrawScene::MouseButton(int button, int action, int mods)
     {
         if (cDrawScene::IsPress(action) == true)
         {
-            tVector tar_pos = this->CalcCursorPointWorldPos();
-            tVector camera_pos = this->GetCameraPos();
+            tVector tar_pos = CalcCursorPointWorldPos();
+            tVector camera_pos = GetCameraPos();
             tRay *ray = new tRay(camera_pos, tar_pos);
             mSimScene->CreatePerturb(ray);
         }
@@ -632,29 +637,30 @@ void cDrawScene::Scroll(double xoff, double yoff)
 void cDrawScene::Reset()
 {
     mSimScene->Reset();
-// #ifdef _WIN32
-//     auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
-//     if (lin_scene != nullptr)
-//     {
+    // #ifdef _WIN32
+    //     auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
+    //     if (lin_scene != nullptr)
+    //     {
 
-//         double a = 1.5;
-//         tVector3d principle_axis = tVector3d::Random();
-//         principle_axis[1] = 0;
-//         principle_axis.normalize();
-//         // principle_axis = tVector3d(1, 0, 0);
-//         // lin_scene->ApplyFoldNoise(principle_axis, a);
-//         // naive gaussian noise
-//         double angle = 0;
-//         double std = 0.02;
-//         // lin_scene->ApplyNoise(true, angle, false, 0);
-//         // lin_scene->ApplyNoise(true, angle, true, std);
+    //         double a = 1.5;
+    //         tVector3d principle_axis = tVector3d::Random();
+    //         principle_axis[1] = 0;
+    //         principle_axis.normalize();
+    //         // principle_axis = tVector3d(1, 0, 0);
+    //         // lin_scene->ApplyFoldNoise(principle_axis, a);
+    //         // naive gaussian noise
+    //         double angle = 0;
+    //         double std = 0.02;
+    //         // lin_scene->ApplyNoise(true, angle, false, 0);
+    //         // lin_scene->ApplyNoise(true, angle, true, std);
 
-//         // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
-//         lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10), 0.05);
-//         std::cout << "apply multiple folds noise\n";
-//         // std::cout << "apply noise in draw scene, std = " << std << std::endl;
-//     }
-// #endif
+    //         // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
+    //         lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10), 0.05);
+    //         std::cout << "apply multiple folds noise\n";
+    //         // std::cout << "apply noise in draw scene, std = " << std <<
+    //         std::endl;
+    //     }
+    // #endif
 }
 
 /**

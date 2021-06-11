@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "LinctexCloth.h"
 #include "SePhysicalProperties.h"
 #include "SePiece.h"
@@ -528,3 +529,5 @@ tVector cLinctexCloth::CalcCOM() const
     com[3] = 1;
     return com;
 }
+
+#endif
