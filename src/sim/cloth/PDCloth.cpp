@@ -322,7 +322,7 @@ tVectorXd cPDCloth::CalcNextPosition() const
     // cTimeUtil::End("fast simulation calc next");
     return Xnext;
 }
-#include "sim/CollisionDetecter.h"
+// #include "sim/CollisionDetecter.h"
 void cPDCloth::UpdatePos(double dt)
 {
     // cTimeUtil::Begin("substep");

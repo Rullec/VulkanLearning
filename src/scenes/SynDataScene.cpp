@@ -45,7 +45,6 @@ void cSynDataScene::Init(const std::string &conf_path)
     cJsonUtil::LoadJson(conf_path, conf_json);
     mDefaultConfigPath =
         cJsonUtil::ParseAsString("default_config_path", conf_json);
-    mEnableDataAug = cJsonUtil::ParseAsBool("enable_noise", conf_json);
     mConvergenceThreshold =
         cJsonUtil::ParseAsDouble("convergence_threshold", conf_json);
     mEnableDataCleaner =
@@ -56,11 +55,8 @@ void cSynDataScene::Init(const std::string &conf_path)
         cJsonUtil::ParseAsValue("property_manager", conf_json));
     mEnableDraw = cJsonUtil::ParseAsBool(this->ENABLE_DRAW_KEY, conf_json);
     // std::cout << "enable noise = " << mEnableDataAug << std::endl;
-    if (mEnableDataAug == true)
-    {
-        mSynDataNoise = std::make_shared<tSyncDataNoise>(
-            cJsonUtil::ParseAsValue("noise", conf_json));
-    }
+    mSynDataNoise = std::make_shared<tSyncDataNoise>(
+        cJsonUtil::ParseAsValue("noise", conf_json));
     mLinScene = std::make_shared<cLinctexScene>();
     mLinScene->Init(mDefaultConfigPath);
     mLinCloth = mLinScene->GetLinctexCloth();
@@ -123,12 +119,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             buffer1_mat(buffer1.data(), num_of_points, 3);
 
         double max_move_dist = (buffer0 - buffer1).rowwise().norm().maxCoeff();
-        // }
-        // printf("%d size %d size \n", buffer0.size(), buffer1.size());
-        // double diff_norm = (buffer1 - buffer0).norm();
         double diff_norm = max_move_dist;
-        // printf("[debug] before norm %.6f, cur norm %.6f, diff %.6f\n",
-        // buffer0.norm(), buffer1.norm(), diff_norm);
         if ((diff_norm < threshold && is_first_frame == false &&
              cur_iters > min_iters))
         {
@@ -229,8 +220,7 @@ void cSynDataScene::OfflineSampling()
     int total_sample = 0;
     int num_of_properties = mPropManager->GetNumOfProperties();
     int num_of_samples = num_of_properties;
-    if (mEnableDataAug == true)
-        num_of_samples *= this->mSynDataNoise->mNumOfNoisedSamples;
+    num_of_samples *= this->mSynDataNoise->mNumOfSamplesPerProp;
     printf("[log] we will have %d samples\n", num_of_samples);
     for (int i = 0; i < num_of_properties; i++)
     {
@@ -240,27 +230,8 @@ void cSynDataScene::OfflineSampling()
 
         auto prop = mPropManager->GetProperty(i);
 
-        // std::cout << "full feature = " <<
-        // prop->BuildFullFeatureVector().transpose() << std::endl; std::cout <<
-        // "output feature = " << prop->BuildVisibleFeatureVector().transpose()
-        // << std::endl; continue;
-        if (mEnableDataAug == true)
+        for (int i = 0; i < mSynDataNoise->mNumOfSamplesPerProp; i++)
         {
-            // SIM_ERROR("hasn't finished yet ");
-            // exit(0);
-            // std::cout << "num of noised samples = " <<
-            // mSynDataNoise->mNumOfNoisedSamples << std::endl; exit(0);
-            for (int i = 0; i < mSynDataNoise->mNumOfNoisedSamples; i++)
-            {
-                cTimeUtil::Begin("run_sim");
-                RunSimulation(prop);
-                cTimeUtil::End("run_sim");
-                total_sample++;
-            }
-        }
-        else
-        {
-            // 3. get the <simulation result - parameter> to json
             cTimeUtil::Begin("run_sim");
             RunSimulation(prop);
             cTimeUtil::End("run_sim");
@@ -286,10 +257,7 @@ void cSynDataScene::Update(double dt)
 void cSynDataScene::Reset()
 {
     mLinScene->Reset();
-    if (mEnableDataAug == true)
-    {
-        ApplyNoiseIfPossible();
-    }
+    ApplyNoiseIfPossible();
 }
 const tVectorXf &cSynDataScene::GetTriangleDrawBuffer()
 {
@@ -351,7 +319,8 @@ void cSynDataScene::InitExportDataDir()
 #include <math.h>
 cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
 {
-    mNumOfNoisedSamples = cJsonUtil::ParseAsInt("noised_samples", conf);
+    mEnableNoise = cJsonUtil::ParseAsBool("enable_noise", conf);
+    mNumOfSamplesPerProp = cJsonUtil::ParseAsInt("samples_per_prop", conf);
     // mEnableInitYRotation = cJsonUtil::ParseAsBool("enable_init_rotation",
     // conf); mEnableFoldNoise = cJsonUtil::ParseAsBool("enable_fold_noise",
     // conf); mEnableInitYPosNoise =
@@ -365,8 +334,8 @@ cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
     mMaxFoldNum = cJsonUtil::ParseAsInt("max_fold_num", conf);
     // SIM_ASSERT(mEnableInitYRotation == false);
     // SIM_ASSERT(mEnableFoldNoise == true);
-    // std::cout << mNumOfNoisedSamples << " " << mEnableInitYRotation << " " <<
-    // mEnableInitYPosNoise << " " << this->mInitYPosNoiseStd << std::endl;
+    // std::cout << mNumOfSamplesPerProp << " " << mEnableInitYRotation << " "
+    // << mEnableInitYPosNoise << " " << this->mInitYPosNoiseStd << std::endl;
     // exit(0);
 }
 
@@ -375,7 +344,7 @@ cSynDataScene::tSyncDataNoise::tSyncDataNoise(const Json::Value &conf)
  */
 void cSynDataScene::ApplyNoiseIfPossible()
 {
-    if (mEnableDataAug)
+    if (mSynDataNoise->mEnableNoise == true)
     {
         // double theta = 0;
         // mLinScene->ApplyNoise(this->mSynDataNoise->mEnableInitYRotation,
@@ -417,6 +386,10 @@ void cSynDataScene::ApplyNoiseIfPossible()
         // std::cout << "theta = " << theta << std::endl;
         // std::cout << "std = " << mSynDataNoise->mInitYPosNoiseStd <<
         // std::endl; exit(0);
+    }
+    else
+    {
+        std::cout << "[debug] noise is disabled\n";
     }
 }
 #endif // _WIN32

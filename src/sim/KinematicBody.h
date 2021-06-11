@@ -53,6 +53,5 @@ protected:
     // methods
     void BuildCustomKinematicBody();
     void BuildPlane();
-    virtual void CalcAABB(tVector &min, tVector &max) const;
     // virtual void InitDrawBuffer() override final;
 };

@@ -19,7 +19,9 @@ SIM_DECLARE_CLASS_AND_PTR(cMessageCallback);
 class cLinctexScene : public cSimScene
 {
 public:
-    inline static const std::string SE_SIM_PLATFORM_KEY = "se_sim_platform";
+    inline static const std::string SE_SIM_PLATFORM_KEY = "se_sim_platform",
+                                    SE_ENABLE_COLLISION_KEY =
+                                        "se_enable_collision";
     explicit cLinctexScene();
     virtual void Init(const std::string &path) override;
     virtual void Update(double dt) override final;
@@ -51,7 +53,6 @@ protected:
     void NetworkInferenceFunction();
 
     virtual void PauseSim() override;
-
     std::shared_ptr<StyleEngine::SeDraggedPoints> mDragPt;
     std::shared_ptr<StyleEngine::SeScene> mSeScene;
 

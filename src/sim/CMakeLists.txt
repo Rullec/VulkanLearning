@@ -2,7 +2,7 @@ set(
     SIM_SRC
     BaseObject.cpp
     KinematicBody.cpp
-    CollisionDetecter.cpp
+    # CollisionDetecter.cpp
     
     cloth/ClothPropertyManager.cpp
     cloth/ClothProperty.cpp

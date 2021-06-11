@@ -31,6 +31,7 @@ void cLinctexCloth ::Init(const Json::Value &conf)
     mClothProp = std::make_shared<tPhyProperty>();
     mClothProp->Init(conf);
     AddPiece();
+    mSeCloth->AddFixedVertices(mFixedPointIds);
     InitClothFeatureVector();
 }
 void cLinctexCloth ::UpdatePos(double dt)
@@ -43,7 +44,10 @@ void cLinctexCloth ::UpdatePos(double dt)
     }
     UpdateClothFeatureVector();
 }
-void cLinctexCloth ::InitConstraint(const Json::Value &root) {}
+void cLinctexCloth ::InitConstraint(const Json::Value &root)
+{
+    cBaseCloth::InitConstraint(root);
+}
 
 /**
  * \brief               Init the geometry and set the init positions

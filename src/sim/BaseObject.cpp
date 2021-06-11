@@ -53,3 +53,23 @@ void cBaseObject::ChangeTriangleColor(int tri_id, tVector color)
     mVertexArray[mTriangleArray[tri_id]->mId1]->mColor = color;
     mVertexArray[mTriangleArray[tri_id]->mId2]->mColor = color;
 }
+
+/**
+ * \brief           Calculate axis aligned bounding box
+ */
+#include <cfloat>
+void cBaseObject::CalcAABB(tVector &min, tVector &max) const
+{
+    min = tVector::Ones() * std::numeric_limits<double>::max();
+    max = tVector::Ones() * std::numeric_limits<double>::max() * -1;
+    for (auto &x : mVertexArray)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+
+            double val = x->mPos[i];
+            min[i] = (val < min[i]) ? val : min[i];
+            max[i] = (val > max[i]) ? val : max[i];
+        }
+    }
+}

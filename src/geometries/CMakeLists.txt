@@ -10,6 +10,8 @@ add_library(
     Triangulator.cpp
     Raycaster.cpp
     OptixRaycaster.cpp
+    CollisionManager.cpp
+    CollisionInfo.cpp
 )
 
 if(USE_OPTIX)

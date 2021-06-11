@@ -31,7 +31,8 @@ protected:
     struct tSyncDataNoise
     {
         tSyncDataNoise(const Json::Value &value);
-        int mNumOfNoisedSamples;
+        bool mEnableNoise;
+        int mNumOfSamplesPerProp;
         // bool mEnableInitYRotation;
         // bool mEnableFoldNoise;
         // bool mEnableInitYPosNoise;
@@ -50,7 +51,6 @@ protected:
     cLinctexScenePtr mLinScene;
     cLinctexClothPtr mLinCloth;
     std::string mDefaultConfigPath;      // config used to build simulation
-    bool mEnableDataAug;                 // enable data augmentation
     tPhyPropertyManagerPtr mPropManager; // physical property manager
     double mConvergenceThreshold;
     std::string mExportDataDir;

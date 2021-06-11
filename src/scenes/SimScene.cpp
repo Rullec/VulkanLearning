@@ -2,7 +2,7 @@
 #include "Perturb.h"
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
-#include "sim/CollisionDetecter.h"
+// #include "sim/CollisionDetecter.h"
 #include "sim/KinematicBody.h"
 #include "sim/cloth/BaseCloth.h"
 #include "utils/JsonUtil.h"

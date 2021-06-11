@@ -174,22 +174,6 @@ void cKinematicBody::CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res,
                                  res, st);
     }
 }
-#include <cfloat>
-void cKinematicBody::CalcAABB(tVector &min, tVector &max) const
-{
-    min = tVector::Ones() * std::numeric_limits<double>::max();
-    max = tVector::Ones() * std::numeric_limits<double>::max() * -1;
-    for (auto &x : mVertexArray)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-
-            double val = x->mPos[i];
-            min[i] = (val < min[i]) ? val : min[i];
-            max[i] = (val > max[i]) ? val : max[i];
-        }
-    }
-}
 
 // const std::vector<tVertex *> &cKinematicBody::GetVertexArray() const
 // {

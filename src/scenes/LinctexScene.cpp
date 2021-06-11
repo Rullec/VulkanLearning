@@ -169,8 +169,25 @@ void cLinctexScene::Init(const std::string &path)
     {
         SIM_ERROR("unsupported platform type {}", sim_platform);
     }
+    mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
 
     cSimScene::Init(path);
+
+    bool enable_collision =
+        cJsonUtil::ParseAsBool(SE_ENABLE_COLLISION_KEY, root);
+    {
+        std::cout << "[log] set se enable collision = " << enable_collision
+                  << std::endl;
+        auto sim_param = mSeScene->GetSimulationParameters();
+        sim_param->SetIsEnableVF(enable_collision);
+        sim_param->SetIsEnableEF(enable_collision);
+        sim_param->SetIsEnableEFGlobal(enable_collision);
+        sim_param->SetIsEnableEE(enable_collision);
+        sim_param->SetIsEnableVE(enable_collision);
+        sim_param->SetIsEnableVV(enable_collision);
+        // sim_param->SetIsEnableVFCCD(enable_collision);
+        // sim_param->SetIsEnableEECCD(enable_collision);
+    }
     // {
     //     mClothProp = std::make_shared<tPhyProperty>();
     //     mClothProp->Init(root);

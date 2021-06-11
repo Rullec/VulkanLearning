@@ -50,6 +50,7 @@ public:
     const std::vector<tEdge *> &GetEdgeArray() const;
     const std::vector<tTriangle *> &GetTriangleArray() const;
     void ChangeTriangleColor(int tri_id, tVector color);
+    virtual void CalcAABB(tVector &min, tVector &max) const;
 
 protected:
     eObjectType mType;
