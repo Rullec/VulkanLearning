@@ -14,10 +14,12 @@ class SeDraggedPoints;
 }; // namespace StyleEngine
 SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
 SIM_DECLARE_CLASS_AND_PTR(cLinctexCloth);
+SIM_DECLARE_CLASS_AND_PTR(cMessageCallback);
 
 class cLinctexScene : public cSimScene
 {
 public:
+    inline static const std::string SE_SIM_PLATFORM_KEY = "se_sim_platform";
     explicit cLinctexScene();
     virtual void Init(const std::string &path) override;
     virtual void Update(double dt) override final;
@@ -26,6 +28,7 @@ public:
     virtual void ReleasePerturb() override final;
     virtual void Reset() override final;
     cLinctexClothPtr GetLinctexCloth() const;
+    int GetCurrentFrame() const;
     // external cloth property settings
     // virtual void SetSimProperty(const tPhyPropertyPtr &prop);
     // virtual void ApplyTransform(const tMatrix &trans);
@@ -66,7 +69,8 @@ protected:
                                // iteration times before convergence
     int mNetworkInfer_CurIter; // used in network inference mode, cur iterations
     tVectorXd mPreviosFeature; // used in network inference mode, previous nodal
-                               // position vector
+    // position vector
+    cMessageCallbackPtr mMstPtr;
     virtual void CreateCloth(const Json::Value &conf) override final;
 
     virtual void CreateObstacle(const Json::Value &conf) override final;

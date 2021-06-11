@@ -1,3 +1,4 @@
+#include "SeMessageCallback.h"
 #include "scenes/LinctexCloth.h"
 #include "utils/JsonUtil.h"
 #include "utils/MathUtil.h"
@@ -56,13 +57,43 @@ void LoadSimulationData(tVectorXd &simualtion_result,
 #include <chrono> // std::chrono::seconds
 #include <thread> // std::this_thread::sleep_for
 SE_USING_NAMESPACE
+
+class cMessageCallback : public SeMessageCallback
+{
+public:
+    virtual void Reset() { mCurFrmameId = 0; }
+    virtual int GetCurFrame() const { return mCurFrmameId; }
+
+protected:
+    int mCurFrmameId;
+    virtual void OnStaging(StagePoint eStage)
+    {
+        //     enum StagePoint
+        // {
+        // 	FrameEnd,				//!	模拟一帧的开始
+        // 	FrameBegin,				//!	模拟一帧的结束
+        // 	SimulationEnd,			//!	模拟退出
+        // 	SimulationBegin,		//!	模拟开始
+        // };
+        if (eStage == StagePoint::FrameEnd)
+        {
+            // global_frame += 1;
+            mCurFrmameId += 1;
+        }
+        // std::cout << "cur frame " << global_frame << std::endl;
+    }
+};
+
+SIM_DECLARE_PTR(cMessageCallback);
 cLinctexScene::cLinctexScene()
 {
     // auto phyProp = SePhysicalProperties::Create();
     // piece = SePiece::Create(indices, pos3D, pos2D, phyProp);
     mSeScene = SeScene::Create();
-    mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
+    // mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
     mDragPt = nullptr;
+    mMstPtr = std::make_shared<cMessageCallback>();
+    mSeScene->SetMessageCallback(this->mMstPtr);
     // sim_conf = mSeScene->GetSimulationParameters();
     // SIM_INFO("init linctex succ");
     // std::cout << mSeScene->GetID() << std::endl;
@@ -114,13 +145,32 @@ void cLinctexScene::Reset()
     mSeScene->End();
     mEngineStart = false;
     mCloth->Reset();
+    mMstPtr->Reset();
 }
 void cLinctexScene::Init(const std::string &path)
 {
-    SeLogger::GetInstance()->RegisterCallback(logging);
-    cSimScene::Init(path);
     Json::Value root;
     cJsonUtil::LoadJson(path, root);
+
+    SeLogger::GetInstance()->RegisterCallback(logging);
+
+    std::string sim_platform =
+        cJsonUtil::ParseAsString(SE_SIM_PLATFORM_KEY, root);
+
+    if (sim_platform == "cuda")
+    {
+        mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
+    }
+    else if (sim_platform == "cpu")
+    {
+        mSeScene->GetOptions()->SetPlatForm(SePlatform::CPU);
+    }
+    else
+    {
+        SIM_ERROR("unsupported platform type {}", sim_platform);
+    }
+
+    cSimScene::Init(path);
     // {
     //     mClothProp = std::make_shared<tPhyProperty>();
     //     mClothProp->Init(root);
@@ -397,4 +447,6 @@ cLinctexClothPtr cLinctexScene::GetLinctexCloth() const
     SIM_ASSERT(new_ptr != nullptr);
     return new_ptr;
 }
+
+int cLinctexScene::GetCurrentFrame() const { return mMstPtr->GetCurFrame(); }
 #endif

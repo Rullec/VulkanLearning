@@ -81,23 +81,32 @@ void cMeshVisScene::Key(int key, int scanecode, int action, int mods)
     {
         return;
     }
-    if (key == GLFW_KEY_LEFT || key == GLFW_KEY_UP)
+    if (key == GLFW_KEY_LEFT)
     {
         mCurMeshId -= 1;
     }
-    else if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_DOWN)
+    else if (key == GLFW_KEY_UP)
+    {
+        mCurMeshId -= int(0.1 * this->mMeshDataList.size());
+    }
+    else if (key == GLFW_KEY_RIGHT)
     {
         mCurMeshId += 1;
+    }
+    else if (key == GLFW_KEY_DOWN)
+    {
+        mCurMeshId += int(0.1 * this->mMeshDataList.size());
     }
     int size = mMeshDataList.size();
     if (mCurMeshId >= size)
     {
-        std::cout << (mCurMeshId > size) << std::endl;
-        mCurMeshId = 0;
+        mCurMeshId = mCurMeshId % size;
     }
     else if (mCurMeshId < 0)
     {
-        mCurMeshId = mMeshDataList.size() - 1;
+        while (mCurMeshId < 0)
+            mCurMeshId += size;
+        // mCurMeshId = mMeshDataList.size() - 1;
     }
     SetMeshData(mCurMeshId);
 }

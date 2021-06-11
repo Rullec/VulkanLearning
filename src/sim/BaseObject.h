@@ -11,6 +11,7 @@ enum eObjectType
     KINEMATICBODY_TYPE,
     RIGIDBODY_TYPE,
     CLOTH_TYPE,
+    FLUID_TYPE,
     NUM_OBJ_TYPES,
     INVALID_OBJ_TYPE
 };
@@ -49,6 +50,7 @@ public:
     const std::vector<tEdge *> &GetEdgeArray() const;
     const std::vector<tTriangle *> &GetTriangleArray() const;
     void ChangeTriangleColor(int tri_id, tVector color);
+
 protected:
     eObjectType mType;
     bool mEnableDrawBuffer; // enable to open draw buffer

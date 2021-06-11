@@ -59,10 +59,10 @@
             },
             "bending_bias": {
                 "range": [
-                    1e3,
+                    5e2,
                     5e3
                 ],
-                "num_of_samples": 10,
+                "num_of_samples": 500,
                 "visible": true,
                 "index": 2
             }
@@ -79,11 +79,11 @@
             ]
         ]
     },
-    "enable_noise": false,
+    "enable_noise": true,
     "noise": {
-        "noised_samples": 200,
+        "noised_samples": 8,
         "enable_low_freq_noise": true,
-        "max_fold_amp": 0.05,
+        "max_fold_amp": 0,
         "min_fold_num": 3,
         "max_fold_num": 3
     },

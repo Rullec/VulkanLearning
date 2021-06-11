@@ -290,7 +290,7 @@ class DataLoader():
                 assert len(output_X[0].shape) == 1
                 size = output_X[0].shape[0]
                 for _idx in range(len(output_X)):
-                    noise = (np.random.rand(3) - 0.5) / 10  # +-5cm
+                    noise = (np.random.rand(3) - 0.5) / 50  # +-1cm
                     noise_all = np.tile(noise, size // 3)
                     output_X[_idx] += noise_all
 

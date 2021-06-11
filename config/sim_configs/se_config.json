@@ -19,6 +19,7 @@
     "cloth_init_nodal_position": "",
     "geometry_type": "regular_triangle",
     "subdivision": 100,
+    "se_sim_platform": "cpu",
     "damping": 1e-3,
     "default_timestep": 1e-3,
     "cloth_property": {
