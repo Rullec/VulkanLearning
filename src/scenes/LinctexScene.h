@@ -31,6 +31,7 @@ public:
     virtual void Reset() override final;
     cLinctexClothPtr GetLinctexCloth() const;
     int GetCurrentFrame() const;
+    void Start();
     // external cloth property settings
     // virtual void SetSimProperty(const tPhyPropertyPtr &prop);
     // virtual void ApplyTransform(const tMatrix &trans);

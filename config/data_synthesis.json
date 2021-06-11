@@ -80,7 +80,7 @@
         ]
     },
     "noise": {
-        "samples_per_prop": 1,
+        "samples_per_prop": 8,
         "enable_noise": false,
         "enable_low_freq_noise": true,
         "max_fold_amp": 0,

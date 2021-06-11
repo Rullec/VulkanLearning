@@ -95,46 +95,56 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     // std::cout << "feature size = " << props->BuildFullFeatureVector().size()
     // << std::endl;
     mTotalSamples_count++;
-    Reset();
+    Reset(); // wait for end, EngineStart = false
 
     // mLinScene->ApplyTransform(init_trans);
     mLinCloth->SetSimProperty(props);
     bool is_first_frame = true;
     buffer0.noalias() = tVectorXd::Zero(mLinCloth->GetClothFeatureSize());
+    // std::cout << "buffer0 size = " << buffer0.size() << std::endl;
     double threshold = mConvergenceThreshold;
-    int cur_iters = 0;
-    int min_iters = 5;
-    while (++cur_iters)
+    int before_frame = this->mLinScene->GetCurrentFrame();
+    int frame_check_gap = 100;
+    mLinScene->Start();
+    while (true)
     {
-        mLinScene->Update(1e-3);
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        buffer1.noalias() = mLinCloth->GetClothFeatureVector();
-
-        // find the biggest movement vertex
-        // {
-        int num_of_points = buffer1.size() / 3;
-        Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
-            buffer0_mat(buffer0.data(), num_of_points, 3);
-        Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
-            buffer1_mat(buffer1.data(), num_of_points, 3);
-
-        double max_move_dist = (buffer0 - buffer1).rowwise().norm().maxCoeff();
-        double diff_norm = max_move_dist;
-        if ((diff_norm < threshold && is_first_frame == false &&
-             cur_iters > min_iters))
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        int cur_frame = mLinScene->GetCurrentFrame();
+        // std::cout << "cur frame = " << cur_frame << std::endl;
+        // begin to check the diff
+        if ((cur_frame - before_frame) > frame_check_gap)
         {
-            printf("[debug] %d RunSimulation: iters %d, diff norm %.6f < %.6f, "
-                   "converge for feature ",
-                   mTotalSamples_count, cur_iters, diff_norm, threshold);
-            std::cout << props->BuildVisibleFeatureVector().transpose()
-                      << std::endl;
-            break;
+            // fetch the cloth data
+            // std::cout << "begin to check " << std::endl;
+            mLinScene->Update(0);
+            // std::cout << "begin to check 1 " << std::endl;
+            buffer1.noalias() = mLinCloth->GetClothFeatureVector();
+            int num_of_points = buffer1.size() / 3;
+            // std::cout << "begin to check 2 " << std::endl;
+            // std::cout << "buffer0 " << buffer0.size() << std::endl;
+            // std::cout << "buffer1 " << buffer1.size() << std::endl;
+            tVectorXd diff_vec = buffer1 - buffer0;
+            // std::cout << "begin to check 2.5 " << std::endl;
+            Eigen::Map<
+                Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
+                diff_mat(diff_vec.data(), num_of_points, 3);
+            // std::cout << "begin to check 3 " << std::endl;
+            tVectorXd rowwise_norm = diff_mat.rowwise().norm();
+            // std::cout << "begin to check 4 " << std::endl;
+            double max_move_dist = rowwise_norm.maxCoeff();
+            // std::cout << "max move dist = " << max_move_dist << std::endl;
+            if (max_move_dist < threshold)
+            {
+                printf("[debug] %d RunSimulation: cur frame %d, diff norm %.6f "
+                       "< %.6f, converge for feature ",
+                       mTotalSamples_count, cur_frame, max_move_dist,
+                       threshold);
+                std::cout << props->BuildVisibleFeatureVector().transpose()
+                          << std::endl;
+                break;
+            }
+            buffer0.noalias() = buffer1;
         }
-        if (is_first_frame == true && diff_norm > threshold)
-        {
-            is_first_frame = false;
-        }
-        buffer0 = buffer1;
     }
     // export data
     if (mEnableDataCleaner == false)

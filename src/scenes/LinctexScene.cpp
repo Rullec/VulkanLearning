@@ -142,7 +142,7 @@ void logging(const char *a, const char *b, int c, SeLogger::Level d,
 #include "sim/cloth/BaseCloth.h"
 void cLinctexScene::Reset()
 {
-    mSeScene->End();
+    mSeScene->WaitForEnd();
     mEngineStart = false;
     mCloth->Reset();
     mMstPtr->Reset();
@@ -273,15 +273,15 @@ void cLinctexScene::NetworkInferenceFunction()
 
 void cLinctexScene::PauseSim()
 {
+    cSimScene::PauseSim();
     if (mPauseSim == true)
     {
-        mSeScene->End();
+        mSeScene->WaitForEnd();
     }
     else
     {
         mSeScene->Start();
     }
-    mPauseSim = !mPauseSim;
 }
 void cLinctexScene::Update(double dt)
 {
@@ -456,7 +456,7 @@ void cLinctexScene::Key(int key, int scancode, int action, int mods)
     }
 }
 
-void cLinctexScene::End() { this->mSeScene->End(); }
+void cLinctexScene::End() { this->mSeScene->WaitForEnd(); }
 
 cLinctexClothPtr cLinctexScene::GetLinctexCloth() const
 {
@@ -466,4 +466,6 @@ cLinctexClothPtr cLinctexScene::GetLinctexCloth() const
 }
 
 int cLinctexScene::GetCurrentFrame() const { return mMstPtr->GetCurFrame(); }
+
+void cLinctexScene::Start() { mSeScene->Start(); }
 #endif
