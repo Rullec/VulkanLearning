@@ -1,8 +1,8 @@
 #include "SimScene.h"
 #include "Perturb.h"
+#include "geometries/CollisionDetecter.h"
 #include "geometries/Primitives.h"
 #include "geometries/Triangulator.h"
-// #include "sim/CollisionDetecter.h"
 #include "sim/KinematicBody.h"
 #include "sim/cloth/BaseCloth.h"
 #include "utils/JsonUtil.h"
@@ -62,8 +62,8 @@ void cSimScene::Init(const std::string &conf_path)
     if (mEnableObstacle)
         CreateObstacle(
             cJsonUtil::ParseAsValue(cSimScene::OBSTACLE_CONF_KEY, root));
-    if (mEnableCollisionDetection)
-        CreateCollisionDetecter();
+
+    CreateCollisionDetecter();
 
     InitDrawBuffer();
     InitRaycaster();
@@ -157,6 +157,9 @@ void cSimScene::Update(double delta_time)
 
         mCloth->ApplyPerturb(mPerturb);
 
+        // 2. do collision detection
+        PerformCollisionDetection();
+
         mCloth->UpdatePos(dt);
     }
     // mCloth->Update(delta_time);
@@ -166,6 +169,18 @@ void cSimScene::Update(double delta_time)
     // update position
 }
 
+/**
+ * \brief       do (discrete) collision detection
+ */
+void cSimScene::PerformCollisionDetection()
+{
+    if (mEnableCollisionDetection == true)
+    {
+        mColDetecter->PerformCD();
+        // auto pts = mColDetecter->GetContactPoints();
+        // std::cout << "[debug] num of contacts = " << pts.size() << std::endl;
+    }
+}
 /**
  * \brief           Reset the whole scene
  */
@@ -430,7 +445,19 @@ void cSimScene::CreateObstacle(const Json::Value &conf)
  */
 void cSimScene::CreateCollisionDetecter()
 {
-    // mColDetecter = std::make_shared<cCollisionDetecter>();
+    if (mEnableCollisionDetection)
+    {
+
+        mColDetecter = std::make_shared<cCollisionDetecter>();
+        // add resources into the collision detecter now
+
+        mColDetecter->AddObject(this->mCloth, false);
+        for (auto &x : this->mObstacleList)
+        {
+            mColDetecter->AddObject(x, false);
+        }
+    }
+    this->mCloth->SetCollisionDetecter(mColDetecter);
 }
 
 // int cSimScene::GetNumOfTriangles() const {

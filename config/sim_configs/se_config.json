@@ -116,16 +116,6 @@
                 1e-3
             ],
             "plane_scale": 10
-        },
-        {
-            "type": "plane",
-            "equation": [
-                0,
-                0,
-                1,
-                0.222
-            ],
-            "plane_scale": 1
         }
     ],
     "enable_dump_geometry_info": true,

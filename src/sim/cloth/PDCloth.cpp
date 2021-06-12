@@ -12,10 +12,13 @@ cPDCloth::~cPDCloth() {}
 void cPDCloth::Init(const Json::Value &conf)
 {
 
-    mMaxSteps_Opt = cJsonUtil::ParseAsInt("max_steps_opt", conf);
-    mEnableBending = cJsonUtil::ParseAsBool("enable_bending", conf);
-    mBendingStiffness = cJsonUtil::ParseAsDouble("bending_stiffness", conf);
-
+    mMaxSteps_Opt = cJsonUtil::ParseAsInt(MAX_STEPS_OPT_KEY, conf);
+    mEnableBending = cJsonUtil::ParseAsBool(ENABLE_BENDING_KEY, conf);
+    mBendingStiffness = cJsonUtil::ParseAsDouble(BENDING_STIFFNESS_KEY, conf);
+    mPDContactForceKp = cJsonUtil::ParseAsDouble(PD_CONTACT_FORCE_KP_KEY, conf);
+    mPDContactForceKd = cJsonUtil::ParseAsDouble(PD_CONTACT_FORCE_KD_KEY, conf);
+    mPDContactForceFriction =
+        cJsonUtil::ParseAsDouble(PD_CONTACT_FRICTION_KEY, conf);
     cBaseCloth::Init(conf);
 
     // 3. set up the init pos
@@ -208,17 +211,6 @@ void SolveFast(const tSparseMat &A, const T &solver, tVectorXd &residual,
             break;
         }
     }
-    // cTimeUtil::End("assign");
-    // std::cout << "new sol0 = " << sol0_solved.transpose() << std::endl;
-    // std::cout << "new res0 = " << res0.transpose() << std::endl;
-    // std::cout << "new err = " << (A * sol0_solved - res0).transpose() <<
-    // std::endl; std::cout << "map sol0 = " << sol0.transpose() << std::endl;
-    // std::cout << "map res0 = " << res0.transpose() << std::endl;
-    // std::cout << "map err = " << (A * sol0 - res0).transpose() << std::endl;
-    // std::cout << "sol1 = " << sol1.transpose() << std::endl;
-    // std::cout << "sol2 = " << sol2.transpose() << std::endl;
-    // std::cout << "res = " << residual.transpose() << std::endl;
-    // exit(0);
 }
 tVectorXd tmp;
 tVectorXd cPDCloth::CalcNextPosition() const
@@ -279,35 +271,10 @@ tVectorXd cPDCloth::CalcNextPosition() const
         // cTimeUtil::Begin("calc_res");
         tmp.noalias() =
             mInvMassMatrixDiag.cwiseProduct(dt2 * (J_sparse * d + fext)) + y;
-        // cTimeUtil::End("calc_res");
 
-        // 70 percent
-        // cTimeUtil::Begin("solve");
-        // Xnext.noalias() = I_plus_dt2_Minv_L_sparse_solver.solve(
-        //     tmp);
-        // cTimeUtil::End("solve");
-        // tVectorXd sol;
-        // std::cout << "A_fast = \n"
-        //           << I_plus_dt2_Minv_L_sparse_fast << std::endl;
-        // cTimeUtil::Begin("solve_fast");
-        // printf("[debug] A size = %d, nonzeros %d\n", Xnext.size(),
-        // I_plus_dt2_Minv_L_sparse.nonZeros());
         SolveFast(I_plus_dt2_Minv_L_sparse_fast,
                   I_plus_dt2_Minv_L_sparse_fast_solver, tmp, Xnext);
-        // cTimeUtil::End("solve_fast");
-        // std::cout << "new sol = " << sol.transpose() << std::endl;
-        // std::cout << "old sol = " << Xnext.transpose() << std::endl;
-        // std::cout << "diff = " << (sol - Xnext).transpose() << std::endl;
-        // std::cout << "---------------\n";
-        // std::cout << "A = \n"
-        //           << I_plus_dt2_Minv_L_sparse << std::endl;
 
-        // std::cout << "res = \n"
-        //           << tmp.transpose() << std::endl;
-
-        // exit(0);
-        // // cTimeUtil::EndLazy("fast simulation sparse solve");
-        //  = I_plus_dt2_Minv_L_inv * ();
         if (Xnext.hasNaN())
         {
             std::cout << "Xnext has Nan, exit = " << Xnext.transpose()
@@ -322,17 +289,80 @@ tVectorXd cPDCloth::CalcNextPosition() const
     // cTimeUtil::End("fast simulation calc next");
     return Xnext;
 }
-// #include "sim/CollisionDetecter.h"
+#include "geometries/CollisionDetecter.h"
+#include "geometries/CollisionInfo.h"
 void cPDCloth::UpdatePos(double dt)
 {
-    // cTimeUtil::Begin("substep");
-    // ClearForce();
+    // check the collision detecter
+    if (mColDetecter != nullptr)
+    {
+        auto pts = mColDetecter->GetContactPoints();
+        std::cout << "[pd] num of contacts = " << pts.size() << std::endl;
+        for (auto &pt : pts)
+        {
+            if (eObjectType::CLOTH_TYPE == pt->mObjInfo0->mObj->GetObjectType())
+            {
+                assert(pt->mObjInfo0->mObj.get() == this);
+                tVector normal_0_to_1 = pt->mNormal;
+                int v_id =
+                    std::dynamic_pointer_cast<tColClothInfo>(pt->mObjInfo0)
+                        ->mVertexId;
 
-    // if (mColDetecter != nullptr)
-    // {
-    //     mColDetecter->PerformCollisionDetect();
-    // }
-    // cTimeUtil::Begin("substep_calc_next_pos");
+                tVector force = tVector::Zero();
+                // 1. penetration contri
+                {
+                    double depth = -pt->mDepth; // penetarion >0, else
+                    assert(depth > 0);
+                    force += -normal_0_to_1 * (-pt->mDepth) *
+                             this->mPDContactForceKp;
+                }
+                // 2. velocity contri
+                {
+                    // velocity along with the normal. if vel > 0, the
+                    // penetration will be deeper
+                    double vel =
+                        normal_0_to_1.dot((mXcur.segment(3 * v_id, 3) -
+                                           mXpre.segment(3 * v_id, 3)) /
+                                          mIdealDefaultTimestep);
+                    force += -normal_0_to_1 * vel * this->mPDContactForceKd;
+                }
+                // remove the absorbing case here
+                if (force.dot(normal_0_to_1) > 0)
+                {
+                    force.setZero();
+                }
+                // 3. friction item
+                {
+                    tVector3d vel = (mXcur.segment(3 * v_id, 3) -
+                                     mXpre.segment(3 * v_id, 3)) /
+                                    mIdealDefaultTimestep;
+                    tVector3d tang_vel =
+                        vel - vel.dot(normal_0_to_1.segment(0, 3)) *
+                                  normal_0_to_1.segment(0, 3);
+                    tVector3d tang_force = -mPDContactForceFriction * tang_vel;
+
+                    // the limit of coulumb friction law: mu = 1
+                    if (tang_force.norm() > force.norm())
+                    {
+                        tang_force *= force.norm() / tang_force.norm();
+                    }
+                    force.segment(0, 3) += tang_force;
+                }
+                mExtForce.segment(3 * v_id, 3) += force.segment(0, 3);
+                // std::cout << "obj0 is cloth, normal = "
+                //           << normal_0_to_1.transpose()
+                //           << " force = " << force.transpose() << std::endl;
+            }
+            else if (eObjectType::CLOTH_TYPE ==
+                     pt->mObjInfo1->mObj->GetObjectType())
+            {
+                assert(pt->mObjInfo1->mObj.get() == this);
+                // std::cout << "obj1 is cloth, normal = "
+                //           << pt->mNormal.transpose() << std::endl;
+                assert(false);
+            }
+        }
+    }
     const tVectorXd &Xnext = CalcNextPosition();
     // cTimeUtil::End("substep_calc_next_pos");
     mXpre.noalias() = mXcur;
@@ -379,46 +409,6 @@ void cPDCloth::AddBendTriplet(tEigenArr<tTriplet> &old_lst) const
 
     int num_of_dof = GetNumOfFreedom();
     // 1. dense implemention
-    // tMatrixXd dense = tMatrixXd::Zero(num_of_dof, num_of_dof);
-    // {
-    //     for (int i = 0; i < GetNumOfEdges(); i++)
-    //     {
-    //         const auto &e = mEdgeArray[i];
-    //         if (e->mIsBoundary == false)
-    //         {
-    //             int vid[4] = {e->mId0,
-    //                           e->mId1,
-    //                           SelectAnotherVerteix(mTriangleArray[e->mTriangleId0],
-    //                           e->mId0, e->mId1),
-    //                           SelectAnotherVerteix(mTriangleArray[e->mTriangleId1],
-    //                           e->mId0, e->mId1)};
-    //             // printf("[debug] bending, tri %d and tri %d, shared edge:
-    //             %d, total vertices: %d %d %d %d\n",
-    //             //        e->mTriangleId0, e->mTriangleId1, i, vid[0],
-    //             vid[1], vid[2], vid[3]); tVector cot_vec =
-    //             CalculateCotangentCoeff(
-    //                 mVertexArray[vid[0]]->mPos,
-    //                 mVertexArray[vid[1]]->mPos,
-    //                 mVertexArray[vid[2]]->mPos,
-    //                 mVertexArray[vid[3]]->mPos);
-    //             tMatrixXd KLi = tMatrixXd::Zero(3, num_of_dof);
-    //             for (int j = 0; j < 4; j++)
-    //             {
-    //                 KLi.block(0, 3 * vid[j], 3, 3).noalias() =
-    //                 tMatrix3d::Identity() * cot_vec[j];
-    //             }
-    //             double s =
-    //             CalcTriangleSquare(mTriangleArray[e->mTriangleId0],
-    //             mVertexArray) +
-    //                        CalcTriangleSquare(mTriangleArray[e->mTriangleId1],
-    //                        mVertexArray);
-    //             dense += s * KLi.transpose() * KLi;
-    //         }
-    //     }
-    // }
-    // dense = h2_coef * mInvMassMatrixDiag.asDiagonal().toDenseMatrix() *
-    // dense; std::cout << "dense = \n"
-    //           << dense << std::endl;
     tEigenArr<tTriplet> sparse_tri(0);
     // 2. sparse implemention
     {

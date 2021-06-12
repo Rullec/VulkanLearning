@@ -40,7 +40,7 @@ public:
 
     // virtual void UpdatePos(double dt) override final;
     // virtual void UpdateRenderingResource() override final;
-
+    virtual tMatrix GetWorldTransform() const; //
 protected:
     eKinematicBodyShape mBodyShape;
     std::string mCustomMeshPath;

@@ -104,13 +104,7 @@ void cKinematicBody::BuildCustomKinematicBody()
     obj_params.mPath = mCustomMeshPath;
     cObjUtil::LoadObj(obj_params, mVertexArray, mEdgeArray, mTriangleArray);
 
-    tMatrix trans = tMatrix::Identity();
-    {
-        trans.block(0, 3, 3, 1) = mInitPos.segment(0, 3);
-        trans.block(0, 0, 3, 3) = cMathUtil::EulerAnglesToRotMat(
-                                      mInitOrientation, eRotationOrder::XYZ)
-                                      .topLeftCorner<3, 3>();
-    }
+    tMatrix trans = GetWorldTransform();
     tVector aabb_min, aabb_max;
     CalcAABB(aabb_min, aabb_max);
     tVector aabb = aabb_max - aabb_min;
@@ -175,22 +169,17 @@ void cKinematicBody::CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res,
     }
 }
 
-// const std::vector<tVertex *> &cKinematicBody::GetVertexArray() const
-// {
-//     return mVertexArray;
-// }
-// const std::vector<tEdge *> &cKinematicBody::GetEdgeArray() const
-// {
-//     return mEdgeArray;
-// }
-// const std::vector<tTriangle *> &cKinematicBody::GetTriangleArray() const
-// {
-//     return mTriangleArray;
-// }
-
-// void cKinematicBody::Update(double dt) {}
-
-// int cKinematicBody::GetDrawNumOfVertices() const
-// {
-//     return this->mVertexArray.size();
-// }
+/**
+ * \brief           Get the world transform of this kinematic body
+ *          this matrix can convert local pos to world pos in homogeneous coords
+ *          world_pos = T * local_pos
+ */
+tMatrix cKinematicBody::GetWorldTransform() const
+{
+    tMatrix trans = tMatrix::Identity();
+    trans.block(0, 3, 3, 1) = mInitPos.segment(0, 3);
+    trans.block(0, 0, 3, 3) =
+        cMathUtil::EulerAnglesToRotMat(mInitOrientation, eRotationOrder::XYZ)
+            .topLeftCorner<3, 3>();
+    return trans;
+}

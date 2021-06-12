@@ -1,5 +1,6 @@
 {
-    "scene_type" : "sim", "cloth_type": "pd",
+    "scene_type": "sim",
+    "cloth_type": "pd",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -23,8 +24,11 @@
     "stiffness": 1e2,
     "enable_bending": true,
     "bending_stiffness": 1,
-    "default_timestep": 0.033333333333,
+    "default_timestep": 0.03333,
     "max_steps_opt": 10,
+    "pd_contact_force_kp": 1,
+    "pd_contact_force_kd": 0.001,
+    "pd_contact_friction": 0.001,
     "constraints": {
         "fixed_point": [
             [
@@ -33,14 +37,6 @@
             ],
             [
                 0,
-                1
-            ],
-            [
-                1,
-                0
-            ],
-            [
-                1,
                 1
             ]
         ]
@@ -62,6 +58,18 @@
         "far": 100
     },
     "enable_profiling": false,
-    "enable_obstacle": false,
+    "enable_obstacle": true,
+    "obstacle_conf": [
+        {
+            "type": "plane",
+            "equation": [
+                0,
+                1,
+                0,
+                -0.5
+            ],
+            "plane_scale": 1
+        }
+    ],
     "enable_collision_detection": true
 }

@@ -7,11 +7,11 @@ SIM_DECLARE_CLASS_AND_PTR(cBaseCloth);
 SIM_DECLARE_CLASS_AND_PTR(cKinematicBody);
 SIM_DECLARE_CLASS_AND_PTR(tColPoint);
 
-class cCollisionManager
+class cCollisionDetecter
 {
 public:
-    cCollisionManager();
-    virtual ~cCollisionManager();
+    cCollisionDetecter();
+    virtual ~cCollisionDetecter();
     virtual void AddObject(cBaseObjectPtr obj,
                            bool enable_self_collision = false);
     virtual void PerformCD();

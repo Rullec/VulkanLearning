@@ -79,7 +79,7 @@ protected:
     // std::vector<tEdge *> mEdgeArray;         // total edges
     // std::vector<tTriangle *> mTriangleArray; // total triangles
 
-    // cCollisionDetecterPtr mColDetecter; // collision detecter
+    cCollisionDetecterPtr mColDetecter; // collision detecter
     cBaseClothPtr mCloth;
 
     // base methods
@@ -108,5 +108,6 @@ protected:
     bool mPauseSim;
     virtual void PauseSim();
     virtual void CreateCloth(const Json::Value &conf);
+    virtual void PerformCollisionDetection();
     // virtual int GetNumOfTriangles() const;
 };

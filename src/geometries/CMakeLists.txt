@@ -10,7 +10,7 @@ add_library(
     Triangulator.cpp
     Raycaster.cpp
     OptixRaycaster.cpp
-    CollisionManager.cpp
+    CollisionDetecter.cpp
     CollisionInfo.cpp
 )
 

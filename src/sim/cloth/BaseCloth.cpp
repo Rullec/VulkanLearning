@@ -344,3 +344,8 @@ eClothType cBaseCloth::BuildClothType(std::string str)
     SIM_ERROR("unsupported cloth type {}", str);
     return eClothType::NUM_OF_CLOTH_TYPE;
 }
+
+void cBaseCloth::SetCollisionDetecter(cCollisionDetecterPtr ptr)
+{
+    mColDetecter = ptr;
+}

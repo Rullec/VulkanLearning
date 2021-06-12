@@ -6,10 +6,19 @@
 class cPDCloth : public cBaseCloth
 {
 public:
+    inline static const std::string MAX_STEPS_OPT_KEY = "max_steps_opt",
+                                    ENABLE_BENDING_KEY = "enable_bending",
+                                    BENDING_STIFFNESS_KEY = "bending_stiffness",
+                                    PD_CONTACT_FORCE_KP_KEY =
+                                        "pd_contact_force_kp",
+                                    PD_CONTACT_FORCE_KD_KEY =
+                                        "pd_contact_force_kd",
+                                    PD_CONTACT_FRICTION_KEY =
+                                        "pd_contact_friction";
     cPDCloth();
     virtual ~cPDCloth();
-    virtual void Init(const Json::Value &conf);
-    virtual void UpdatePos(double dt) override;
+    virtual void Init(const Json::Value &conf) override final;
+    virtual void UpdatePos(double dt) override final;
 
 protected:
     int mMaxSteps_Opt; // iterations used in fast simulation
@@ -29,4 +38,6 @@ protected:
     Eigen::SparseLU<tSparseMat> I_plus_dt2_Minv_L_sparse_solver;
     Eigen::SparseLU<tSparseMat> I_plus_dt2_Minv_L_sparse_fast_solver;
     tSparseMat I_plus_dt2_Minv_L_sparse_fast; // vars used in fast
+
+    double mPDContactForceKp, mPDContactForceKd, mPDContactForceFriction; // explicit normal / tangential contact force coeff
 };

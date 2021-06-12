@@ -24,6 +24,8 @@ struct tColClothInfo : public tColObjInfo
     int mVertexId;
 };
 
+SIM_DECLARE_PTR(tColClothInfo);
+
 // ! Collision Info for rigidbody / kinematic body (undeformed body)
 struct tColRigidBodyInfo : public tColObjInfo
 {

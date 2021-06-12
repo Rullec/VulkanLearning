@@ -1,6 +1,7 @@
 #pragma once
 #include "geometries/Primitives.h"
 #include "sim/BaseObject.h"
+#include "utils/DefUtil.h"
 
 enum eClothType
 {
@@ -14,6 +15,7 @@ enum eClothType
 };
 
 struct tPerturb;
+SIM_DECLARE_CLASS_AND_PTR(cCollisionDetecter);
 class cBaseCloth : public cBaseObject
 {
 public:
@@ -23,6 +25,7 @@ public:
     virtual ~cBaseCloth();
     virtual void Init(const Json::Value &conf);
     virtual void Reset();
+    virtual void SetCollisionDetecter(cCollisionDetecterPtr);
     virtual void CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res,
                                         int &st) const;
     virtual void CalcEdgeDrawBuffer(Eigen::Map<tVectorXf> &res, int &st) const;
@@ -38,6 +41,7 @@ public:
 
 protected:
     eClothType mClothType;
+    cCollisionDetecterPtr mColDetecter;
     double mIdealDefaultTimestep; // default substep dt
     double mClothWidth;
     double mClothMass;

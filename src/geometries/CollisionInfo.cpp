@@ -13,6 +13,7 @@ tColPoint::tColPoint()
 
 // ! Collision Info for each type of object
 tColObjInfo::tColObjInfo(cBaseObjectPtr obj) { mObj = obj; }
+tColObjInfo::~tColObjInfo() {}
 
 // ! Collision Info for cloth
 tColClothInfo::tColClothInfo(cBaseClothPtr obj_ptr, int id)
