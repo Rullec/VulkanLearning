@@ -169,7 +169,8 @@ def calibrate_camera(images):
     """
     none_result = (None, None, None, None)
     objpoints, imgpoints = calc_image_points(images, objp)
-    if objpoints is None or imgpoints is None:
+    # if objpoints is None or imgpoints is None:
+    if len(objpoints) == 0 or len(imgpoints) == 0:
         print("[warn] failed to find the chessboard vertices")
         return none_result
 
@@ -278,7 +279,7 @@ def draw_solvepnp(mtx, dist, image):
             new_imgpts_lst.append((a, b))
             # print(imgpts[_idx])
             # print(type(imgpts[_idx]))
-        
+
         # print(f"corner {corner}")
         # print(f"imgpts 0 {new_imgpts_lst[0]}")
         # print(f"imgpts 1 {new_imgpts_lst[1]}")

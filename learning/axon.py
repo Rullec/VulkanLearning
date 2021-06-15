@@ -246,8 +246,8 @@ def convert_kinect_ir_image(image):
     return (image.astype(np.float32) / max * 255).astype(np.uint8)
 
 
-def ir_camera_calc_extrinsics():
-    cam = device_manager.kinect_manager()
+def ir_camera_calc_extrinsics(mode):
+    cam = device_manager.kinect_manager(mode)
 
     # exit(0)
     import matplotlib.pyplot as plt
@@ -387,7 +387,7 @@ def ir_display():
         plt.pause(3e-3)
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
-    # ir_camera_calc_extrinsics()
-    ir_display()
+    depth_mode = "passive_ir"
+    ir_camera_calc_extrinsics(depth_mode)
     # draw_axis()
     # ir_camera_calc_intrinsics(data_dir="captured_ir_images")

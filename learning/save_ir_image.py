@@ -1,4 +1,5 @@
 from axon import get_ir_image, convert_kinect_ir_image
+from calib_axon import calibrate_camera_intrinstic
 import device_manager
 import matplotlib.pyplot as plt
 import os
@@ -7,7 +8,7 @@ plt.ion()
 fig1 = plt.figure('frame')
 
 output_dir = "captured_ir_images/"
-cam = device_manager.kinect_manager()
+cam = device_manager.kinect_manager("passive_ir")
 import shutil
 if os.path.exists(output_dir) is True:
     shutil.rmtree(output_dir)
@@ -28,6 +29,14 @@ def on_press(event):
 
 plt.connect('key_press_event', on_press)
 
+
+def judge_succ(image):
+    from copy import deepcopy
+    new_image = deepcopy(image)
+    mtx, dist = calibrate_camera_intrinstic([new_image])
+    return (mtx is not None) and (dist is not None)
+
+
 while True:
     # clear but do not close the figure
     fig1.clf()
@@ -35,13 +44,17 @@ while True:
     captured_img = convert_kinect_ir_image(get_ir_image(cam))
     path = os.path.join(output_dir, f"{iters}.png")
     if pressed is True:
-        with open(path, 'wb') as f:
-            from PIL import Image
-            img = Image.fromarray(captured_img)
-            img.save(path)
-            print(f"[debug] save to {path}")
-            iters += 1
+        succ = judge_succ(captured_img)
+        if succ is True:
+            with open(path, 'wb') as f:
+                from PIL import Image
+                img = Image.fromarray(captured_img)
+                img.save(path)
+                print(f"[debug] save to {path}")
+                iters += 1
+        else:
+            print("[warn] calibrate failed, should not be included")
         pressed = False
     ax1.imshow(captured_img)
     ax1.title.set_text("captured ir image")
-    plt.pause(1e-1)
+    plt.pause(1e-3)

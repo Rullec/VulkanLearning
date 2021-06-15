@@ -2,7 +2,11 @@
 #include <iostream>
 #include <k4a/k4a.h>
 #define SIM_ASSERT assert
-cKinectManager::cKinectManager() { Init(); }
+cKinectManager::cKinectManager(std::string mode_str)
+{
+    mDepthMode = BuildModeFromString(mode_str);
+    Init();
+}
 
 #include <windows.h>
 k4a_capture_t cKinectManager::GetCapture() const
@@ -219,7 +223,7 @@ void cKinectManager::Init()
     k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
     config.color_format = K4A_IMAGE_FORMAT_COLOR_MJPG;
     config.color_resolution = K4A_COLOR_RESOLUTION_OFF;
-    config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+    config.depth_mode = mDepthMode;
     // config.depth_mode = K4A_DEPTH_MODE_WFOV_UNBINNED;
     config.camera_fps = K4A_FRAMES_PER_SECOND_30;
     // config.camera_fps = K4A_FRAMES_PER_SECOND_15;
@@ -242,7 +246,7 @@ k4a_calibration_camera_t cKinectManager::GetDepthCalibration() const
         K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
     deviceConfig.color_format = K4A_IMAGE_FORMAT_COLOR_MJPG;
     deviceConfig.color_resolution = K4A_COLOR_RESOLUTION_1080P;
-    deviceConfig.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+    deviceConfig.depth_mode = mDepthMode;
     deviceConfig.camera_fps = K4A_FRAMES_PER_SECOND_30;
     deviceConfig.wired_sync_mode = K4A_WIRED_SYNC_MODE_STANDALONE;
     deviceConfig.synchronized_images_only = true;
@@ -300,3 +304,66 @@ tVectorXd cKinectManager::GetDepthIntrinsicDistCoef_self() const
     coef[4] = k3;
     return coef;
 }
+#include "utils/DefUtil.h"
+
+/**
+ * \brief       get depth mode (string mode)
+ */
+std::string cKinectManager::GetDepthMode() const
+{
+    return BuildStringFromDepthMode(mDepthMode);
+}
+
+/**
+ * \brief           set depth mode
+ */
+void cKinectManager::SetDepthMode(std::string mode_str)
+{
+    k4a_depth_mode_t new_mode = BuildModeFromString(mode_str);
+
+    if (new_mode != this->mDepthMode)
+    {
+        this->CloseDevice();
+        mDepthMode = new_mode;
+        Init();
+    }
+}
+
+std::string cKinectManager::BuildStringFromDepthMode(k4a_depth_mode_t mode)
+{
+    std::string mode_str;
+    switch (mode)
+    {
+    case K4A_DEPTH_MODE_NFOV_UNBINNED:
+        mode_str = "nfov_unbinned";
+        break;
+    case K4A_DEPTH_MODE_PASSIVE_IR:
+        mode_str = "passive_ir";
+        break;
+    default:
+        std::cout << "build string failed for mode " << mode << std::endl;
+        exit(0);
+        break;
+    }
+    return mode_str;
+}
+k4a_depth_mode_t cKinectManager::BuildModeFromString(std::string mode_str)
+{
+    k4a_depth_mode_t mode;
+    if (mode_str == "nfov_unbinned")
+    {
+        mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+    }
+    else if (mode_str == "passive_ir")
+    {
+        mode = K4A_DEPTH_MODE_PASSIVE_IR;
+    }
+    else
+    {
+        std::cout << "unsupported mode_str " << mode_str << std::endl;
+        exit(1);
+    }
+    return mode;
+}
+
+void cKinectManager::CloseDevice() { k4a_device_close(mDevice); }
