@@ -46,12 +46,7 @@ while True:
     if pressed is True:
         succ = judge_succ(captured_img)
         if succ is True:
-            with open(path, 'wb') as f:
-                from PIL import Image
-                img = Image.fromarray(captured_img)
-                img.save(path)
-                print(f"[debug] save to {path}")
-                iters += 1
+            
         else:
             print("[warn] calibrate failed, should not be included")
         pressed = False

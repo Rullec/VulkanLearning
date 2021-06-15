@@ -9,9 +9,8 @@ from scipy.spatial.transform import Rotation as R
 # from axon import calc_objective_coordinate_in_screen_coordinate
 
 CHECKERBOARD = (6, 9)
-square_size = 30.0  # mm
+square_size = 50.0  # mm
 display = False
-
 
 def calc_objective_coordinate_in_screen_coordinate(objpoints, imgpoints):
     # print(f"obj shape {objpoints.shape}")
@@ -68,7 +67,8 @@ def calc_objective_coordinate_in_screen_coordinate(objpoints, imgpoints):
             Y_positive_dir = Y_positive_dir / np.linalg.norm(Y_positive_dir)
             # print(f"Y_positive_dir in screen coords: {Y_positive_dir}")
             break
-    assert np.dot(X_positive_dir, Y_positive_dir) == 0
+    
+    assert np.dot(X_positive_dir, Y_positive_dir) == 0, f"({X_positive_dir}, {Y_positive_dir})"
     return X_positive_dir, Y_positive_dir
     exit(0)
 
@@ -310,8 +310,10 @@ def draw_solvepnp(mtx, dist, image):
 
 def get_camera_pts_to_world_coord(mtx, dist, image):
     assert type(image) == np.ndarray
+    # print("begin to calibrate extrinstics")
     rvecs, tvecs, X_plus_vector_in_screen_coords, Y_plus_vector_in_screen_coords = calibrate_camera_extrinstic(
         mtx, dist, [image])
+    # print("end to calibrate extrinstics")
     # print(f"rvecs {rvecs}")
     # print(
     #     f"X plus {X_plus_vector_in_screen_coords}, Y plus {Y_plus_vector_in_screen_coords}"
@@ -365,13 +367,19 @@ def calibrate_camera_intrinstic(images):
 
 
 def calibrate_camera_extrinstic(mtx, dist, image):
+    # print("begin to calc objp")
     objp = calc_objp()
+    # print("end to calc objp")
+    # print("begin to calc img pts")
     objpoints, imagepoints = calc_image_points(image, objp)
+    # print("end to calc img pts")
     if len(objpoints) == 0 or len(imagepoints) == 0:
         return None, None, None, None
     else:
+        # print("begin to calc pnp")
         ret, rvecs, tvecs = cv2.solvePnP(objpoints[0], imagepoints[0], mtx,
                                          dist)
+        # print("end to calc pnp")
         X_positive, Y_positive = calc_objective_coordinate_in_screen_coordinate(
             objpoints[0], imagepoints[0])
         if ret is False:

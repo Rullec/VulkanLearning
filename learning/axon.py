@@ -44,22 +44,7 @@ def on_press(event):
     sys.stdout.flush()
 
 
-def get_depth_image_mm(cam):
-    '''
-        get the depth image (unit mm)
-    '''
-    # print("begin to get depth image")
-    depth = cam.GetDepthImage().astype(np.float32) * cam.GetDepthUnit_mm()
-    # print("succ to get depth image")
-    return depth
 
-
-def get_ir_image(cam):
-    '''
-        get the ir image
-    '''
-    ir = cam.GetIrImage()
-    return ir
 
 
 def show_image(depth_image):
@@ -247,7 +232,9 @@ def convert_kinect_ir_image(image):
 
 
 def ir_camera_calc_extrinsics(mode):
+    # print("begin to init")
     cam = device_manager.kinect_manager(mode)
+    # print("end to init")
 
     # exit(0)
     import matplotlib.pyplot as plt
@@ -270,20 +257,33 @@ def ir_camera_calc_extrinsics(mode):
         # clear but do not close the figure
         fig1.clf()
         ax1 = fig1.add_subplot(1, 1, 1)
+        # print("begin to get ir")
         image = get_ir_image(cam)
+        # print("end to get ir")
 
+        # print("begin to convert ir")
         image = convert_kinect_ir_image(image)
+        # image = resize(image).astype(np.uint8)
+        print(image.shape)
+        # exit()
+        # print("end to convert ir")
         iter += 1
         # print(image.shape)
+        # print("begin to show ir")
         ax1.imshow(image)
         image = np.ascontiguousarray(image)
+        # print("end to show ir")
 
+        # print("begin to get sdk")
         # get camera transform from sdk intrinsics
         sdk_mtx, sdk_dist = get_mtx_and_dist_from_sdk(cam)
+        # print("end to get sdk")
         # self_mtx, self_dist = get_mtx_and_dist_from_self(cam)
 
+        # print("begin to calc")
         sdk_camera_pts_to_world_coords = get_camera_pts_to_world_coord(
             sdk_mtx, sdk_dist, image)
+        # print("end to calc")
         # self_camera_pts_to_world_coords = get_camera_pts_to_world_coord(
         #     self_mtx, self_dist, image)
         if sdk_camera_pts_to_world_coords is not None:
@@ -304,7 +304,7 @@ def ir_camera_calc_extrinsics(mode):
         ax1.title.set_text("ir image")
 
         # pause
-        plt.pause(3e-2)
+        plt.pause(3e-1)
         # ed = time.time()
         # print(f"frame cost {ed - st} s")
 
