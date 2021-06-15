@@ -57,6 +57,7 @@ void cSynDataScene::Init(const std::string &conf_path)
     // std::cout << "enable noise = " << mEnableDataAug << std::endl;
     mSynDataNoise = std::make_shared<tSyncDataNoise>(
         cJsonUtil::ParseAsValue("noise", conf_json));
+    mExportDataDir = cJsonUtil::ParseAsString(EXPORT_DATA_DIR, conf_json);
     mLinScene = std::make_shared<cLinctexScene>();
     mLinScene->Init(mDefaultConfigPath);
     mLinCloth = mLinScene->GetLinctexCloth();
@@ -97,7 +98,13 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     mTotalSamples_count++;
     Reset(); // wait for end, EngineStart = false
 
-    // mLinScene->ApplyTransform(init_trans);
+    if (cFileUtil::ExistsFile(GetExportFilename()) == true)
+    {
+        std::cout << "[warn] data point " << GetExportFilename()
+                  << " exist, ignore\n";
+        mTotalSamples_valid++;
+        return;
+    }
     mLinCloth->SetSimProperty(props);
     bool is_first_frame = true;
     buffer0.noalias() = tVectorXd::Zero(mLinCloth->GetClothFeatureSize());
@@ -151,9 +158,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     {
         // old behavior
         // 1. form the export data path (along with the directory)
-        std::string single_name = std::to_string(mTotalSamples_valid) + ".json";
-        std::string full_name =
-            cFileUtil::ConcatFilename(mExportDataDir, single_name);
+        std::string full_name = GetExportFilename();
         // 2. "input" & output
         DumpSimulationData(
             mLinCloth->GetClothFeatureVector(),
@@ -167,10 +172,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     {
         if (false == CheckDuplicateWithDataSet())
         {
-            std::string single_name =
-                std::to_string(mTotalSamples_valid) + ".json";
-            std::string full_name =
-                cFileUtil::ConcatFilename(mExportDataDir, single_name);
+            std::string full_name = this->GetExportFilename();
             // 2. "input" & output
             DumpSimulationData(
                 mLinCloth->GetClothFeatureVector(),
@@ -181,6 +183,17 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             mTotalSamples_valid++;
         }
     }
+}
+
+/**
+ * \brief           Get export filename
+ */
+std::string cSynDataScene::GetExportFilename() const
+{
+    std::string single_name = std::to_string(mTotalSamples_valid) + ".json";
+    std::string full_name =
+        cFileUtil::ConcatFilename(mExportDataDir, single_name);
+    return full_name;
 }
 
 double calc_dist(const tVectorXd &v0, const tVectorXd &v1)
@@ -307,18 +320,24 @@ void cSynDataScene::MouseButton(int button, int action, int mods)
  */
 void cSynDataScene::InitExportDataDir()
 {
-    mExportDataDir = str_replace(
-        str_replace("data/export_data/" + cTimeUtil::GetSystemTime(), " ", "_"),
-        ":", "_");
+    mExportDataDir = "data/export_data/" + mExportDataDir;
+    // mExportDataDir = str_replace(
+    //     str_replace("data/export_data/" + cTimeUtil::GetSystemTime(), " ",
+    //     "_"),
+    //     ":", "_");
 
-    std::cout << "[debug] target export data = " << mExportDataDir << std::endl;
+    std::cout << "[debug] export_data dir = " << mExportDataDir << std::endl;
 
-    if (cFileUtil::ExistsDir(mExportDataDir) == true)
+    // if (cFileUtil::ExistsDir(mExportDataDir) == true)
+    // {
+    //     SIM_ERROR("{} exist, exit", mExportDataDir);
+    //     exit(0);
+    // }
+    if (cFileUtil::ExistsDir(mExportDataDir) == false)
     {
-        SIM_ERROR("{} exist, exit", mExportDataDir);
-        exit(0);
+        cFileUtil::CreateDir(mExportDataDir.c_str());
     }
-    SIM_ASSERT(cFileUtil::CreateDir(mExportDataDir.c_str()) == true);
+    // SIM_ASSERT(cFileUtil::CreateDir(mExportDataDir.c_str()) == true);
     SIM_ASSERT(cFileUtil::ExistsDir(mExportDataDir) == true);
 }
 

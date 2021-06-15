@@ -87,8 +87,9 @@
         "min_fold_num": 3,
         "max_fold_num": 3
     },
-    "convergence_threshold": 0.0001,
+    "convergence_threshold": 0.001,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
-    "enable_collision_detection": false
+    "enable_collision_detection": false,
+    "export_data_dir": "1e3_2e3_nonoise_50prop_8sample_thre1mm"
 }

@@ -2,7 +2,7 @@
     "scene_type": "mesh_vis",
     "cloth_size": 1,
     "cloth_mass": 1,
-    "mesh_data" : "data/export_data/2021-06-11_17_07_54",
+    "mesh_data" : "data/export_data/cpu_nonoise_threshold1mm",
     "cloth_init_pos": [
         0,
         1,

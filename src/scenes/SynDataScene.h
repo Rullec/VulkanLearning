@@ -14,7 +14,8 @@ SIM_DECLARE_CLASS_AND_PTR(tPhyPropertyManager);
 class cSynDataScene : public cSimScene
 {
 public:
-    inline static const std::string ENABLE_DRAW_KEY = "enable_draw";
+    inline static const std::string ENABLE_DRAW_KEY = "enable_draw",
+                                    EXPORT_DATA_DIR = "export_data_dir";
     explicit cSynDataScene();
     virtual void Init(const std::string &conf_path) override;
     virtual void Update(double dt) override;
@@ -62,6 +63,7 @@ protected:
     void InitExportDataDir();
     bool CheckDuplicateWithDataSet() const;
     void OfflineSampling();
+    std::string GetExportFilename() const;
     tVectorXd buffer0, buffer1;
 };
 #endif
