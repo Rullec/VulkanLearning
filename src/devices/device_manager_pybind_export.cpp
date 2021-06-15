@@ -21,12 +21,14 @@ PYBIND11_MODULE(device_manager, m)
              &cAxonManager::GetDepthIntrinsicMtx_sdk)
         .def("GetDepthIntrinsicMtx_self",
              &cAxonManager::GetDepthIntrinsicMtx_self);
-             
+
     py::class_<cKinectManager>(m, "kinect_manager")
-        .def(py::init<>())
+        .def(py::init<std::string>())
         .def("GetDepthImage", &cKinectManager::GetDepthImage)
         .def("GetDepthUnit_mm", &cKinectManager::GetDepthUnit_mm)
         .def("GetIrImage", &cKinectManager::GetIrImage)
+        .def("GetDepthMode", &cKinectManager::GetDepthMode)
+        .def("SetDepthMode", &cKinectManager::SetDepthMode)
         .def("GetDepthIntrinsicDistCoef_sdk",
              &cKinectManager::GetDepthIntrinsicDistCoef_sdk)
         .def("GetDepthIntrinsicMtx_sdk",

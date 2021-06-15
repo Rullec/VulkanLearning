@@ -14,8 +14,8 @@
     "logging_iters": 10,
     "mode": "train",
     "data_loader_config": {
-        "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\2021-06-10_21_58_28",
-        "batch_size": 64,
+        "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\1e3_2e3_nonoise_50prop_8sample_thre1mm",
+        "batch_size": 32,
         "enable_log_prediction": false,
         "train_perc": 0.8,
         "enable_data_augment": false,

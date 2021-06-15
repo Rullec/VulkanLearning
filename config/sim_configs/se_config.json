@@ -22,7 +22,7 @@
     "se_sim_platform": "cpu",
     "se_enable_collision": true,
     "damping": 1e-3,
-    "default_timestep": 1e-3,
+    "default_timestep": 1e-4,
     "cloth_property": {
         "stretch_warp": 1e4,
         "stretch_weft": 1e4,
