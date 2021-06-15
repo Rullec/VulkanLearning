@@ -91,5 +91,5 @@
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "1e3_2e3_nonoise_50prop_8sample_thre1mm"
+    "export_data_dir": "1e3_2e3_50prop_16samples_thre0.001_amp0.01"
 }
