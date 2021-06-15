@@ -256,16 +256,16 @@ def ir_camera_calc_extrinsics():
     plt.ion()
     fig1 = plt.figure('frame')
     iter = 0
-    minus_id = 0
-    positive_id = 0
+    # minus_id = 0
+    # positive_id = 0
     # os.makedirs("positive")
     # os.makedirs("negative")
-    clear = lambda: os.system('cls')
+    # clear = lambda: os.system('cls')
     avg_trans = np.zeros([4, 4])
     avg_counter = 0
     import time
     while True:
-        st = time.time()
+        # st = time.time()
         # print("------------------------")
         # clear but do not close the figure
         fig1.clf()
@@ -305,7 +305,7 @@ def ir_camera_calc_extrinsics():
 
         # pause
         plt.pause(3e-2)
-        ed = time.time()
+        # ed = time.time()
         # print(f"frame cost {ed - st} s")
 
     print(f"get ir succ, shape {image.shape}")
@@ -362,8 +362,32 @@ def draw_axis():
         ed = time.time()
 
 
+
+
+def ir_display():
+    cam = device_manager.kinect_manager()
+
+    plt.ion()
+    fig1 = plt.figure('frame')
+    iter = 0
+    import time
+    while True:
+        # clear but do not close the figure
+        fig1.clf()
+        ax1 = fig1.add_subplot(1, 1, 1)
+        image = get_ir_image(cam)
+
+        image = convert_kinect_ir_image(image)
+        iter += 1
+        ax1.imshow(image)
+        # draw the image
+        ax1.title.set_text("ir image")
+
+        # pause
+        plt.pause(3e-3)
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
-    ir_camera_calc_extrinsics()
+    # ir_camera_calc_extrinsics()
+    ir_display()
     # draw_axis()
     # ir_camera_calc_intrinsics(data_dir="captured_ir_images")
