@@ -21,6 +21,7 @@ class cArcBallCamera;
 class cDrawScene : public cScene
 {
 public:
+inline const static std::string GROUND_PNG_PATH_KEY = "ground_png_path";
     explicit cDrawScene();
     virtual ~cDrawScene();
     virtual void Init(const std::string &conf_path) override final;
@@ -157,4 +158,5 @@ private:
     bool mLeftButtonPress;
     tVector3f mCameraInitPos, mCameraInitFocus;
     float mCameraInitFov;
+    std::string mGroundPNGPath;
 };

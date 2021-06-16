@@ -1,4 +1,5 @@
 #include "sim/cloth/ClothBuilder.h"
+#include "scenes/EmptyCloth.h"
 #include "sim/cloth/BaseCloth.h"
 #include "sim/cloth/ImplicitCloth.h"
 #include "sim/cloth/PBDCloth.h"

@@ -56,7 +56,7 @@ void cSimScene::Init(const std::string &conf_path)
 
     mEnableCollisionDetection =
         cJsonUtil::ParseAsBool(cSimScene::ENABLE_COLLISION_DETECTION_KEY, root);
-
+    mEnableCloth = cJsonUtil::ParseAsBool(cSimScene::ENABLE_CLOTH_KEY, root);
     CreateCloth(root);
 
     if (mEnableObstacle)
@@ -72,9 +72,16 @@ void cSimScene::Init(const std::string &conf_path)
 
 void cSimScene::CreateCloth(const Json::Value &conf)
 {
-    // mCloth = std::make_shared<cSemiCloth>();
-    mCloth = BuildCloth(conf);
-    mCloth->Init(conf);
+    if (mEnableCloth == true)
+    {
+        // mCloth = std::make_shared<cSemiCloth>();
+        mCloth = BuildCloth(conf);
+        mCloth->Init(conf);
+    }
+    else
+    {
+        mCloth = nullptr;
+    }
 }
 
 void cSimScene::PauseSim() { mPauseSim = !mPauseSim; }
@@ -126,7 +133,8 @@ void cSimScene::InitRaycaster()
 #else
     mRaycaster = std::make_shared<cRaycaster>(false);
 #endif
-    mRaycaster->AddResources(mCloth);
+    if (mCloth)
+        mRaycaster->AddResources(mCloth);
     for (auto &x : mObstacleList)
     {
         // auto obstacle_v_array = x->GetVertexArray();
@@ -148,21 +156,24 @@ void cSimScene::Update(double delta_time)
     // printf("[debug] sim scene update cur time = %.4f\n", mCurTime);
     cScene::Update(delta_time);
 
-    double dt = mCloth->GetDefaultTimestep();
-    while (delta_time > 0)
+    if (mCloth)
     {
-        delta_time -= dt;
-        // 1. clera force
-        mCloth->ClearForce();
+        double dt = mCloth->GetDefaultTimestep();
+        while (delta_time > 0)
+        {
+            delta_time -= dt;
+            // 1. clera force
+            mCloth->ClearForce();
 
-        mCloth->ApplyPerturb(mPerturb);
+            mCloth->ApplyPerturb(mPerturb);
 
-        // 2. do collision detection
-        PerformCollisionDetection();
+            // 2. do collision detection
+            PerformCollisionDetection();
 
-        mCloth->UpdatePos(dt);
+            mCloth->UpdatePos(dt);
+        }
+        // mCloth->Update(delta_time);
     }
-    // mCloth->Update(delta_time);
 
     // clear force
     // apply ext force
@@ -264,9 +275,11 @@ void cSimScene::CalcTriangleDrawBuffer()
     int st = 0;
     Eigen::Map<tVectorXf> ref(mTriangleDrawBuffer.data(),
                               mTriangleDrawBuffer.size());
+    if (mCloth)
     {
         mCloth->CalcTriangleDrawBuffer(ref, st);
     }
+
     // 2. calculate for obstacle triangle
     {
         for (auto &x : mObstacleList)
@@ -287,11 +300,15 @@ void cSimScene::UpdateRenderingResource()
 void cSimScene::CalcEdgesDrawBuffer()
 {
     mEdgesDrawBuffer.fill(std::nan(""));
+
     int st = 0;
-    // 1. for cloth draw buffer
     Eigen::Map<tVectorXf> cloth_ref(mEdgesDrawBuffer.data(),
                                     mEdgesDrawBuffer.size());
-    mCloth->CalcEdgeDrawBuffer(cloth_ref, st);
+    if (mCloth)
+    {
+        // 1. for cloth draw buffer
+        mCloth->CalcEdgeDrawBuffer(cloth_ref, st);
+    }
 
     // 2. for draw buffer
     for (auto &x : mObstacleList)
@@ -450,14 +467,16 @@ void cSimScene::CreateCollisionDetecter()
 
         mColDetecter = std::make_shared<cCollisionDetecter>();
         // add resources into the collision detecter now
-
-        mColDetecter->AddObject(this->mCloth, false);
+        if (mCloth)
+        {
+            mColDetecter->AddObject(this->mCloth, false);
+            mCloth->SetCollisionDetecter(mColDetecter);
+        }
         for (auto &x : this->mObstacleList)
         {
             mColDetecter->AddObject(x, false);
         }
     }
-    this->mCloth->SetCollisionDetecter(mColDetecter);
 }
 
 // int cSimScene::GetNumOfTriangles() const {

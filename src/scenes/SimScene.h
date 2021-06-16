@@ -35,7 +35,8 @@ public:
                                     ENABLE_OBSTACLE_KEY = "enable_obstacle",
                                     OBSTACLE_CONF_KEY = "obstacle_conf",
                                     ENABLE_COLLISION_DETECTION_KEY =
-                                        "enable_collision_detection";
+                                        "enable_collision_detection",
+                                    ENABLE_CLOTH_KEY = "enable_cloth";
 
     cSimScene();
     ~cSimScene();
@@ -63,6 +64,7 @@ protected:
     bool mEnableProfiling;
     bool mEnableObstacle; // using obstacle?
     bool mEnableCollisionDetection;
+    bool mEnableCloth;
     std::vector<cKinematicBodyPtr>
         mObstacleList;        // obstacle for cloth simulation
     cRaycasterPtr mRaycaster; // raycaster

@@ -77,6 +77,7 @@ class DynaPlotter:
             self._clear()
         else:
             plt.show()
+            self.iter = 0
 
     # def wait_for_end_key(self):
 
@@ -116,7 +117,7 @@ def resize(image, size=128):
     from PIL import Image
     image = Image.fromarray(image)
     image = image.resize((size, size))
-    image = np.array(image, dtype = old_type)
+    image = np.array(image, dtype=old_type)
     return image
 
 

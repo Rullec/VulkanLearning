@@ -109,14 +109,23 @@ tVkVertex::getAttributeDescriptions()
 */
 const float ground_scale = 1000.0;
 bool gEnableGround = true;
-std::vector<tVkVertex> ground_vertices = {
-    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
-    {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
-    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
+// std::vector<tVkVertex> ground_vertices = {
+//     {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
+//     {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
+//     {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
 
-    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
-    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
-    {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, ground_scale}},
+//     {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
+//     {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
+//     {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, ground_scale}},
+// };
+std::vector<tVkVertex> ground_vertices = {
+    {{1.0f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
+    {{1.0f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 1.0f}},
+    {{1.5f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f}},
+
+    {{1.0f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
+    {{1.5f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f}},
+    {{1.5f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 0.0f}},
 };
 tVector cDrawScene::GetCameraPos() const
 {
@@ -513,6 +522,7 @@ void cDrawScene::Init(const std::string &conf_path)
         mCameraInitFov = cJsonUtil::ParseAsFloat("fov", camera_json);
         near_plane_dist = cJsonUtil::ParseAsFloat("near", camera_json);
         far_plane_dist = cJsonUtil::ParseAsFloat("far", camera_json);
+        mGroundPNGPath = cJsonUtil::ParseAsString(GROUND_PNG_PATH_KEY, root);
         // SIM_INFO("camera init pos {} init focus {}",
         // mCameraInitPos.transpose(),
         //  mCameraInitFocus.transpose());
@@ -615,7 +625,8 @@ void cDrawScene::Key(int key, int scancode, int action, int mods)
     }
     if (key == GLFW_KEY_S && action == GLFW_PRESS)
     {
-        std::string path = "data/export_data/screenshort.ppm";
+        std::string path = cFileUtil::GenerateRandomFilename(
+            "data/export_data/screenshort.ppm");
         ScreenShotDraw(path);
         printf("[debug] take screenshot to %s\n", path.c_str());
     }
@@ -633,38 +644,39 @@ void cDrawScene::Scroll(double xoff, double yoff)
 /**
  * \brief           Reset the whole scene
  */
-#include "scenes/LinctexScene.h"
 #include "scenes/LinctexCloth.h"
+#include "scenes/LinctexScene.h"
 void cDrawScene::Reset()
 {
     mSimScene->Reset();
-    #ifdef _WIN32
-        auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
-        auto cloth = lin_scene->GetLinctexCloth();
-        if (lin_scene != nullptr)
-        {
+#ifdef _WIN32
+    auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
+    auto cloth = lin_scene->GetLinctexCloth();
+    if (lin_scene != nullptr)
+    {
 
-            double a = 1.5;
-            tVector3d principle_axis = tVector3d::Random();
-            principle_axis[1] = 0;
-            principle_axis.normalize();
-            // principle_axis = tVector3d(1, 0, 0);
-            // lin_scene->ApplyFoldNoise(principle_axis, a);
-            // naive gaussian noise
-            double angle = 0;
-            double std = 0.02;
-            // lin_scene->ApplyNoise(true, angle, false, 0);
-            // lin_scene->ApplyNoise(true, angle, true, std);
+        double a = 1.5;
+        tVector3d principle_axis = tVector3d::Random();
+        principle_axis[1] = 0;
+        principle_axis.normalize();
+        // principle_axis = tVector3d(1, 0, 0);
+        // lin_scene->ApplyFoldNoise(principle_axis, a);
+        // naive gaussian noise
+        double angle = 0;
+        double std = 0.02;
+        // lin_scene->ApplyNoise(true, angle, false, 0);
+        // lin_scene->ApplyNoise(true, angle, true, std);
 
-            // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
-            int num_of_fold = 3;
-            double amp = 5e-2;
-            cloth->ApplyMultiFoldsNoise(num_of_fold, amp);
-            printf("apply multiple folds noise, fold %d, amp %.3f\n", num_of_fold, amp);
-            // std::cout << "apply noise in draw scene, std = " << std <<
-            // std::endl;
-        }
-    #endif
+        // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
+        int num_of_fold = 3;
+        double amp = 5e-2;
+        cloth->ApplyMultiFoldsNoise(num_of_fold, amp);
+        printf("apply multiple folds noise, fold %d, amp %.3f\n", num_of_fold,
+               amp);
+        // std::cout << "apply noise in draw scene, std = " << std <<
+        // std::endl;
+    }
+#endif
 }
 
 /**
@@ -830,6 +842,10 @@ void cDrawScene::CreateVertexBufferCloth()
     std::cout << "[debug] get triangle draw buffer size = "
               << draw_buffer.size() << std::endl;
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
+    if (buffer_size == 0)
+    {
+        return;
+    }
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1137,6 +1153,8 @@ void cDrawScene::UpdateVertexBufferCloth(int image_idx)
     const tVectorXf &draw_buffer = mSimScene->GetTriangleDrawBuffer();
     // update
     VkDeviceSize buffer_size = sizeof(float) * draw_buffer.size();
+    if (buffer_size == 0)
+        return;
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1391,6 +1409,8 @@ void cDrawScene::CreateTriangleCommandBuffers(int i)
 
         vkCmdDraw(mCommandBuffers[i], ground_vertices.size(), 1, 0, 0);
     }
+
+    if (mSimScene->GetTriangleDrawBuffer().size() > 0)
     {
         VkBuffer vertexBuffers[] = {mVertexBufferCloth};
         // VkBuffer vertexBuffers[] = {, mVertexBufferCloth};

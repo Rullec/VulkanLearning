@@ -16,7 +16,7 @@
     "window_height": 600,
     "window_width": 800,
     "enable_draw": true,
-    "enable_cloth": true,
+    "enable_cloth": false,
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
@@ -32,16 +32,16 @@
     "pd_contact_friction": 0.001,
     "constraints": {},
     "pause_at_first": false,
-    "ground_png_path": "data/grid0.png",
+    "ground_png_path": "data/chessboard.png",
     "camera": {
         "camera_pos": [
-            0.00187508856,
-            0.42842519843,
-            0.55907583299
+            1.25,
+            1.175,
+            1
         ],
         "camera_focus": [
-            -0.00352920924,
-            0.28065162501,
+            1.25,
+            1.175,
             0
         ],
         "fov": 52.5,
@@ -50,45 +50,6 @@
     },
     "enable_profiling": false,
     "enable_obstacle": true,
-    "obstacle_conf": [
-        {
-            "type": "custom",
-            "mesh_path": "data/clinder.obj",
-            "target_aabb": [
-                0.1,
-                0.202,
-                0.1
-            ],
-            "translation": [
-                0,
-                0.0635,
-                0
-            ],
-            "orientation": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "type": "custom",
-            "mesh_path": "data/clinder.obj",
-            "target_aabb": [
-                0.3,
-                0.0635,
-                0.3
-            ],
-            "translation": [
-                0,
-                0,
-                0
-            ],
-            "orientation": [
-                0,
-                0,
-                0
-            ]
-        }
-    ],
+    "obstacle_conf": [],
     "enable_collision_detection": true
 }
