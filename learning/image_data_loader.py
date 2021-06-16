@@ -348,7 +348,7 @@ class ImageDataLoader(DataLoader):
             #     pickle.dump(output_X, f)
             #     print("dump done")
             #     exit()
-            if self.enable_data_augment is True:
+            if self.enable_data_augment == True:
                 # print("image channels reordering augmentation")
                 for id in range(len(output_X)):
                     # print(output_X[id].shape)

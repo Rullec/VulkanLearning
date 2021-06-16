@@ -5,4 +5,5 @@ target_link_libraries(device_manager PRIVATE OpenNI2)
 target_link_libraries(device_manager PRIVATE utils_lib)
 target_link_libraries(device_manager PRIVATE k4a)
 
-move_pybind11_release_to_src(dlls device_manager)
+
+move_pybind11_release_to_dir(${DLL_OUTPUT_DIR} device_manager)

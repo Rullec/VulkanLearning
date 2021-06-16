@@ -10,7 +10,7 @@ fig1 = plt.figure('frame')
 output_dir = "captured_ir_images/"
 cam = device_manager.kinect_manager("passive_ir")
 import shutil
-if os.path.exists(output_dir) is True:
+if os.path.exists(output_dir) == True:
     shutil.rmtree(output_dir)
 os.makedirs(output_dir)
 
@@ -43,9 +43,9 @@ while True:
     ax1 = fig1.add_subplot(1, 1, 1)
     captured_img = convert_kinect_ir_image(get_ir_image(cam))
     path = os.path.join(output_dir, f"{iters}.png")
-    if pressed is True:
+    if pressed == True:
         succ = judge_succ(captured_img)
-        if succ is True:
+        if succ == True:
             
         else:
             print("[warn] calibrate failed, should not be included")

@@ -8,7 +8,7 @@ fig1 = plt.figure('frame')
 output_dir = "captured_depth_images/"
 cam = video_manager.video_manager()
 import shutil
-if os.path.exists(output_dir) is True:
+if os.path.exists(output_dir) == True:
     shutil.rmtree(output_dir)
 os.makedirs(output_dir)
 

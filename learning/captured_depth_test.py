@@ -36,7 +36,7 @@ def load_agent():
 
 def load_depth_image():
     target_dir = "../data/export_data/captured_depth_images"
-    if os.path.exists(target_dir) is False:
+    if os.path.exists(target_dir) == False:
         print(f"[error] target dir {target_dir} doesn't exist")
         exit()
     file_lst = [os.path.join(target_dir, i) for i in os.listdir(target_dir)]

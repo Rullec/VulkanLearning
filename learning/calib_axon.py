@@ -179,7 +179,7 @@ def calibrate_camera(images):
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints,
                                                        images[0].shape[::-1],
                                                        None, np.zeros(8))
-    if ret is False:
+    if ret == False:
         return none_result
     else:
         return mtx, dist, rvecs, tvecs
@@ -382,7 +382,7 @@ def calibrate_camera_extrinstic(mtx, dist, image):
         # print("end to calc pnp")
         X_positive, Y_positive = calc_objective_coordinate_in_screen_coordinate(
             objpoints[0], imagepoints[0])
-        if ret is False:
+        if ret == False:
             print("[warn] solvePnP failed")
         return rvecs, tvecs, X_positive, Y_positive
 

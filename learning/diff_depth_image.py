@@ -10,7 +10,7 @@ import cv2
 
 def load_capture_depth_image(cam):
     # capture depth image from the camera
-    # if os.path.exists("tmp.pkl") is False:
+    # if os.path.exists("tmp.pkl") == False:
     #     #
 
     #     with open("tmp.pkl", 'wb') as f:

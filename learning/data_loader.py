@@ -115,7 +115,7 @@ class DataLoader():
 
     def _load_statistics(self):
         stat_file = os.path.join(self.data_dir, self.STATISTIC_FILE_NAME)
-        if os.path.exists(stat_file) is True:
+        if os.path.exists(stat_file) == True:
             import pickle
             with open(stat_file, 'rb') as f:
                 cont = pickle.load(f)
@@ -204,7 +204,7 @@ class DataLoader():
 
             train_id = None
             test_id = None
-            if self.select_validation_set_inside is False:
+            if self.select_validation_set_inside == False:
                 train_id = perm[:train_size]
                 test_id = perm[train_size:]
             else:
@@ -286,7 +286,7 @@ class DataLoader():
                                               incre], self.train_Y[st:st +
                                                                    incre]
 
-            if self.enable_data_augment is True:
+            if self.enable_data_augment == True:
                 assert len(output_X[0].shape) == 1
                 size = output_X[0].shape[0]
                 for _idx in range(len(output_X)):

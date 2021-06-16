@@ -7,18 +7,7 @@ import dll_util
 import numpy as np
 from PIL import Image
 import device_manager
-from log_utils import *
-
-
-def save_png_image(path, image):
-    '''
-        save a png image to a path
-    '''
-    assert path[-4:] == ".png"
-    with open(path, 'wb') as f:
-        img = Image.fromarray(image)
-        img.save(path)
-        print(f"[debug] save png image to {path}")
+from log_util import *
 
 
 def create_kinect_device(mode="passive_ir"):

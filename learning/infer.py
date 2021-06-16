@@ -27,7 +27,7 @@ def recreate_dir(dir):
 
 
 def file_exist(file):
-    assert os.path.exists(file) is True, f"{file}"
+    assert os.path.exists(file) == True, f"{file}"
 
 
 def change_load_model_path_in_config(tmp_file, target_model):
