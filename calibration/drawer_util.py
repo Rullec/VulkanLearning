@@ -3,13 +3,18 @@
 '''
 import matplotlib.pyplot as plt
 from log_util import *
+import numpy as np
 
 
 class DynaPlotter:
     '''
         Dynamic multiple image plotter based on matplotlib
     '''
-    def __init__(self, rows, cols, supress_title="supress_title_test"):
+    def __init__(self,
+                 rows,
+                 cols,
+                 supress_title="supress_title_test",
+                 iterative_mode=True):
         '''
         constructor for plotter
         '''
@@ -19,6 +24,7 @@ class DynaPlotter:
         self.supress_title = supress_title
         self.is_end = False
         self.keyboard_callback = None
+        self.iterative_mode = iterative_mode
         self.__dyna_init()
 
     def set_keypress_callback(self, func):
@@ -45,7 +51,10 @@ class DynaPlotter:
         '''
             init the dyna plotter
         '''
-        plt.ion()
+        if self.iterative_mode == True:
+            plt.ion()
+        else:
+            plt.ioff()
         self.fig = plt.figure(self.supress_title)
         self._clear()
 
@@ -63,21 +72,52 @@ class DynaPlotter:
         ax.title.set_text(title)
 
     def show(self, dt=3e-2):
-        plt.pause(dt)
-        self._clear()
+        if self.iterative_mode == True:
+            plt.pause(dt)
+            self._clear()
+        else:
+            plt.show()
 
     # def wait_for_end_key(self):
 
 
 def calculate_subplot_size(num_of_images):
-    row_size = 1
+    row_size = 0
     col_size = None
-    while col_size is not None:
-        for i in range(0, max(int(row_size * 0.5), 1)):
+    while col_size is None:
+        row_size += 1
+        for i in range(0, int(row_size * 0.5) + 1):
             if row_size * (row_size + i) >= num_of_images:
                 col_size = row_size + i
                 break
+
     return row_size, col_size
+
+
+def cast_int32_to_uint8(image):
+    min, max = np.min(image), np.max(image)
+    # print(f"old min {min} max {max}")
+    image = (image.astype(np.float) / (max - min) * 255).astype(np.uint8)
+    # min, max = np.min(image), np.max(image)
+    # print(f"new min {min} max {max}")
+    return image
+
+
+def resize(image, size=128):
+    # height, width
+    old_type = image.dtype
+    height, width = image.shape
+    mid = width / 2
+    assert width % 2 == 0
+    # to a square
+    image = image[:, int(mid - height / 2):int(mid + height / 2)].astype(
+        np.float32)
+    # expand this square to
+    from PIL import Image
+    image = Image.fromarray(image)
+    image = image.resize((size, size))
+    image = np.array(image, dtype = old_type)
+    return image
 
 
 if __name__ == "__main__":

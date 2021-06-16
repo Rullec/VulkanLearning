@@ -1,6 +1,9 @@
-from drawer_util import DynaPlotter
+from file_util import load_pkl
+from drawer_util import DynaPlotter, cast_int32_to_uint8, calculate_subplot_size
 from device_util import *
-from file_util import save_pkl, clear_and_create_dir
+from file_util import save_pkl, not_clear_and_create_dir
+from opencv_calibration import Calibration
+import os
 
 
 def init_device():
@@ -14,7 +17,8 @@ def init_device():
 
 try_to_save = False
 output_image_dir = "passive_ir_images.log/"
-clear_and_create_dir(output_image_dir)
+not_clear_and_create_dir(output_image_dir)
+
 
 def is_try_to_save():
     global try_to_save
@@ -33,31 +37,51 @@ def keyboard_callback(event):
         set_try_to_save(True)
 
 
-def judge_valid(img):
-    return True
+def get_beginning_id():
+    global output_image_dir
+    files = os.listdir(output_image_dir)
+    return len(files)
 
 
-if __name__ == "__main__":
+def capture_passive_ir_images():
     # 1. create passive ir device
     cam = init_device()
+    calib_util = Calibration("calib_config.json")
 
     plot = DynaPlotter(1, 1, "passive_ir_view")
     plot.set_keypress_callback(keyboard_callback)
-    succ_iters = 0
+    succ_iters = get_beginning_id()
     while plot.is_end == False:
         # 1. take the ir image
         ir_image = get_ir_image(cam)
+        ir_image = cast_int32_to_uint8(ir_image)
 
         if is_try_to_save() == True:
-            if judge_valid(ir_image) == True:
+            if calib_util.judge_image_recognizable([ir_image]) == True:
                 save_pkl(f"{output_image_dir}/{succ_iters}.pkl", ir_image)
                 succ_iters += 1
             else:
                 print(f"the input ir image is not valid, ignore save")
             set_try_to_save(False)
 
-        
         # 2. display the ir image
         plot.add(ir_image)
-
         plot.show()
+
+
+def visualize_passive_ir_images():
+    files = os.listdir(output_image_dir)
+    num_of_files = len(files)
+    print(num_of_files)
+    rows, cols = calculate_subplot_size(num_of_files)
+    plot = DynaPlotter(rows, cols, "visualize_passive_ir", False)
+    for _idx, file in enumerate(files):
+        fullname = os.path.join(output_image_dir, file)
+        image = load_pkl(fullname)
+        plot.add(image, str(_idx))
+    plot.show()
+
+
+if __name__ == "__main__":
+    # visualize_passive_ir_images()
+    capture_passive_ir_images()

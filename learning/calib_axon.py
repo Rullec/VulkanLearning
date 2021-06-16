@@ -277,16 +277,6 @@ def draw_solvepnp(mtx, dist, image):
         for _idx in range(len(imgpts)):
             a, b = int(imgpts[_idx][0][0]), int(imgpts[_idx][0][1])
             new_imgpts_lst.append((a, b))
-            # print(imgpts[_idx])
-            # print(type(imgpts[_idx]))
-
-        # print(f"corner {corner}")
-        # print(f"imgpts 0 {new_imgpts_lst[0]}")
-        # print(f"imgpts 1 {new_imgpts_lst[1]}")
-        # print(f"imgpts 2 {new_imgpts_lst[2]}")
-        # print(f"example {(1, 2)}")
-        # exit()
-        # exit()
         img = cv2.line(img, corner, new_imgpts_lst[0], (255, 0, 0), 5)
         img = cv2.line(img, corner, new_imgpts_lst[1], (0, 255, 0), 5)
         img = cv2.line(img, corner, new_imgpts_lst[2], (0, 0, 255), 5)

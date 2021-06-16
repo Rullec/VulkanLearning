@@ -105,6 +105,11 @@ def get_ir_image(device):
     return ir
 
 
+def get_mtx_and_dist_from_sdk(device):
+    return device.GetDepthIntrinsicMtx_sdk(
+    ), device.GetDepthIntrinsicDistCoef_sdk()
+
+
 if __name__ == "__main__":
     log_print("begin to test device utils")
     cam = create_kinect_device()

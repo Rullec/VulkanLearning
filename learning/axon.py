@@ -11,20 +11,6 @@ global_ypos = None
 cam = None
 
 
-def resize(image, size=128):
-    # height, width
-    height, width = image.shape
-    mid = width / 2
-    assert width % 2 == 0
-    # to a square
-    image = image[:, int(mid - height / 2):int(mid + height / 2)].astype(np.float32)
-    # expand this square to
-    from PIL import Image
-    image = Image.fromarray(image)
-    image = image.resize((size, size))
-    image = np.array(image)
-    return image
-
 
 def mouse_move(event):
     '''

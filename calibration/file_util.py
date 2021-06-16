@@ -1,8 +1,10 @@
 from log_util import *
 from PIL import Image
 import pickle
+import numpy as np
 import shutil
 import os
+import json
 
 
 def save_png_image(path, image):
@@ -32,3 +34,14 @@ def clear_and_create_dir(dir_path):
 def not_clear_and_create_dir(dir_path):
     if os.path.exists(dir_path) == False:
         os.makedirs(dir_path)
+
+
+def load_pkl(path):
+    assert os.path.exists(path)
+    with open(path, 'rb') as f:
+        cont = pickle.load(f)
+    return cont
+
+
+def convert_nparray_to_json(value):
+    return json.dumps(np.squeeze(value).tolist())

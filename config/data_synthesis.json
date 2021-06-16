@@ -62,7 +62,7 @@
                     1e3,
                     2e3
                 ],
-                "num_of_samples": 50,
+                "num_of_samples": 100,
                 "visible": true,
                 "index": 2
             }
@@ -83,7 +83,7 @@
         "samples_per_prop": 16,
         "enable_noise": true,
         "enable_low_freq_noise": true,
-        "max_fold_amp": 1e-2,
+        "max_fold_amp": 5e-2,
         "min_fold_num": 3,
         "max_fold_num": 3
     },
@@ -91,5 +91,5 @@
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "1e3_2e3_50prop_16samples_thre0.001_amp0.01"
+    "export_data_dir": "1e3_2e3_50prop_16samples_thre0.001_amp0.05"
 }
