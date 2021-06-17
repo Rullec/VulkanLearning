@@ -47,6 +47,9 @@ class DynaPlotter:
         self.fig.canvas.mpl_connect('key_press_event',
                                     self.__on_key_press_callback)
 
+    def set_supresstitle(self, title):
+        self.fig.suptitle(title)
+
     def __dyna_init(self):
         '''
             init the dyna plotter
@@ -56,6 +59,7 @@ class DynaPlotter:
         else:
             plt.ioff()
         self.fig = plt.figure(self.supress_title)
+
         self._clear()
 
         # connect callback

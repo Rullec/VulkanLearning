@@ -26,7 +26,8 @@ if __name__ == "__main__":
         ir_image = cast_int32_to_uint8(get_ir_image(device))
         # self_rvecs, self_tvecs, self_image, self_error = calib.calc_extrinsics(
         #     ir_image, self_mtx, self_dist)
-        self_cam_pos, self_cam_focus, camera_pts_to_world_coords = calib.calc_extrinsics_camera_parameter(ir_image, self_mtx, self_dist)
+        self_cam_pos, self_cam_focus, camera_pts_to_world_coords = calib.calc_extrinsics_camera_parameter(
+            ir_image, self_mtx, self_dist)
 
         # sdk_rvecs, sdk_tvecs, sdk_image, sdk_error = calib.calc_extrinsics(
         #     ir_image, sdk_mtx, sdk_dist)
@@ -36,11 +37,14 @@ if __name__ == "__main__":
             # print(
             #     f"self rvecs {np.transpose(self_rvecs) / np.pi * 180} sdk rvecs {np.transpose(sdk_rvecs)  / np.pi * 180}"
             # )
+            import json
+
             print(
-                f"self pos {self_cam_pos} self focus {self_cam_focus}"
+                f"self pos {json.dumps(list(self_cam_pos))} self focus {json.dumps(list(self_cam_focus))}"
             )
             # print(f"self err {self_error} sdk err {sdk_error}")
-            plot.add(ir_image)
-            plot.show()
+
         else:
             print(f"calibration failed")
+        plot.add(ir_image)
+        plot.show()

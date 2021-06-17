@@ -12,10 +12,12 @@ PYBIND11_MODULE(process_data_scene, m)
     py::class_<cProcessTrainDataScene, std::shared_ptr<cProcessTrainDataScene>>(
         m, "process_data_scene")
         .def(py::init<>())
-        .def("Init",
-             &cProcessTrainDataScene::Init)
+        .def("Init", &cProcessTrainDataScene::Init)
         .def("CalcEmptyDepthImage",
              &cProcessTrainDataScene::CalcEmptyDepthImage)
-        .def("GetDepthImageShape",
-             &cProcessTrainDataScene::GetDepthImageShape);
+        .def("GetDepthImageShape", &cProcessTrainDataScene::GetDepthImageShape)
+        .def("GetCuttedWindow", &cProcessTrainDataScene::GetCuttedWindow)
+        .def("GetEnableOnlyExportingCuttedWindow",
+             &cProcessTrainDataScene::GetEnableOnlyExportingCuttedWindow)
+        .def("GetResolution", &cProcessTrainDataScene::GetResolution);
 }

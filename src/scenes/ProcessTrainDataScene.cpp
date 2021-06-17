@@ -584,5 +584,21 @@ std::string cProcessTrainDataScene::GetImageSuffix(eImageType type)
 
     return cProcessTrainDataScene::gImageSuffix[id];
 }
+bool cProcessTrainDataScene::GetEnableOnlyExportingCuttedWindow() const
+{
+    return mEnableOnlyExportingCuttedWindow;
+}
 
+Eigen::Matrix2i cProcessTrainDataScene::GetCuttedWindow() const
+{
+    return mCastingRange;
+}
+
+tVector2i cProcessTrainDataScene::GetResolution() const
+{
+    tVector2i res = tVector2i::Zero();
+    res[0] = this->mWidth;
+    res[1] = this->mHeight;
+    return res;
+}
 #endif

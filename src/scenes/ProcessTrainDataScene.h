@@ -16,6 +16,9 @@ public:
     std::pair<int, int> GetDepthImageShape() const;
     tVectorXf CalcEmptyDepthImage(const tVector &cam_pos,
                                   const tVector &cam_focus, float fov);
+    bool GetEnableOnlyExportingCuttedWindow() const;
+    Eigen::Matrix2i GetCuttedWindow() const;
+    tVector2i GetResolution() const;
 
 protected:
     enum eImageType
