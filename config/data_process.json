@@ -22,14 +22,14 @@
         "far": 100
     },
     "capture_camera_pos": [
-        0.0156,
-        0.364,
-        0.506,
+        0.0021079,
+        0.4687629,
+        0.35001404,
         1
     ],
     "capture_camera_center": [
-        0.0063,
-        0.184,
+        0.0032,
+        0.26,
         0,
         1
     ],
@@ -52,8 +52,8 @@
     "capture_camera_fov": 61.92,
     "enable_cloth_geometry": true,
     "geometry_info": "./log/geo_info.json",
-    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\500_5000_feature2_nonoise",
-    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\test_mesh_data_gen",
+    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\1e3_2e3_nonoise_50prop_8sample_thre1mm_amp5cm",
+    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\1e3_2e3_nonoise_50prop_8sample_thre1mm_amp5cm_gen_4views_2rot",
     "preprocess_info": {
         "num_of_init_rotation_angle": 2,
         "enable_camera_noise": false,
@@ -62,5 +62,6 @@
         "camera_noise_samples": 1,
         "num_of_cloth_views": 4
     },
-    "export_image_format": ".png"
+    "export_image_format": ".png",
+    "ground_png_path": "data/grid0.png"
 }

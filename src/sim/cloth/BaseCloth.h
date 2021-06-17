@@ -11,6 +11,7 @@ enum eClothType
     PD_CLOTH,
     LINCTEX_CLOTH,
     EMPTY_CLOTH, // cannot be simulated
+    FEM_CLOTH,
     NUM_OF_CLOTH_TYPE
 };
 

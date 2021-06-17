@@ -5,7 +5,7 @@
 #include "utils/LogUtil.h"
 
 const std::string gClothTypeStr[eClothType::NUM_OF_CLOTH_TYPE] = {
-    "semi_implicit", "implicit", "pbd", "pd", "linctex"};
+    "semi_implicit", "implicit", "pbd", "pd", "linctex", "empty", "fem"};
 cBaseCloth::cBaseCloth(eClothType cloth_type)
     : cBaseObject(eObjectType::CLOTH_TYPE), mClothType(cloth_type)
 {

@@ -5,6 +5,7 @@
 #include "sim/cloth/PBDCloth.h"
 #include "sim/cloth/PDCloth.h"
 #include "sim/cloth/SemiCloth.h"
+#include "sim/cloth/FEMCloth.h"
 #include "utils/JsonUtil.h"
 #include <iostream>
 #include <string>
@@ -31,6 +32,9 @@ cBaseClothPtr BuildCloth(Json::Value conf)
         break;
     case eClothType::PD_CLOTH:
         ptr = std::make_shared<cPDCloth>();
+        break;
+    case eClothType::FEM_CLOTH:
+        ptr = std::make_shared<cFEMCloth>();
         break;
     default:
         std::cout << "pbd type = " << eClothType::PBD_CLOTH

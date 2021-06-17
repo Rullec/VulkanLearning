@@ -109,24 +109,24 @@ tVkVertex::getAttributeDescriptions()
 */
 const float ground_scale = 1000.0;
 bool gEnableGround = true;
-// std::vector<tVkVertex> ground_vertices = {
-//     {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
-//     {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
-//     {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
-
-//     {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
-//     {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
-//     {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, ground_scale}},
-// };
 std::vector<tVkVertex> ground_vertices = {
-    {{1.0f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
-    {{1.0f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 1.0f}},
-    {{1.5f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
+    {{-50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
 
-    {{1.0f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
-    {{1.5f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f}},
-    {{1.5f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 0.0f}},
+    {{50.0f, 0.0f, -50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, 0.0f}},
+    {{-50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, ground_scale}},
+    {{50.0f, 0.0f, 50.0f}, {0.7f, 0.7f, 0.7f}, {ground_scale, ground_scale}},
 };
+// std::vector<tVkVertex> ground_vertices = {
+//     {{1.0f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
+//     {{1.0f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 1.0f}},
+//     {{1.5f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f}},
+
+//     {{1.0f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f}},
+//     {{1.5f, 1.0f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f}},
+//     {{1.5f, 1.35f, 0.0f}, {0.7f, 0.7f, 0.7f}, {1.0f, 0.0f}},
+// };
 tVector cDrawScene::GetCameraPos() const
 {
     tVector pos = tVector::Ones();

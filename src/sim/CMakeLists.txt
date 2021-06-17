@@ -10,6 +10,7 @@ set(
     cloth/SemiCloth.cpp
     cloth/PBDCloth.cpp
     cloth/PDCloth.cpp
+    cloth/FEMCloth.cpp
     cloth/ClothBuilder.cpp
     cloth/ImplicitCloth.cpp
 )
