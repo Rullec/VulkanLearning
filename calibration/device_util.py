@@ -84,7 +84,7 @@ def get_depth_image(device):
     '''
         get the depth image (integers)
     '''
-    get_device_mode(device)
+    assert get_depth_mode_str() == get_device_mode(device)
     depth = device.GetDepthImage()
     return depth
 

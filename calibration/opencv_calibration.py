@@ -5,6 +5,7 @@
 # 6. output the intrinsics
 
 # 7. compare two intrinsics, do undistort and display
+from types import DynamicClassAttribute
 import cv2
 import json
 import numpy as np
@@ -64,6 +65,10 @@ def convert_rtvecs_to_transform(rvecs, tvecs):
 
 
 def calc_intersection_ray_plane(ori, dir, plane_point, plane_normal):
+    assert ori.shape == (3, )
+    assert dir.shape == (3, )
+    assert plane_point.shape == (3, )
+    assert plane_normal.shape == (3, )
     D = -np.dot(plane_point, plane_normal)
     t = -(np.dot(plane_normal, ori) + D) / (np.dot(plane_normal, dir))
     new_pt = dir * t + ori
@@ -71,13 +76,13 @@ def calc_intersection_ray_plane(ori, dir, plane_point, plane_normal):
 
 
 def calc_focus(rotmat, cam_pos):
+    assert rotmat.shape == (3, 3)
+    assert cam_pos.shape == (3, )
     dir = np.array([0, 0, 1])
     cam_ori = cam_pos[:3]
     cam_dir = np.matmul(rotmat, dir)
     plane_point = np.array([0, 0, 0])
     plane_normal = np.array([0, 0, 1])
-    # print(f"cam point {cam_ori}")
-    # print(f"cam dir {cam_dir}")
     focus = calc_intersection_ray_plane(cam_ori, cam_dir, plane_point,
                                         plane_normal)
     return focus
@@ -87,6 +92,7 @@ class Calibration:
     CHESSBOARD_ROWS_KEY = "chessboard_rows"
     CHESSBOARD_COLS_KEY = "chessboard_cols"
     CHESSBOARD_SIZE_KEY = "chessboard_size"
+    WORLD_PTS_TO_OBJ_COORDS_KEY = "world_pts_to_obj_coords"
 
     # SELF_MTX_KEY = "self_mtx",
     # SELF_DIST_KEY = "self_dist"
@@ -100,6 +106,8 @@ class Calibration:
         self.chessboard_rows = cont[Calibration.CHESSBOARD_ROWS_KEY]
         self.chessboard_cols = cont[Calibration.CHESSBOARD_COLS_KEY]
         self.chessboard_size = cont[Calibration.CHESSBOARD_SIZE_KEY]
+        self.world_pts_to_obj_coords = np.array(
+            cont[Calibration.WORLD_PTS_TO_OBJ_COORDS_KEY])
         # self.self_mtx = cont[Calibration.SELF_MTX_KEY]
         # self.self_dist = cont[Calibration.SELF_DIST_KEY]
         self.enable_imgpoints_visualization = False
@@ -238,7 +246,11 @@ class Calibration:
             return None, None, None, None
 
         assert len(objpoints) == 1
-        ret, rvecs, tvecs = cv2.solvePnP(objpoints[0], imgpoints[0], mtx, dist)
+        ret, rvecs, tvecs = cv2.solvePnP(objpoints[0],
+                                         imgpoints[0],
+                                         mtx,
+                                         dist,
+                                         flags=cv2.SOLVEPNP_IPPE)
 
         def draw_axis(img, corners, imgpts):
             corner = tuple(corners[0].ravel())
@@ -252,8 +264,8 @@ class Calibration:
             img = cv2.line(img, corner, new_imgpts_lst[2], (0, 0, 255), 5)
             return img
 
-        axis = np.array([[33, 0, 0], [0, 33, 0],
-                         [0, 0, -33]]).astype(np.float32).reshape(-1, 3)
+        axis = np.array([[33, 0, 0], [0, 99, 0],
+                         [0, 0, 330]]).astype(np.float32).reshape(-1, 3)
         proj_imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist)
         new_image = deepcopy(image)
         new_image = np.ascontiguousarray(new_image)
@@ -267,22 +279,30 @@ class Calibration:
         '''
             Given an ir passive image, calculate the camera position and camera focus vector acoordly
         '''
-        rvecs, tvecs, _, _ = self.calc_extrinsics(self, image, mtx, dist)
-        obj_pts_to_camera_coords = convert_rtvecs_to_transform(rvecs, tvecs)
+        rvecs, tvecs, new_image, _ = self.calc_extrinsics(image, mtx, dist)
+
+        # begin to draw the image
+        # if True:
+            # plot = DynaPlotter(1, 1, iterative_mode=False)
+            # plot.add(new_image)
+            # plot.show()
+        if rvecs is None:
+            return None, None, None
+
+        obj_pts_to_camera_coords = convert_rtvecs_to_transform(rvecs, tvecs)[0]
+
         # world coordinate to obj coordinate
-        world_pts_to_obj_coords = np.array([
-            [1, 0, 0, 200],
-            [0, 1, 0, -150],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1],
-        ])
-
-        world_pts_to_camera_coords = world_pts_to_obj_coords * obj_pts_to_camera_coords
-
+        world_pts_to_camera_coords = np.matmul(obj_pts_to_camera_coords,
+                                               self.world_pts_to_obj_coords)
+        # print(f"world_pts_to_obj_coords\n{self.world_pts_to_obj_coords}")
+        # print(f"obj_pts_to_camera_coords\n{obj_pts_to_camera_coords}")
+        # print(f"world_pts_to_camera_coords\n{world_pts_to_camera_coords}")
+        # exit()
+        # print(f"tvecs {tvecs.T}")
         camera_pts_to_world_coords = np.linalg.inv(world_pts_to_camera_coords)
 
-        print(f"camera_pts_to_world_coords {camera_pts_to_world_coords}")
-        camera_pos = camera_pts_to_world_coords
+        camera_pos = np.matmul(camera_pts_to_world_coords,
+                               np.array([0, 0, 0, 1]))[:3]
         camera_focus = calc_focus(camera_pts_to_world_coords[:3, :3],
                                   camera_pos)
-        return camera_pos, camera_focus
+        return camera_pos, camera_focus, camera_pts_to_world_coords
