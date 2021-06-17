@@ -35,6 +35,54 @@ def draw_image_points(img_lst, imgpoints_lst, chessboard_size_tuple):
         pass
 
 
+def combine_transform_mat(rot_mat, translate_vec):
+    assert rot_mat.shape == (3, 3), rot_mat.shape
+    mat = np.identity(4)
+    mat[0:3, 0:3] = rot_mat
+    mat[0:3, 3] = translate_vec[:3]
+    return mat
+
+
+def axis_angle_to_rotmat(aa):
+    from scipy.spatial.transform import Rotation as R
+    return R.from_rotvec(aa).as_matrix()
+
+
+def convert_rtvecs_to_transform(rvecs, tvecs):
+    rvecs = np.squeeze(rvecs)
+    tvecs = np.squeeze(tvecs)
+    transformat_mat_lst = []
+    if len(rvecs.shape) == 2:
+        for i in range(rvecs.shape[0]):
+            transformat_mat_lst.append(
+                combine_transform_mat(axis_angle_to_rotmat(rvecs[i, :]),
+                                      tvecs[i, :]))
+    else:
+        transformat_mat_lst.append(
+            combine_transform_mat(axis_angle_to_rotmat(rvecs), tvecs))
+    return transformat_mat_lst
+
+
+def calc_intersection_ray_plane(ori, dir, plane_point, plane_normal):
+    D = -np.dot(plane_point, plane_normal)
+    t = -(np.dot(plane_normal, ori) + D) / (np.dot(plane_normal, dir))
+    new_pt = dir * t + ori
+    return new_pt
+
+
+def calc_focus(rotmat, cam_pos):
+    dir = np.array([0, 0, 1])
+    cam_ori = cam_pos[:3]
+    cam_dir = np.matmul(rotmat, dir)
+    plane_point = np.array([0, 0, 0])
+    plane_normal = np.array([0, 0, 1])
+    # print(f"cam point {cam_ori}")
+    # print(f"cam dir {cam_dir}")
+    focus = calc_intersection_ray_plane(cam_ori, cam_dir, plane_point,
+                                        plane_normal)
+    return focus
+
+
 class Calibration:
     CHESSBOARD_ROWS_KEY = "chessboard_rows"
     CHESSBOARD_COLS_KEY = "chessboard_cols"
@@ -182,7 +230,7 @@ class Calibration:
             mtx: camera matrix
             dist: dist coef
 
-            return: transformation matrix, an axis-drawn image
+            return: rvecs, tvecs, an image which has the axis drawn on, reproj_error
         '''
         objp = self.calc_objpoints()
         objpoints, imgpoints = self.calc_imgpoints([image], objp)
@@ -214,3 +262,27 @@ class Calibration:
         reproj_error = self.calc_reprojection_error(objpoints, imgpoints,
                                                     rvecs, tvecs, mtx, dist)
         return rvecs, tvecs, new_image, reproj_error
+
+    def calc_extrinsics_camera_parameter(self, image, mtx, dist):
+        '''
+            Given an ir passive image, calculate the camera position and camera focus vector acoordly
+        '''
+        rvecs, tvecs, _, _ = self.calc_extrinsics(self, image, mtx, dist)
+        obj_pts_to_camera_coords = convert_rtvecs_to_transform(rvecs, tvecs)
+        # world coordinate to obj coordinate
+        world_pts_to_obj_coords = np.array([
+            [1, 0, 0, 200],
+            [0, 1, 0, -150],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+        ])
+
+        world_pts_to_camera_coords = world_pts_to_obj_coords * obj_pts_to_camera_coords
+
+        camera_pts_to_world_coords = np.linalg.inv(world_pts_to_camera_coords)
+
+        print(f"camera_pts_to_world_coords {camera_pts_to_world_coords}")
+        camera_pos = camera_pts_to_world_coords
+        camera_focus = calc_focus(camera_pts_to_world_coords[:3, :3],
+                                  camera_pos)
+        return camera_pos, camera_focus

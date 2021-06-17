@@ -26,14 +26,17 @@ if __name__ == "__main__":
         ir_image = cast_int32_to_uint8(get_ir_image(device))
         self_rvecs, self_tvecs, self_image, self_error = calib.calc_extrinsics(
             ir_image, self_mtx, self_dist)
+        self_cam_pos, self_cam_focus = calib.calc_extrinsics_camera_parameter(
+            ir_image, self_mtx, self_dist)
 
         sdk_rvecs, sdk_tvecs, sdk_image, sdk_error = calib.calc_extrinsics(
             ir_image, sdk_mtx, sdk_dist)
-        
+
         if self_rvecs is not None and sdk_rvecs is not None:
             print(
                 f"self rvecs {np.transpose(self_rvecs) / np.pi * 180} sdk rvecs {np.transpose(sdk_rvecs)  / np.pi * 180}"
             )
+            print(f"self pos {self_cam_pos} self focus {self_cam_focus}")
             print(f"self err {self_error} sdk err {sdk_error}")
             plot.add(self_image)
             plot.show()
