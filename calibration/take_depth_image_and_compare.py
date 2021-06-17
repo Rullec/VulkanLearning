@@ -28,7 +28,7 @@ def cut_depth_image_by_given_window(scene, old_full_image):
     enable_cutted = scene.GetEnableOnlyExportingCuttedWindow()
     cutted_window = scene.GetCuttedWindow()
     resolution = scene.GetResolution()
-    print(f"depth image resolution {old_full_image.shape}")
+    # print(f"depth image resolution {old_full_image.shape}")
     # print(f"resolution {resolution}")
     # print(f"cutted_window {cutted_window}")
     # exit()
