@@ -166,7 +166,7 @@ class ParamNet:
                  self.data_loader.input_mean) / self.data_loader.input_std
 
         pred = self.net(torch.Tensor(input).to(self.device))
-        # print(f"[infer] pred {pred.detach().numpy()}")
+        print(f"[infer] pred {pred.detach().cpu().numpy()}")
         # print(f"[infer] output std {self.data_loader.output_std}")
         # print(f"[infer] output mean {self.data_loader.output_mean}")
         res = pred.detach().cpu().numpy(

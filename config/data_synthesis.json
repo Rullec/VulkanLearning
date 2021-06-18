@@ -60,14 +60,14 @@
             "bending_bias": {
                 "range": [
                     1e3,
-                    2e3
+                    5e3
                 ],
                 "num_of_samples": 100,
                 "visible": true,
                 "index": 2
             }
         },
-        "mode": "linear",
+        "sample_gap_mode": "linear",
         "exchangeable_pairs": [
             [
                 "bending_warp",
@@ -77,7 +77,9 @@
                 "stretch_warp",
                 "stretch_weft"
             ]
-        ]
+        ],
+        "enable_external_property_samples": true,
+        "external_property_samples_path": "./config/train_configs/isotropic_properties_sample_200.json"
     },
     "noise": {
         "samples_per_prop": 16,
@@ -85,11 +87,11 @@
         "enable_low_freq_noise": true,
         "max_fold_amp": 5e-2,
         "min_fold_num": 3,
-        "max_fold_num": 3
+        "max_fold_num": 6
     },
     "convergence_threshold": 0.001,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "1e3_2e3_50prop_16samples_thre0.001_amp0.05"
+    "export_data_dir": "isotropic_200prop_16samples_amp_0.05"
 }

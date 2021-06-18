@@ -5,6 +5,25 @@ import json
 from res_param_net import CNNParamNet
 
 
+def init_env():
+    np.set_printoptions(suppress=True)
+    # from tqdm import tqdm
+    # lst = list(np.random.rand(100))
+    # for id, _ in enumerate(tqdm(lst)):
+    #     print(id)
+
+    # exit()
+    np.random.seed(0)
+    torch.manual_seed(0)
+    is_cuda_avaliable = torch.cuda.is_available()
+    assert is_cuda_avaliable == True
+
+    if is_cuda_avaliable == True:
+        device = torch.device("cuda", 0)
+    else:
+        device = torch.device("cpu", 0)
+    return device
+
 def build_net(conf):
     with open(conf) as f:
         cont = json.load(f)
@@ -23,24 +42,10 @@ def build_net(conf):
 
 
 if __name__ == "__main__":
-    np.set_printoptions(suppress=True)
-    # from tqdm import tqdm
-    # lst = list(np.random.rand(100))
-    # for id, _ in enumerate(tqdm(lst)):
-    #     print(id)
 
-    # exit()
-    np.random.seed(0)
-    torch.manual_seed(0)
-    is_cuda_avaliable = torch.cuda.is_available()
-    assert is_cuda_avaliable == True
-
-    if is_cuda_avaliable == True:
-        device = torch.device("cuda", 0)
-    else:
-        device = torch.device("cpu", 0)
     # net = ParamNet(conf_path, device)
-
+    device = init_env()
+    
     conf_path = "..\config\\train_configs\\conv_conf.json"
     # conf_path = "..\config\\train_configs\\fc_conf.json"
 

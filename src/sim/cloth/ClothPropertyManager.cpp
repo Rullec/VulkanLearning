@@ -1,13 +1,13 @@
 #ifdef _WIN32
 #include "ClothPropertyManager.h"
 #include "ClothProperty.h"
+#include "utils/FileUtil.h"
 #include "utils/JsonUtil.h"
-// #include "utils/LogUtil.h"
 #include <iostream>
 
 tPhyPropertyManager::tPhyPropertyManager(const Json::Value &conf)
 {
-    const std::string mode = cJsonUtil::ParseAsString("mode", conf);
+    const std::string mode = cJsonUtil::ParseAsString("sample_gap_mode", conf);
     if (mode == "log")
     {
         this->mSampleMode = eSampleMode::LOG;
@@ -54,8 +54,21 @@ tPhyPropertyManager::tPhyPropertyManager(const Json::Value &conf)
                   << std::endl;
         InitExchangeablePairs(
             cJsonUtil::ParseAsValue("exchangeable_pairs", conf));
+
+        mEnableExternalPropertySamples =
+            cJsonUtil::ParseAsBool(ENABLE_EXTERNAL_PROPERTY_SAMPLES_KEY, conf);
+        mExternalPropertySamplesPath =
+            cJsonUtil::ParseAsString(EXTERNAL_PROPERTY_SAMPLES_PATH_KEY, conf);
         // exit(0);
-        InitFeatures();
+        if (mEnableExternalPropertySamples == true)
+        {
+
+            InitFeaturesFromGivenFile();
+        }
+        else
+        {
+            InitFeaturesFromSampling();
+        }
     }
 
     // for (int i = 0; i < this->GetNumOfProperties(); i++)
@@ -243,7 +256,11 @@ tVectorXd vec2eigen(std::vector<double> res)
 
 typedef std::vector<std::vector<double>> double_vv;
 #include <algorithm>
-void tPhyPropertyManager::InitFeatures()
+
+/**
+ * \brief               init properties from sampling on each dimension
+ */
+void tPhyPropertyManager::InitFeaturesFromSampling()
 {
     // 1. construct all values' sets
     std::vector<std::vector<double>> property_values(0);
@@ -300,5 +317,37 @@ void tPhyPropertyManager::InitFeatures()
 int tPhyPropertyManager::GetNumOfProperties() const
 {
     return mAllPropertyFeatures.rows();
+}
+
+/**
+ * \brief               init properties from reading a given config
+ */
+void tPhyPropertyManager::InitFeaturesFromGivenFile()
+{
+    SIM_ASSERT(cFileUtil::ExistsFile(mExternalPropertySamplesPath) == true);
+    Json::Value root;
+    SIM_ASSERT(cJsonUtil::LoadJson(mExternalPropertySamplesPath, root) == true);
+
+    // 1. validate the property names
+    auto prop_name_lst = cJsonUtil::ParseAsValue("prop_name_list", root);
+    SIM_ASSERT(prop_name_lst.size() == tPhyProperty::mNumOfProperties);
+    for (int id = 0; id < prop_name_lst.size(); id++)
+    {
+        SIM_ASSERT(tPhyProperty::mPropertiesName[id] ==
+                   prop_name_lst[id].asString());
+    }
+
+    // begin to load property names
+    auto prop_samples = cJsonUtil::ParseAsValue("prop_samples", root);
+    int num_of_samples = prop_samples.size();
+    // std::cout << "num of load samples = " << num_of_samples << std::endl;
+    SIM_ASSERT(
+        cJsonUtil::ReadMatrixJson(prop_samples, this->mAllPropertyFeatures));
+    // std::cout << "all prop features size = " << mAllPropertyFeatures.rows()
+    //           << " " << mAllPropertyFeatures.cols() << std::endl;
+    // std::cout << mAllPropertyFeatures << std::endl;
+    // exit(0);
+    printf("[log] load %d properties from %s\n", num_of_samples,
+           mExternalPropertySamplesPath);
 }
 #endif

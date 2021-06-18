@@ -201,3 +201,46 @@ Json::Value cJsonUtil::ParseAsValue(const std::string &data_field_name,
     }
     return root[data_field_name];
 }
+
+/**
+ * \brief           read matrix json
+ */
+bool cJsonUtil::ReadMatrixJson(const Json::Value &root, tMatrixXd &out_mat)
+{
+    out_mat.resize(0, 0);
+    tEigenArr<tVectorXd> mat(0);
+    int num_of_cols = -1;
+    for (int i = 0; i < root.size(); i++)
+    {
+        tVectorXd res;
+        bool succ = cJsonUtil::ReadVectorJson(root[i], res);
+        if (succ == false)
+        {
+            // fail to load the row vector
+            return false;
+        }
+        if (num_of_cols == -1)
+        {
+            num_of_cols = res.size();
+            mat.push_back(res);
+        }
+        else
+        {
+            // the dimension doesn't meet
+            if (num_of_cols != res.size())
+            {
+                return false;
+            }
+            else
+            {
+                mat.push_back(res);
+            }
+        }
+    }
+    out_mat.noalias() = tMatrixXd::Zero(mat.size(), num_of_cols);
+    for (int i = 0; i < mat.size(); i++)
+    {
+        out_mat.row(i) = mat[i].transpose();
+    }
+    return true;
+}

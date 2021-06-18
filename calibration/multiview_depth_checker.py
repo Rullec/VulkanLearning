@@ -5,6 +5,7 @@ from file_util import load_pkl
 from drawer_util import DynaPlotter
 
 if __name__ == "__main__":
+    # output_dir = "cutted_dir.log"
     output_dir = "cutted_dir.log"
     files = [os.path.join(output_dir, i) for i in os.listdir(output_dir)]
 

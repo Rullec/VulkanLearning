@@ -19,6 +19,7 @@ public:
     static bool ReadVectorJson(const Json::Value &root,
                                Eigen::VectorXd &out_vec);
     static bool ReadVectorJson(const Json::Value &root, tVector &out_vec);
+    static bool ReadMatrixJson(const Json::Value &root, tMatrixXd &out_mat);
     static bool LoadJson(const std::string &path, Json::Value &value);
     static bool WriteJson(const std::string &path, Json::Value &value,
                           bool indent = true);
