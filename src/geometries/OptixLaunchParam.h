@@ -3,7 +3,7 @@
 
 #include "optix7.h"
 #include "utils/MathUtil.h"
-
+#define OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER 10000
 struct MY_ALIGN(16) LaunchParams
 {
     struct MY_ALIGN(16)
@@ -32,10 +32,19 @@ struct MY_ALIGN(16) LaunchParams
 
     MY_ALIGN(16)
     Eigen::Matrix2i raycast_range;
+
     MY_ALIGN(16)
+    Eigen::Matrix4i
+        start_triangle_id_for_each_object; // start triangle id for each object.
+                                           // used for object identification
+    MY_ALIGN(16)
+    uint8_t num_of_objects;
 
+    MY_ALIGN(16)
+    float random_num_range01[OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER];
+
+    MY_ALIGN(16)
     OptixTraversableHandle traversable;
-
 };
 
 // #endif

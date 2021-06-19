@@ -6,8 +6,8 @@
 
 const std::string gClothTypeStr[eClothType::NUM_OF_CLOTH_TYPE] = {
     "semi_implicit", "implicit", "pbd", "pd", "linctex", "empty", "fem"};
-cBaseCloth::cBaseCloth(eClothType cloth_type)
-    : cBaseObject(eObjectType::CLOTH_TYPE), mClothType(cloth_type)
+cBaseCloth::cBaseCloth(eClothType cloth_type, int id_)
+    : cBaseObject(eObjectType::CLOTH_TYPE, id_), mClothType(cloth_type)
 {
     mTriangleArray.clear();
     mEdgeArray.clear();

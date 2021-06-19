@@ -14,7 +14,7 @@ public:
                                     BENDING_STIFFNESS_PBD_KEY =
                                         "bending_stiffness_pbd";
 
-    cPBDCloth();
+    explicit cPBDCloth(int id_);
     virtual ~cPBDCloth();
     virtual void Init(const Json::Value &conf);
     virtual void UpdatePos(double dt) override;

@@ -1,6 +1,6 @@
 #include "scenes/EmptyCloth.h"
 #include "geometries/Triangulator.h"
-cEmptyCloth::cEmptyCloth() : cBaseCloth(eClothType::EMPTY_CLOTH) {}
+cEmptyCloth::cEmptyCloth(int id_) : cBaseCloth(eClothType::EMPTY_CLOTH, id_) {}
 
 cEmptyCloth::~cEmptyCloth() {}
 

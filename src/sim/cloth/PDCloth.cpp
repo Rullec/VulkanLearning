@@ -6,7 +6,7 @@ extern int SelectAnotherVerteix(tTriangle *tri, int v0, int v1);
 extern tVector CalculateCotangentCoeff(const tVector &x0, tVector &x1,
                                        tVector &x2, tVector &x3);
 
-cPDCloth::cPDCloth() : cBaseCloth(eClothType::PD_CLOTH) { mMaxSteps_Opt = 0; }
+cPDCloth::cPDCloth(int id_) : cBaseCloth(eClothType::PD_CLOTH, id_) { mMaxSteps_Opt = 0; }
 
 cPDCloth::~cPDCloth() {}
 void cPDCloth::Init(const Json::Value &conf)

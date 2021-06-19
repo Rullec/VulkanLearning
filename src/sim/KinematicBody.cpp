@@ -5,7 +5,7 @@
 std::string gBodyShapeStr[eKinematicBodyShape::NUM_OF_KINEMATIC_SHAPE] = {
     "plane", "cube", "sphere", "capsule", "custom"};
 
-cKinematicBody::cKinematicBody() : cBaseObject(eObjectType::KINEMATICBODY_TYPE)
+cKinematicBody::cKinematicBody(int id_) : cBaseObject(eObjectType::KINEMATICBODY_TYPE, id_)
 {
     mIsStatic = true;
     mBodyShape = eKinematicBodyShape::KINEMATIC_INVALID;

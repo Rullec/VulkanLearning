@@ -2,7 +2,7 @@
 #include "utils/JsonUtil.h"
 #include <set>
 
-cSemiCloth::cSemiCloth() : cBaseCloth(eClothType::SEMI_IMPLICIT_CLOTH) {}
+cSemiCloth::cSemiCloth(int id_) : cBaseCloth(eClothType::SEMI_IMPLICIT_CLOTH, id_) {}
 cSemiCloth::~cSemiCloth() {}
 void cSemiCloth::Init(const Json::Value &conf)
 {

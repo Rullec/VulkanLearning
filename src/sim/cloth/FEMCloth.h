@@ -15,7 +15,7 @@ typedef Eigen::Matrix<double, 3, 2> tMatrix32d;
 class cFEMCloth : public cBaseCloth
 {
 public:
-    cFEMCloth();
+    explicit cFEMCloth(int id_);
     virtual ~cFEMCloth();
     virtual void Init(const Json::Value &conf) override final;
     virtual void UpdatePos(double dt) override final;

@@ -2,7 +2,10 @@
 #include "utils/JsonUtil.h"
 #include <iostream>
 
-cImplicitCloth::cImplicitCloth() : cBaseCloth(eClothType::IMPLICIT_CLOTH) {}
+cImplicitCloth::cImplicitCloth(int id_)
+    : cBaseCloth(eClothType::IMPLICIT_CLOTH, id_)
+{
+}
 cImplicitCloth::~cImplicitCloth() {}
 
 void cImplicitCloth::Init(const Json::Value &conf)
@@ -123,7 +126,8 @@ tVectorXd cImplicitCloth::CalcNextPositionImplicit()
         // exit(0);
     }
 
-    // printf("[debug] newton solver done, iters %d/%d, res norm %.5f\n", cur_iter,
+    // printf("[debug] newton solver done, iters %d/%d, res norm %.5f\n",
+    // cur_iter,
     //        max_iters, res.norm());
     // exit(0);
     return x0;

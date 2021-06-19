@@ -70,7 +70,7 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
 
     InitPreprocessInfo(root["preprocess_info"]);
     InitObstacle(root);
-    mCloth = std::make_shared<cEmptyCloth>();
+    mCloth = std::make_shared<cEmptyCloth>(GetNumOfObjects());
     std::dynamic_pointer_cast<cEmptyCloth>(mCloth)->LoadGeometry(
         this->mGeometryInfoPath);
 

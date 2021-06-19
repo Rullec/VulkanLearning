@@ -4,7 +4,7 @@
 class cEmptyCloth : public cBaseCloth
 {
 public:
-    cEmptyCloth();
+    explicit cEmptyCloth(int id_);
     ~cEmptyCloth();
     virtual void UpdatePos(double dt) override final;
     virtual void LoadGeometry(std::string geo_info_path);

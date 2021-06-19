@@ -1,6 +1,6 @@
 #include "PBDCloth.h"
 #include "utils/JsonUtil.h"
-cPBDCloth::cPBDCloth() : cBaseCloth(eClothType::PBD_CLOTH)
+cPBDCloth::cPBDCloth(int id_) : cBaseCloth(eClothType::PBD_CLOTH, id_)
 {
     mVcur.resize(0);
     mBendingMatrixKArray.clear();

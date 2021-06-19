@@ -14,7 +14,7 @@ SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
 class cLinctexCloth : public cBaseCloth
 {
 public:
-    cLinctexCloth();
+    explicit cLinctexCloth(int id_);
     virtual ~cLinctexCloth();
     virtual void Init(const Json::Value &conf);
     virtual void Reset() override final;

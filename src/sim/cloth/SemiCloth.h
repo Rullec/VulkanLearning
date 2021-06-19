@@ -7,7 +7,7 @@ public:
     inline static const std::string ENABLEQBENDING_KEY = "enable_Q_bending",
                                     BENDINGSTIFFNESS_KEY = "bending_stiffness",
                                     STIFFNESS_KEY = "stiffness";
-    cSemiCloth();
+    cSemiCloth(int id_);
     virtual ~cSemiCloth();
     virtual void Init(const Json::Value &conf);
     // virtual void Update(double dt) override final;

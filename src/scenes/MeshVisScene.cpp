@@ -128,6 +128,6 @@ void cMeshVisScene::SetMeshData(int id)
 
 void cMeshVisScene::CreateCloth(const Json::Value &conf)
 {
-    this->mCloth = std::make_shared<cEmptyCloth>();
+    this->mCloth = std::make_shared<cEmptyCloth>(GetNumOfObjects());
     mCloth->Init(conf);
 }

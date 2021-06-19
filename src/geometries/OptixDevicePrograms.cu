@@ -59,6 +59,7 @@ extern "C" __global__ void __closesthit__radiance()
     // {
     const int ix = optixGetLaunchIndex().x;
     const int iy = optixGetLaunchIndex().y;
+    int height = optixLaunchParams.frame.size.x();
     tVector3f rayDir =
         ((optixLaunchParams.convert_mat * tVector4f(ix, iy, 1, 1))
              .segment(0, 3) -
@@ -85,7 +86,25 @@ extern "C" __global__ void __closesthit__radiance()
     // );
     float real_depth = std::fabs(eigen_focus_dir.dot(rayDir));
     // int t = real_depth;
+    
+    // give the value of depth according to the object id
+    {
+        int obj_id = optixLaunchParams.num_of_objects - 1;
+        while(obj_id >=0){
+            // 1. get current st
+            int cur_st = optixLaunchParams.start_triangle_id_for_each_object(obj_id / 4 , obj_id %4);
+            if(primID >= cur_st){
+                break;
+            }
+            obj_id--;
+        }
+
+        int pixel_id = ix * height + iy;
+        float rand = optixLaunchParams.random_num_range01[pixel_id % OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER];
+        real_depth = float(obj_id) * 0.2 + 0.1 + rand / 5;  // 0m - 1.1m
+    }
     uint32_t t = *(reinterpret_cast<uint32_t *>(&real_depth));
+    // uint32_t t = primID;
     // int t = static_cast<int>(real_depth * 200);
     // t = t > 255 ? 255 : t;
     // t = 255;

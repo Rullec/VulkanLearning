@@ -14,7 +14,7 @@
 #include <iostream>
 SE_USING_NAMESPACE
 
-cLinctexCloth ::cLinctexCloth() : cBaseCloth(eClothType::LINCTEX_CLOTH) {}
+cLinctexCloth ::cLinctexCloth(int id_) : cBaseCloth(eClothType::LINCTEX_CLOTH, id_) {}
 cLinctexCloth ::~cLinctexCloth() {}
 void cLinctexCloth ::Init(const Json::Value &conf)
 {

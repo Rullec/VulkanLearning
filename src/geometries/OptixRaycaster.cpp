@@ -64,6 +64,7 @@ cOptixRaycaster::cOptixRaycaster(bool enable_only_export_cutted_window)
 void cOptixRaycaster::AddResources(cBaseObjectPtr object)
 {
     cRaycaster::AddResources(object);
+    BuildStartTriangleIdForObjects();
 
     launchParams.traversable = BuildAccel();
     // auto a = <=>(1, 2);
@@ -77,6 +78,7 @@ void cOptixRaycaster::AddResources(cBaseObjectPtr object)
     BuildSBT();
 
     launchParamsBuffer.alloc(sizeof(launchParams));
+
     // // std::cout << "sizeof launchparam = " << sizeof(launchParams) <<
     // std::endl; exit(0); std::cout << "context, module, pipeline, etc, all set
     // up ..." << std::endl;
@@ -88,13 +90,11 @@ void cOptixRaycaster::AddResources(cBaseObjectPtr object)
 void cOptixRaycaster::Rebuild()
 {
     launchParams.traversable = BuildAccel();
-
     // std::cout << "setting up optix pipeline ..." << std::endl;
     // CreatePipeline();
 
     // std::cout << "building SBT ..." << std::endl;
     // BuildSBT();
-
     launchParamsBuffer.alloc(sizeof(launchParams));
 }
 
@@ -339,6 +339,26 @@ void cOptixRaycaster::BuildSBT()
     sbt.hitgroupRecordCount = (int)hitgroupRecords.size();
 }
 
+/**
+ * \brief           set the start triangle id for each object
+ */
+void cOptixRaycaster::BuildStartTriangleIdForObjects()
+{
+    launchParams.start_triangle_id_for_each_object.setZero();
+    launchParams.num_of_objects = mObjects.size();
+
+    SIM_ASSERT(mObjects.size() < 16);
+
+    int offset = 0;
+    for (int i = 0; i < mObjects.size(); i++)
+    {
+        launchParams.start_triangle_id_for_each_object(i / 4, i % 4) = offset;
+        // printf("[log] obj %d offset %d\n", i, offset);
+        offset += mTriangleArray_lst[i].size();
+    }
+    // exit(1);
+}
+
 void cOptixRaycaster::UpdateVertexBufferToCuda()
 {
     BuildAccel();
@@ -460,6 +480,18 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
     return asHandle;
 }
 
+void cOptixRaycaster::BuildRandomSeries()
+{
+    tVectorXd random_num =
+        (tVectorXd::Random(OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER) +
+         tVectorXd::Ones(OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER)) /
+        2;
+
+    for (int i = 0; i < OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER; i++)
+    {
+        launchParams.random_num_range01[i] = random_num[i];
+    }
+}
 /**
  * \brief           Build the geometry host buffer
  */
@@ -787,6 +819,7 @@ void cOptixRaycaster::CalcDepthMapMultiCamera(
 
         // UpdateVertexBufferToCuda();
         // 2. reupload all values in launch param
+        BuildRandomSeries();
         render();
         // 3. launch the optix program
         // std::cout << "render done\n";

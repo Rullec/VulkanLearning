@@ -70,6 +70,7 @@
     "enable_obstacle": true,
     "obstacle_conf": [
         {
+            "name": "cyliner",
             "type": "custom",
             "mesh_path": "data/clinder.obj",
             "target_aabb": [
@@ -89,6 +90,7 @@
             ]
         },
         {
+            "name": "rotating_table",
             "type": "custom",
             "mesh_path": "data/clinder.obj",
             "target_aabb": [
@@ -108,6 +110,7 @@
             ]
         },
         {
+            "name": "ground",
             "type": "plane",
             "equation": [
                 0,
@@ -118,6 +121,7 @@
             "plane_scale": 10
         },
         {
+            "name": "back_wall",
             "type": "plane",
             "equation": [
                 0,

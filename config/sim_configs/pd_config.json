@@ -30,7 +30,18 @@
     "pd_contact_force_kp": 1,
     "pd_contact_force_kd": 0.001,
     "pd_contact_friction": 0.001,
-    "constraints": {},
+    "constraints": {
+        "fixed_point": [
+            [
+                0,
+                0
+            ],
+            [
+                0,
+                1
+            ]
+        ]
+    },
     "pause_at_first": false,
     "ground_png_path": "data/grid0.png",
     "camera": {
@@ -90,5 +101,5 @@
             ]
         }
     ],
-    "enable_collision_detection": true
+    "enable_collision_detection": false
 }

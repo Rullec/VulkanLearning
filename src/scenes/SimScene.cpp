@@ -75,7 +75,7 @@ void cSimScene::CreateCloth(const Json::Value &conf)
     if (mEnableCloth == true)
     {
         // mCloth = std::make_shared<cSemiCloth>();
-        mCloth = BuildCloth(conf);
+        mCloth = BuildCloth(conf, this->GetNumOfObjects());
         mCloth->Init(conf);
     }
     else
@@ -432,7 +432,7 @@ void cSimScene::CreateObstacle(const Json::Value &conf)
     SIM_ASSERT(num_of_obstacles == obstacles_lst.size());
     for (int i = 0; i < num_of_obstacles; i++)
     {
-        auto obs = std::make_shared<cKinematicBody>();
+        auto obs = std::make_shared<cKinematicBody>(GetNumOfObjects());
         obs->Init(obstacles_lst[i]);
         mObstacleList.push_back(obs);
     }
@@ -479,10 +479,14 @@ void cSimScene::CreateCollisionDetecter()
     }
 }
 
-// int cSimScene::GetNumOfTriangles() const {
-//     int num_of_tris_cloth = mCloth->GetNumOfTriangles();
-//     int num_of_tris_obstacles = 0;
-//     for(auto & x : mObstacleList){
-//         num_of_tris_obstacles += x->GetNumOfTriangles();
-//     }
-// }
+/**
+ * \brief                   Get number of objects
+ */
+int cSimScene::GetNumOfObjects() const
+{
+    int num_of_objects = 0;
+    if (mCloth)
+        num_of_objects += 1;
+    num_of_objects += mObstacleList.size();
+    return num_of_objects;
+}

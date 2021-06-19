@@ -6,10 +6,20 @@
 std::string gObjectTypeStr[eObjectType::NUM_OBJ_TYPES] = {
     "KinematicBody", "RigidBody", "Cloth", "Fluid"};
 
-cBaseObject::cBaseObject(eObjectType type) : mType(type)
+cBaseObject::cBaseObject(eObjectType type, int id_) : mType(type), mObjId(id_)
 {
+    mObjName = "";
     mEnableDrawBuffer = true;
 }
+
+/**
+ * \brief           Set object name
+ */
+void cBaseObject::SetObjName(std::string name) { mObjName = name; }
+/**
+ * \brief           Get object name
+ */
+std::string cBaseObject::GetObjName() const { return mObjName; }
 
 cBaseObject::~cBaseObject() {}
 

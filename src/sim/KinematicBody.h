@@ -26,7 +26,7 @@ public:
                                     ORIENTATION_KEY = "orientation",
                                     PLANE_EQUATION_KEY = "equation",
                                     PLANE_SCALE_KEY = "plane_scale";
-    cKinematicBody();
+    cKinematicBody(int id_);
     virtual ~cKinematicBody();
     virtual void Init(const Json::Value &conf) override;
     static eKinematicBodyShape BuildKinematicBodyShape(std::string type_str);

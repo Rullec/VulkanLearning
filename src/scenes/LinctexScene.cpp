@@ -231,7 +231,7 @@ void cLinctexScene::Init(const std::string &path)
 
 void cLinctexScene::CreateCloth(const Json::Value &conf)
 {
-    mCloth = std::make_shared<cLinctexCloth>();
+    mCloth = std::make_shared<cLinctexCloth>(GetNumOfObjects());
     mCloth->Init(conf);
 }
 

@@ -31,8 +31,10 @@ struct tTriangle;
 class cBaseObject : std::enable_shared_from_this<cBaseObject>
 {
 public:
-    explicit cBaseObject(eObjectType type);
+    explicit cBaseObject(eObjectType type, int obj_id);
     virtual ~cBaseObject();
+    virtual void SetObjName(std::string);
+    virtual std::string GetObjName() const;
     virtual void Init(const Json::Value &conf) = 0;
     static eObjectType BuildObjectType(std::string type);
     eObjectType GetObjectType() const;
@@ -53,6 +55,8 @@ public:
     virtual void CalcAABB(tVector &min, tVector &max) const;
 
 protected:
+    int mObjId;
+    std::string mObjName;
     eObjectType mType;
     bool mEnableDrawBuffer; // enable to open draw buffer
     std::vector<tVertex *> mVertexArray;

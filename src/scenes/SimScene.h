@@ -56,7 +56,7 @@ public:
     void RayCastScene(const tRay *ray, tTriangle **selected_triangle,
                       int &selected_triangle_id,
                       tVector &ray_cast_position) const;
-
+    virtual int GetNumOfObjects() const;
 protected:
     tPerturb *mPerturb;
 

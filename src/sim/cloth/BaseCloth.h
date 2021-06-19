@@ -22,7 +22,7 @@ class cBaseCloth : public cBaseObject
 public:
     inline static const std::string DAMPING_KEY = "damping",
                                     DEFAULT_TIMESTEP_KEY = "default_timestep";
-    explicit cBaseCloth(eClothType cloth_type);
+    explicit cBaseCloth(eClothType cloth_type, int id_);
     virtual ~cBaseCloth();
     virtual void Init(const Json::Value &conf);
     virtual void Reset();

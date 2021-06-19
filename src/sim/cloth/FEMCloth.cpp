@@ -6,7 +6,7 @@
 #define OMP_PARALLEL_FOR __pragma(omp parallel for num_threads(OMP_NUM_THREADS))
 #define OMP_PARALLEL_FOR_SUM_REDUCTION(sum) __pragma(omp parallel for num_threads(OMP_NUM_THREADS) reduction(+: sum))
 
-cFEMCloth::cFEMCloth() : cBaseCloth(eClothType::FEM_CLOTH)
+cFEMCloth::cFEMCloth(int id_) : cBaseCloth(eClothType::FEM_CLOTH, id_)
 {
     mF.clear();
     mJ.resize(0);

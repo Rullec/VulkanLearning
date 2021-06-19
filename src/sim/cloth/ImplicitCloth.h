@@ -6,7 +6,7 @@ class cImplicitCloth : public cBaseCloth
 public:
     inline static const std::string MAX_NEWTON_ITERS_KEY = "max_newton_iters",
                                     STIFFNESS_KEY = "stiffness";
-    cImplicitCloth();
+    explicit cImplicitCloth(int id_);
     virtual ~cImplicitCloth();
 
     virtual void Init(const Json::Value &conf);

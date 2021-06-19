@@ -39,7 +39,9 @@ protected:
     void Rebuild();
     void CreatePipeline();
     void BuildSBT();
+    void BuildStartTriangleIdForObjects();
     OptixTraversableHandle BuildAccel();
+    void BuildRandomSeries();
     void BuildGeometryCudaHostBuffer();
     void resize(const tVector2i &newSize);
     void setCamera(const CameraBasePtr &camera);

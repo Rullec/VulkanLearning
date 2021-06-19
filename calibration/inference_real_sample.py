@@ -23,12 +23,23 @@ def load_image_data(data_dir):
 
 
 def compare_result(train_data, real_data):
-    plotter = DynaPlotter(2, 4, iterative_mode=False)
-    for i in range(4):
-        plotter.add(train_data[i], f"train-{i}")
-    for i in range(4):
-        plotter.add(real_data[i], f"real-{i}")
+    plotter = DynaPlotter(1, 3, iterative_mode=False)
+    enable_train = train_data[0] > 130
+    enable_real = real_data[0] > 130
+    enable_mask = np.logical_and(enable_train, enable_real)
+    diff = train_data[0] - real_data[0]
+    diff[enable_mask == False] = 0
+    plotter.add(train_data[0], f"train data")
+    plotter.add(real_data[0], f"real data")
+    plotter.add(diff, f"diff")
     plotter.show()
+    exit()
+    # plotter = DynaPlotter(2, 4, iterative_mode=False)
+    # for i in range(4):
+    #     plotter.add(train_data[i], f"train-{i}")
+    # for i in range(4):
+    #     plotter.add(real_data[i], f"real-{i}")
+    # plotter.show()
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ public:
                                         "pd_contact_force_kd",
                                     PD_CONTACT_FRICTION_KEY =
                                         "pd_contact_friction";
-    cPDCloth();
+    explicit cPDCloth(int id_);
     virtual ~cPDCloth();
     virtual void Init(const Json::Value &conf) override final;
     virtual void UpdatePos(double dt) override final;
