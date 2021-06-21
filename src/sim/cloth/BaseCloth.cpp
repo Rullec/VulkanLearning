@@ -18,6 +18,7 @@ cBaseCloth::~cBaseCloth() {}
 
 void cBaseCloth::Init(const Json::Value &conf)
 {
+    cBaseObject::Init(conf);
     mGeometryType =
         cJsonUtil::ParseAsString(cTriangulator::GEOMETRY_TYPE_KEY, conf);
     mDamping = cJsonUtil::ParseAsDouble(cBaseCloth::DAMPING_KEY, conf);

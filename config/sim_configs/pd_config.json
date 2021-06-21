@@ -24,6 +24,7 @@
     "damping": 1e-5,
     "stiffness": 1e2,
     "enable_bending": true,
+    "enable_only_exporting_cutted_window": true,
     "bending_stiffness": 1,
     "default_timestep": 0.03333,
     "max_steps_opt": 10,

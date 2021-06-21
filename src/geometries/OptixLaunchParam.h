@@ -41,7 +41,12 @@ struct MY_ALIGN(16) LaunchParams
     uint8_t num_of_objects;
 
     MY_ALIGN(16)
-    float random_num_range01[OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER];
+    int random_seed; // noise random seed: current disabled
+
+    MY_ALIGN(16)
+    Eigen::Matrix4i
+        disable_raycast_for_objects; // switch to enalbe raycast. if the value is
+                                    // zero, the depth will be set to zero.
 
     MY_ALIGN(16)
     OptixTraversableHandle traversable;

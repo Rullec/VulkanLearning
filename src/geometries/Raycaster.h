@@ -8,6 +8,10 @@
  */
 SIM_DECLARE_CLASS_AND_PTR(CameraBase);
 SIM_DECLARE_CLASS_AND_PTR(cBaseObject);
+namespace Json
+{
+class Value;
+};
 
 class cRaycaster : std::enable_shared_from_this<cRaycaster>
 {
@@ -24,7 +28,8 @@ public:
         tVector mIntersectionPoint;
     };
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    explicit cRaycaster(bool enable_only_exporting_cutted_window);
+    explicit cRaycaster();
+    virtual void Init(const Json::Value &conf);
     // virtual void AddResources(const std::vector<tTriangle *> triangles,
     //                           const std::vector<tVertex *> vertices);
     virtual void AddResources(cBaseObjectPtr object);
@@ -40,6 +45,4 @@ protected:
     std::vector<cBaseObjectPtr> mObjects;
     std::vector<std::vector<tTriangle *>> mTriangleArray_lst;
     std::vector<std::vector<tVertex *>> mVertexArray_lst;
-    bool mEnableOnlyExportCuttedWindow; // only save the interested window
-                                        // result of raycasting
 };

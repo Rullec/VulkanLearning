@@ -66,7 +66,7 @@ void cSimScene::Init(const std::string &conf_path)
     CreateCollisionDetecter();
 
     InitDrawBuffer();
-    InitRaycaster();
+    InitRaycaster(root);
 }
 #include "sim/cloth/ClothBuilder.h"
 
@@ -116,7 +116,7 @@ void cSimScene::InitDrawBuffer()
  */
 #include "geometries/OptixRaycaster.h"
 #include "geometries/Raycaster.h"
-void cSimScene::InitRaycaster()
+void cSimScene::InitRaycaster(const Json::Value &conf)
 {
     // auto total_triangle_array = mTriangleArray;
     // auto total_vertex_array = mVertexArray;
@@ -129,10 +129,11 @@ void cSimScene::InitRaycaster()
     // }
     // for (int i = 0; i < this->)
 #ifdef USE_OPTIX
-    mRaycaster = std::make_shared<cOptixRaycaster>(false);
+    mRaycaster = std::make_shared<cOptixRaycaster>();
 #else
-    mRaycaster = std::make_shared<cRaycaster>(false);
+    mRaycaster = std::make_shared<cRaycaster>();
 #endif
+    mRaycaster->Init(conf);
     if (mCloth)
         mRaycaster->AddResources(mCloth);
     for (auto &x : mObstacleList)
@@ -424,6 +425,8 @@ void cSimScene::ReleasePerturb()
     }
 }
 
+#include "sim/KinematicBodyBuilder.h"
+
 void cSimScene::CreateObstacle(const Json::Value &conf)
 {
     // 1. parse the number of obstacles
@@ -432,8 +435,7 @@ void cSimScene::CreateObstacle(const Json::Value &conf)
     SIM_ASSERT(num_of_obstacles == obstacles_lst.size());
     for (int i = 0; i < num_of_obstacles; i++)
     {
-        auto obs = std::make_shared<cKinematicBody>(GetNumOfObjects());
-        obs->Init(obstacles_lst[i]);
+        auto obs = BuildKinematicBody(obstacles_lst[i], GetNumOfObjects());
         mObstacleList.push_back(obs);
     }
 

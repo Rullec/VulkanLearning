@@ -31,11 +31,12 @@ struct tTriangle;
 class cBaseObject : std::enable_shared_from_this<cBaseObject>
 {
 public:
+    inline static const std::string OBJECT_NAME_KEY = "object_name";
     explicit cBaseObject(eObjectType type, int obj_id);
     virtual ~cBaseObject();
     virtual void SetObjName(std::string);
     virtual std::string GetObjName() const;
-    virtual void Init(const Json::Value &conf) = 0;
+    virtual void Init(const Json::Value &conf);
     static eObjectType BuildObjectType(std::string type);
     eObjectType GetObjectType() const;
     virtual void CalcTriangleDrawBuffer(Eigen::Map<tVectorXf> &res,

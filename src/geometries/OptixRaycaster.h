@@ -11,10 +11,15 @@ class Value;
 class cOptixRaycaster : public cRaycaster
 {
 public:
-    explicit cOptixRaycaster(bool enable_only_exporting_cutted_window);
+    inline static const std::string ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY =
+                                        "enable_only_exporting_cutted_window",
+                                    DISABLE_DEPTH_FOR_OBJECTS_KEY =
+                                        "disable_depth_for_objects";
+    explicit cOptixRaycaster();
     // virtual void AddResources(const std::vector<tTriangle *> triangles,
     //                           const std::vector<tVertex *> vertices)
     //                           override;
+    virtual void Init(const Json::Value &conf) override final;
     virtual void AddResources(cBaseObjectPtr object);
     virtual void CalcDepthMap(const tMatrix2i &cast_range, int height,
                               int width, CameraBasePtr camera,
@@ -27,6 +32,7 @@ public:
                                          int height, int width,
                                          CameraBasePtr cur_cam,
                                          tVectorXf &pixels);
+    virtual bool GetEnableOnlyExportingCuttedWindow() const;
 
 protected:
     // -----------methods------------
@@ -91,7 +97,11 @@ protected:
     std::vector<tVector3f> cuda_host_vertices_buffer;
     std::vector<tVector3i> cuda_host_index_buffer;
 
+    std::map<std::string, bool> disable_depth_for_objects;
+    bool mEnableOnlyExportCuttedWindow; // only save the interested window
+                                        // result of raycasting
     bool SavePngDepthImage(const std::vector<float> &pixels, const char *path);
+    virtual void InitEnableDepthForObjects(const Json::Value &conf);
 };
 
 #define GDT_TERMINAL_RED "\033[1;31m"

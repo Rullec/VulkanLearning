@@ -244,3 +244,8 @@ bool cJsonUtil::ReadMatrixJson(const Json::Value &root, tMatrixXd &out_mat)
     }
     return true;
 }
+
+bool cJsonUtil::HasValue(const std::string &name, const Json::Value &root)
+{
+    return JSONUTIL_ASSERT_NULL(root, name);
+}

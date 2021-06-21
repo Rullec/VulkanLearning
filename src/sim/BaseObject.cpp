@@ -1,5 +1,6 @@
 #include "sim/BaseObject.h"
 #include "geometries/Primitives.h"
+#include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 #include "utils/MathUtil.h"
 #include <string>
@@ -82,4 +83,9 @@ void cBaseObject::CalcAABB(tVector &min, tVector &max) const
             max[i] = (val > max[i]) ? val : max[i];
         }
     }
+}
+
+void cBaseObject::Init(const Json::Value &conf)
+{
+    mObjName = cJsonUtil::ParseAsString(OBJECT_NAME_KEY, conf);
 }

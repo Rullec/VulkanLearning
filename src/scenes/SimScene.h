@@ -87,7 +87,7 @@ protected:
     // base methods
     void CalcDampingForce(const tVectorXd &vel, tVectorXd &damping) const;
     virtual void InitDrawBuffer();
-    virtual void InitRaycaster();
+    virtual void InitRaycaster(const Json::Value & conf);
 
     void ClearForce(); // clear all forces
 

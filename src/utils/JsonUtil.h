@@ -36,4 +36,5 @@ public:
                             const Json::Value &root);
     static Json::Value ParseAsValue(const std::string &data_field_name,
                                     const Json::Value &root);
+    static bool HasValue(const std::string & name, const Json::Value & root);
 };

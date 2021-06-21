@@ -2,6 +2,7 @@
 #include "OptixRaycaster.h"
 #include "optix_function_table_definition.h"
 #include "scenes/cameras/CameraBase.h"
+#include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 #include <iostream>
 
@@ -40,9 +41,16 @@ struct __align__(OPTIX_SBT_RECORD_ALIGNMENT) HitgroupRecord
 // cOptixRaycaster::cOptixRaycaster(const std::vector<tTriangle *> triangles,
 //                                  const std::vector<tVertex *> vertices) :
 //                                  cRaycaster(triangles, vertices)
-cOptixRaycaster::cOptixRaycaster(bool enable_only_export_cutted_window)
-    : cRaycaster(enable_only_export_cutted_window)
+cOptixRaycaster::cOptixRaycaster() { mEnableOnlyExportCuttedWindow = false; }
+
+void cOptixRaycaster::Init(const Json::Value &conf)
 {
+    cRaycaster::Init(conf);
+    mEnableOnlyExportCuttedWindow =
+        cJsonUtil::ParseAsBool(ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY, conf);
+
+    InitEnableDepthForObjects(conf);
+
     InitOptix();
 
     // std::cout << "creating optix context ..." << std::endl;
@@ -58,12 +66,32 @@ cOptixRaycaster::cOptixRaycaster(bool enable_only_export_cutted_window)
     // std::cout << "creating hitgroup programs ..." << std::endl;
     CreateHitgroupPrograms();
 }
-
 // void cOptixRaycaster::AddResources(const std::vector<tTriangle *> triangles,
 //                                    const std::vector<tVertex *> vertices)
+#include "sim/BaseObject.h"
 void cOptixRaycaster::AddResources(cBaseObjectPtr object)
 {
     cRaycaster::AddResources(object);
+
+    // check the name
+    {
+        std::string obj_name = object->GetObjName();
+        std::map<std::string, bool>::iterator it =
+            disable_depth_for_objects.find(obj_name);
+        if (it != disable_depth_for_objects.end())
+        {
+            std::cout << "[log] raycaster add obj " << obj_name
+                      << ", disable raycast depth = " << it->second
+                      << std::endl;
+            int cur_id = mObjects.size() - 1;
+            // std::cout << "cur id = " << cur_id << std::endl;
+            launchParams.disable_raycast_for_objects(cur_id / 4, cur_id % 4) =
+                it->second;
+        }
+
+        // exit(1);
+    }
+
     BuildStartTriangleIdForObjects();
 
     launchParams.traversable = BuildAccel();
@@ -482,15 +510,7 @@ OptixTraversableHandle cOptixRaycaster::BuildAccel()
 
 void cOptixRaycaster::BuildRandomSeries()
 {
-    tVectorXd random_num =
-        (tVectorXd::Random(OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER) +
-         tVectorXd::Ones(OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER)) /
-        2;
-
-    for (int i = 0; i < OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER; i++)
-    {
-        launchParams.random_num_range01[i] = random_num[i];
-    }
+    launchParams.random_seed = cMathUtil::RandInt();
 }
 /**
  * \brief           Build the geometry host buffer
@@ -923,5 +943,34 @@ bool cOptixRaycaster::SavePngDepthImage(const std::vector<float> &pixels,
 
     // cTimeUtil::End("save_png");
     return true;
+}
+
+bool cOptixRaycaster::GetEnableOnlyExportingCuttedWindow() const
+{
+    return mEnableOnlyExportCuttedWindow;
+}
+
+/**
+ * \brief           set the config for each object: enable depth value in
+ * raycast or not...
+ */
+void cOptixRaycaster::InitEnableDepthForObjects(const Json::Value &conf)
+{
+    std::string preprocess_info_key = "preprocess_info";
+    if (cJsonUtil::HasValue(preprocess_info_key, conf) == true)
+    {
+        Json::Value preinfo =
+            cJsonUtil::ParseAsValue(preprocess_info_key, conf);
+        Json::Value enable_depth_for_objs_json =
+            cJsonUtil::ParseAsValue(DISABLE_DEPTH_FOR_OBJECTS_KEY, preinfo);
+        // disable_depth_for_objects
+
+        for (auto &key : enable_depth_for_objs_json.getMemberNames())
+        {
+            bool enable = enable_depth_for_objs_json[key].asBool();
+            std::string name = key;
+            disable_depth_for_objects[name] = enable;
+        }
+    }
 }
 #endif

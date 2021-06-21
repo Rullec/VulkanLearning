@@ -1,5 +1,6 @@
 {
-    "scene_type" : "sim", "cloth_type": "pbd",
+    "scene_type": "sim",
+    "cloth_type": "pbd",
     "cloth_size": 1,
     "cloth_mass": 1,
     "cloth_init_pos": [
@@ -16,6 +17,7 @@
     "window_width": 800,
     "enable_draw": true,
     "enable_obstacle": false,
+    "enable_only_exporting_cutted_window": true,
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",

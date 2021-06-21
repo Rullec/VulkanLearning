@@ -61,8 +61,12 @@
         "camera_orientation_noise": 0.05,
         "camera_noise_samples": 1,
         "num_of_cloth_views": 4,
-        "enable_object_specified_noise": true,
-        "object_specified_noise_info": []
+        "disable_depth_for_objects": {
+            "cyliner": true,
+            "rotating_table": true,
+            "ground": true,
+            "back_wall": true
+        }
     },
     "export_image_format": ".png",
     "ground_png_path": "data/grid0.png"

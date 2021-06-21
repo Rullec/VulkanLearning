@@ -53,8 +53,6 @@ protected:
         CASTING_WIDTH_RANGE_KEY = "casting_width_range",
         CASTING_HEIGHT_RANGE_KEY = "casting_height_range",
         NUM_OF_CLOTH_VIEWS_KEY = "num_of_cloth_views",
-        ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY =
-            "enable_only_exporting_cutted_window",
         NUM_OF_INIT_ROTATION_ANGLE_KEY = "num_of_init_rotation_angle",
         UPSAMPLING_KEY = "upsampling";
 
@@ -78,8 +76,8 @@ protected:
     std::string mRawDataDir;       // raw simulation data dir
     std::string mGenDataDir;       // gen new data dir
     bool mEnableClothGeometry;     // add cloth geometry into the raycast scene
-    bool mEnableOnlyExportingCuttedWindow; // only export the cutted window to
-                                           // png file
+    // bool mEnableOnlyExportingCuttedWindow; // only export the cutted window to
+    //                                        // png file
 
     int mWidth, mHeight;
     tVector mCameraPos, mCameraCenter,
@@ -102,7 +100,7 @@ protected:
     void MultiViewTest();
     void GenerateCameraViews();
     void InitObstacle(const Json::Value &conf);
-    virtual void InitRaycaster() override;
+    virtual void InitRaycaster(const Json::Value & conf) override;
     void CalcDepthMapLoop();
     void CalcDepthMapNoCloth();
     static void ValidateOutputDir(std::string dir);

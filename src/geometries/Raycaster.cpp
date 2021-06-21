@@ -1,4 +1,5 @@
 #include "Raycaster.h"
+#include "utils/JsonUtil.h"
 #include "utils/LogUtil.h"
 #include <iostream>
 
@@ -10,15 +11,19 @@ cRaycaster::tRaycastResult::tRaycastResult()
         tVector::Ones() * std::numeric_limits<double>::quiet_NaN();
 }
 
-cRaycaster::cRaycaster(bool enable_only_export_cutted_window)
-    : mEnableOnlyExportCuttedWindow(enable_only_export_cutted_window)
+cRaycaster::cRaycaster()
 {
+    // mEnableOnlyExportCuttedWindow = false;
     mTriangleArray_lst.clear();
     mVertexArray_lst.clear();
     // SIM_INFO("Build raycaster succ");
     // SIM_ASSERT(triangles != nullptr);
 }
 
+void cRaycaster::Init(const Json::Value &conf)
+{
+    
+}
 // void cRaycaster::AddResources(const std::vector<tTriangle *> triangles,
 //                               const std::vector<tVertex *> vertices)
 // {

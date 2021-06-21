@@ -42,8 +42,6 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
             .segment(0, 2)
             .transpose()
             .cast<int>();
-    mEnableOnlyExportingCuttedWindow =
-        cJsonUtil::ParseAsBool(ENABLE_ONLY_EXPORTING_CUTTED_WINDOW_KEY, root);
     mCameraCenter = cJsonUtil::ReadVectorJson(
                         cJsonUtil::ParseAsValue(
                             cProcessTrainDataScene::CAMERA_CENTER_KEY, root))
@@ -77,6 +75,7 @@ void cProcessTrainDataScene::Init(const std::string &conf_path)
     GenerateCameraViews();
 
     InitDrawBuffer();
+    InitRaycaster(root);
     UpdateRenderingResource();
     ValidateOutputDir(mGenDataDir);
 }
@@ -260,14 +259,14 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
  */
 #include "geometries/OptixRaycaster.h"
 #include "sim/KinematicBody.h"
-void cProcessTrainDataScene::InitRaycaster()
+void cProcessTrainDataScene::InitRaycaster(const Json::Value &conf)
 {
 #ifdef USE_OPTIX
-    mRaycaster =
-        std::make_shared<cOptixRaycaster>(mEnableOnlyExportingCuttedWindow);
+    mRaycaster = std::make_shared<cOptixRaycaster>();
 #else
-    mRaycaster = std::make_shared<cRaycaster>(mEnableOnlyExportingCuttedWindow);
+    mRaycaster = std::make_shared<cRaycaster>();
 #endif
+    mRaycaster->Init(conf);
     if (mEnableClothGeometry == true)
     {
         mRaycaster->AddResources(this->mCloth);
@@ -437,7 +436,10 @@ void cProcessTrainDataScene::Update(double dt)
 {
     if (mRaycaster == nullptr)
     {
-        InitRaycaster();
+        SIM_ERROR(
+            "process train data scene update failed, there is no raycaster");
+        // InitRaycaster();
+        exit(1);
     }
 
     if (mEnableClothGeometry == true)
@@ -527,7 +529,6 @@ tVectorXf cProcessTrainDataScene::CalcEmptyDepthImage(const tVector &cam_pos,
 {
     // 1. create cloth geometry
     mEnableClothGeometry = false;
-    InitRaycaster();
 
     // 2. begin to create camera views
     mCameraPos = cam_pos;
@@ -586,7 +587,9 @@ std::string cProcessTrainDataScene::GetImageSuffix(eImageType type)
 }
 bool cProcessTrainDataScene::GetEnableOnlyExportingCuttedWindow() const
 {
-    return mEnableOnlyExportingCuttedWindow;
+    return std::dynamic_pointer_cast<cOptixRaycaster>(mRaycaster)
+        ->GetEnableOnlyExportingCuttedWindow();
+    // return this->RayCastScene-> GetEnableOnlyExportingCuttedWindow();
 }
 
 Eigen::Matrix2i cProcessTrainDataScene::GetCuttedWindow() const

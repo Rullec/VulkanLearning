@@ -5,7 +5,8 @@
 std::string gBodyShapeStr[eKinematicBodyShape::NUM_OF_KINEMATIC_SHAPE] = {
     "plane", "cube", "sphere", "capsule", "custom"};
 
-cKinematicBody::cKinematicBody(int id_) : cBaseObject(eObjectType::KINEMATICBODY_TYPE, id_)
+cKinematicBody::cKinematicBody(int id_)
+    : cBaseObject(eObjectType::KINEMATICBODY_TYPE, id_)
 {
     mIsStatic = true;
     mBodyShape = eKinematicBodyShape::KINEMATIC_INVALID;
@@ -17,7 +18,7 @@ cKinematicBody::cKinematicBody(int id_) : cBaseObject(eObjectType::KINEMATICBODY
 cKinematicBody::~cKinematicBody() {}
 void cKinematicBody::Init(const Json::Value &value)
 {
-
+    cBaseObject::Init(value);
     std::string type =
         cJsonUtil::ParseAsString(cKinematicBody::TYPE_KEY, value);
     mBodyShape = BuildKinematicBodyShape(type);

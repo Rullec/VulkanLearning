@@ -41,10 +41,8 @@ enum
 // one group of them to set up the SBT)
 //------------------------------------------------------------------------------
 
-// tVector3f randomColor(int i)
-// {
+#include <curand_kernel.h>
 
-// }
 extern "C" __global__ void __closesthit__radiance()
 {
     const int primID = optixGetPrimitiveIndex();
@@ -98,10 +96,21 @@ extern "C" __global__ void __closesthit__radiance()
             }
             obj_id--;
         }
+        {
+            // int pixel_id = ix * height + iy;
 
-        int pixel_id = ix * height + iy;
-        float rand = optixLaunchParams.random_num_range01[pixel_id % OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER];
-        real_depth = float(obj_id) * 0.2 + 0.1 + rand / 5;  // 0m - 1.1m
+            // curandState local_state;
+            // curand_init(optixLaunchParams.random_seed + pixel_id, 0, 0, & local_state);
+            // float noise01 = curand_uniform(&local_state);
+        }
+        {
+            if( true ==  optixLaunchParams.disable_raycast_for_objects(obj_id / 4 , obj_id %4))
+            {
+                real_depth = 0;
+            }
+        }
+        // float rand = optixLaunchParams.random_num_range01[pixel_id % OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER];
+        // real_depth += noise01 * 0.2;  // 0m - 1.1m
     }
     uint32_t t = *(reinterpret_cast<uint32_t *>(&real_depth));
     // uint32_t t = primID;
