@@ -227,6 +227,8 @@ void cLinctexScene::Init(const std::string &path)
     auto ptr = mSeScene->GetSimulationParameters();
     ptr->SetGravity(gGravity[1]);
     mEngineStart = false;
+    SaveCurrentScene();
+    exit(1);
 }
 
 void cLinctexScene::CreateCloth(const Json::Value &conf)

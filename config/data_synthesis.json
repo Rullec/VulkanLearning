@@ -89,7 +89,7 @@
         "min_fold_num": 3,
         "max_fold_num": 6
     },
-    "convergence_threshold": 0.001,
+    "convergence_threshold": 0.0001,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,

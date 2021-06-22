@@ -5,6 +5,7 @@ endif()
 
 add_library(
     geo_lib
+    ObjExport.cpp
     ${embedded_ptx_code}
     Primitives.cpp
     Triangulator.cpp

@@ -90,7 +90,8 @@ protected:
     virtual void InitRaycaster(const Json::Value & conf);
 
     void ClearForce(); // clear all forces
-
+    void SaveCurrentScene();
+    
     virtual void CalcTriangleDrawBuffer(); //
     virtual void CalcEdgesDrawBuffer();    //
     void GetVertexRenderingData();

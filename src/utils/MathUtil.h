@@ -424,7 +424,6 @@ public:
     static tVector CalcNormalFromPlane(const tVector &plane_equation);
     static double EvaluatePlane(const tVector &plane, const tVector &point);
     static tVector SampleFromPlane(const tVector &plane_equation);
-
 private:
     static cRand gRand;
 

@@ -86,6 +86,24 @@ void cSimScene::CreateCloth(const Json::Value &conf)
 
 void cSimScene::PauseSim() { mPauseSim = !mPauseSim; }
 
+/**
+ * \breif       save current scene (obstacles and clothes to objes)
+ */
+#include "geometries/ObjExport.h"
+void cSimScene::SaveCurrentScene()
+{
+    if (mCloth)
+    {
+        cObjExporter::ExportObj("cloth.obj", mCloth->GetVertexArray(),
+                                mCloth->GetTriangleArray(), true);
+    }
+    for (auto &x : mObstacleList)
+    {
+        cObjExporter::ExportObj(x->GetObjName() + ".obj", x->GetVertexArray(),
+                                x->GetTriangleArray());
+    }
+}
+
 void cSimScene::InitDrawBuffer()
 {
     // 2. build arrays
@@ -354,6 +372,10 @@ void cSimScene::Key(int key, int scancode, int action, int mods)
     if (key == GLFW_KEY_I && action == GLFW_PRESS)
     {
         PauseSim();
+    }
+    else if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    {
+        SaveCurrentScene();
     }
 }
 

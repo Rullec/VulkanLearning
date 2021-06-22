@@ -26,11 +26,12 @@
     "damping": 1e-3,
     "default_timestep": 1e-4,
     "cloth_property": {
-        "stretch_warp": 1e4,
-        "stretch_weft": 1e4,
-        "bending_warp": 5e3,
-        "bending_weft": 5e3,
-        "bending_bias": 5e2
+        "stretch_warp": 1e5,
+        "stretch_weft": 1e5,
+        "stretch_bias": 1e5,
+        "bending_warp": 2e3,
+        "bending_weft": 2e3,
+        "bending_bias": 2e3
     },
     "constraints": {
         "fixed_point.bak": [

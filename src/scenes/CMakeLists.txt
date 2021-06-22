@@ -46,9 +46,6 @@ if(WIN32)
         target_link_libraries(process_data_scene PRIVATE sim_scenes_lib scenes_lib Simulation)
     endif()
 
-    
-
-
     move_pybind11_release_to_dir(${DLL_OUTPUT_DIR} process_data_scene)
 
 endif()
