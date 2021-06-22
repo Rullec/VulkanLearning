@@ -81,9 +81,9 @@ torch.manual_seed(0)
 device = torch.device("cuda", 0)
 # device = torch.device("cpu", 0)
 
-affine = RandomAffine(degrees=(-5, 5), translate = (0.05, 0.05), scale = (1, 1), shear = None)
+affine = RandomAffine(degrees=(-5, 5), translate = (0.07, 0.07), scale = (0.9, 1.1), shear = None)
 blur = GaussianBlur(kernel_size=3)
-noise_gaussian_std = 0.02
+noise_gaussian_std = 0.04
 
 def aug_torch(all_imgs):
     global noise_gaussian_std

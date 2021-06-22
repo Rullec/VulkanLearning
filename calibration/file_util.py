@@ -45,3 +45,9 @@ def load_pkl(path):
 
 def convert_nparray_to_json(value):
     return json.dumps(np.squeeze(value).tolist())
+
+
+def get_basename(fullname):
+    filename = os.path.split(fullname)[-1]
+    basename = filename[:filename.find(".")]
+    return basename

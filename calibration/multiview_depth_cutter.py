@@ -28,7 +28,9 @@ if __name__ == "__main__":
             cur_multiview[__idx] = cut_depth_image_by_given_window(
                 scene, cur_view)
         # save current pkl
-        name = f"{target_dir}/{_idx}.pkl"
+        filename = os.path.split(files[_idx])[-1]
+        filename = filename[:filename.find(".")]
+        name = f"{target_dir}/{filename}-cutted.pkl"
         save_pkl(name, cur_multiview)
         print(f"current save pkl to {name}")
 

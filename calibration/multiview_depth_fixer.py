@@ -1,4 +1,4 @@
-from file_util import load_pkl, save_pkl, not_clear_and_create_dir
+from file_util import load_pkl, save_pkl, not_clear_and_create_dir, get_basename
 from drawer_util import DynaPlotter, calculate_subplot_size
 import os
 from copy import deepcopy
@@ -50,9 +50,8 @@ if __name__ == "__main__":
     not_clear_and_create_dir(export_dir)
 
     assert os.path.exists(origin_dir) == True
-    images = [
-        load_pkl(os.path.join(origin_dir, i)) for i in os.listdir(origin_dir)
-    ]
+    filenames = os.listdir(origin_dir)
+    images = [load_pkl(os.path.join(origin_dir, i)) for i in filenames]
     iters = 0
     for _group_idx, cur_pkl_lst in enumerate(images):
         new_img_lst = []
@@ -60,7 +59,7 @@ if __name__ == "__main__":
         plotter = DynaPlotter(
             rows,
             cols,
-            supress_title="run median filter",
+            window_title="run median filter",
             iterative_mode=False,
         )
         for _idx, cur_image in enumerate(cur_pkl_lst):
@@ -69,7 +68,9 @@ if __name__ == "__main__":
             plotter.add(cur_image, f"{_group_idx}-{_idx} raw")
             plotter.add(new_image, f"{_group_idx}-{_idx} fixed")
             plotter.add(new_image - cur_image, f"{_group_idx}-{_idx} diff")
+        basename = get_basename(filenames[_group_idx])
+        plotter.set_supresstitle(basename)
         plotter.show()
-        output_name = f"{export_dir}/{_group_idx}.pkl"
+        output_name = f"{export_dir}/{basename}-fixed.pkl"
         save_pkl(output_name, new_img_lst)
         print(f"save pkl into {output_name}")

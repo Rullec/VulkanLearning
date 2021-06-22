@@ -24,11 +24,11 @@ def load_image_data(data_dir):
 
 def compare_result(train_data, real_data):
     plotter = DynaPlotter(1, 3, iterative_mode=False)
-    enable_train = train_data[0] > 130
-    enable_real = real_data[0] > 130
-    enable_mask = np.logical_and(enable_train, enable_real)
+    # enable_train = train_data[0] > 130
+    # enable_real = real_data[0] > 130
+    # enable_mask = np.logical_and(enable_train, enable_real)
     diff = train_data[0] - real_data[0]
-    diff[enable_mask == False] = 0
+    # diff[enable_mask == False] = 0
     plotter.add(train_data[0], f"train data")
     plotter.add(real_data[0], f"real data")
     plotter.add(diff, f"diff")
@@ -44,7 +44,7 @@ def compare_result(train_data, real_data):
 
 if __name__ == "__main__":
     # 1. load the image data
-    data_dir = "fixed_cutted_dir.log"
+    data_dir = "no_background_dir.log"
     img_lst = load_image_data(data_dir)
 
     # 2. begin to build network, load the agent, load the mean and standard
@@ -65,7 +65,8 @@ if __name__ == "__main__":
     train_input_example = output_X[0]
     train_input_example = train_input_example * input_std + input_mean
 
-    data_input = np.expand_dims(img_lst[0], axis=0)
+    data_input = np.expand_dims(img_lst[0][0], axis=0)
+    data_input = np.expand_dims(data_input, axis=0)
     train_input_example = np.expand_dims(train_input_example, axis=0)
     # print(data_input.shape)
     # exit()

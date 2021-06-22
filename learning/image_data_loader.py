@@ -1,4 +1,6 @@
-from ntpath import join
+import time
+
+from torchvision import transforms
 from data_loader import DataLoader
 import os
 from PIL import Image
@@ -97,20 +99,41 @@ class ImageDataLoader(DataLoader):
         # self.noise_gaussian_std = 0
 
         ######### bigger noise test： succ
-        self.affine = RandomAffine(degrees=(-5, 5), translate = (0.05, 0.05), scale = (1, 1), shear = None)
+        self.affine = RandomAffine(degrees=(-5, 5),
+                                   translate=(0.07, 0.07),
+                                   scale=(0.9, 1.1),
+                                   shear=None)
         self.blur = GaussianBlur(kernel_size=3)
-        self.noise_gaussian_std = 0.02
+        self.data_transform_affine_blur = transforms.Compose(
+            [self.affine,
+            self.blur]
+        )
+        self.noise_gaussian_std = 0.04
 
     def aug_torch(self, all_imgs):
+        # aug_st = time.time()
         torch_all_imgs = torch.from_numpy(np.array(all_imgs))
+        # aug_convert = time.time()
+        # print(f"aug input convert cost {aug_convert - aug_st} s")
         # height, width = all_imgs[0].shape[1], all_imgs[0].shape[2]
 
-        torch_all_imgs = self.affine(torch_all_imgs)
-        torch_all_imgs = self.blur(torch_all_imgs)
+        # torch_all_imgs = self.affine(torch_all_imgs)
+        # torch_all_imgs = self.blur(torch_all_imgs)
+        torch_all_imgs = self.data_transform_affine_blur(torch_all_imgs)
+        # aug_trans = time.time()
+        # print(f"aug trans cost {aug_trans - aug_convert} s")
 
         noise = torch.randn_like(torch_all_imgs[0]) * self.noise_gaussian_std
-        torch_all_imgs += noise 
-        return np.array(torch_all_imgs)
+        # aug_noise = time.time()
+        # print(f"aug rand noise cost {aug_noise - aug_trans} s")
+
+        torch_all_imgs += noise
+        # aug_addnoise = time.time()
+        # print(f"aug add noise cost {aug_addnoise - aug_noise} s")
+        ret = np.array(torch_all_imgs)
+        # aug_copy = time.time()
+        # print(f"aug ret copy cost {aug_copy - aug_addnoise} s")
+        return ret
 
     def _init_vars(self):
         '''
@@ -335,14 +358,20 @@ class ImageDataLoader(DataLoader):
             # exit()
 
     def get_train_data(self):
+
         st = 0
         while st < len(self.train_X):
+
+            # st_time = time.time()
             incre = min(st + self.batch_size, len(self.train_X)) - st
             if incre <= 0:
                 break
             output_X, output_Y = self.train_X[st:st +
                                               incre], self.train_Y[st:st +
                                                                    incre]
+            # ed_time = time.time()
+            # print(f"get output_X from train X list cost {ed_time - st_time} s")
+
             # import pickle
             # with open("img.pkl", 'wb') as f:
             #     pickle.dump(output_X, f)
@@ -350,13 +379,22 @@ class ImageDataLoader(DataLoader):
             #     exit()
             if self.enable_data_augment == True:
                 # print("image channels reordering augmentation")
+                # ed_time1 = time.time()
                 for id in range(len(output_X)):
-                    # print(output_X[id].shape)
-                    rand = np.random.randint(0, output_X[id].shape[0] - 1)
-                    output_X[id] = np.roll(output_X[id], rand, axis=0)
-                
+                    # re permutate the view channels
+                    low = 0
+                    high = output_X[id].shape[0] - 1
+                    if low < high:
+                        rand = np.random.randint(0, high)
+                        output_X[id] = np.roll(output_X[id], rand, axis=0)
+                # ed_time = time.time()
+                # print(
+                #     f"rearrange the view channels cost {ed_time - ed_time1} s")
                 # begin to apply screen space data aug
+
                 output_X = self.aug_torch(output_X)
+                # ed_time1 = time.time()
+
                 # exit()
                 # assert len(output_X[0].shape) == 1
                 # size = output_X[0].shape[0]

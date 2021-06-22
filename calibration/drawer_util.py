@@ -13,7 +13,7 @@ class DynaPlotter:
     def __init__(self,
                  rows,
                  cols,
-                 supress_title="supress_title_test",
+                 window_title="window_title",
                  iterative_mode=True):
         '''
         constructor for plotter
@@ -21,7 +21,7 @@ class DynaPlotter:
         self.rows = rows
         self.cols = cols
         self.iter = 0
-        self.supress_title = supress_title
+        self.window_title = window_title
         self.is_end = False
         self.keyboard_callback = None
         self.iterative_mode = iterative_mode
@@ -58,7 +58,7 @@ class DynaPlotter:
             plt.ion()
         else:
             plt.ioff()
-        self.fig = plt.figure(self.supress_title)
+        self.fig = plt.figure(self.window_title)
 
         self._clear()
 

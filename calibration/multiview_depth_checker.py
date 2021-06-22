@@ -5,7 +5,7 @@ from file_util import load_pkl
 from drawer_util import DynaPlotter
 
 if __name__ == "__main__":
-    # output_dir = "cutted_dir.log"
+    # output_dir = "current_dir.log"
     output_dir = "cutted_dir.log"
     files = [os.path.join(output_dir, i) for i in os.listdir(output_dir)]
 
@@ -14,6 +14,7 @@ if __name__ == "__main__":
 
     for _idx, depth_image in enumerate(depth_image_lst):
         ploter = DynaPlotter(1, len(depth_image), iterative_mode=False)
+        ploter.set_supresstitle(files[_idx].split()[-1])
         for j in depth_image:
-            ploter.add(j)
+            ploter.add(j, f"view {_idx}")
         ploter.show()
