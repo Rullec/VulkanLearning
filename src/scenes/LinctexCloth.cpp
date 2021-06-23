@@ -14,7 +14,10 @@
 #include <iostream>
 SE_USING_NAMESPACE
 
-cLinctexCloth ::cLinctexCloth(int id_) : cBaseCloth(eClothType::LINCTEX_CLOTH, id_) {}
+cLinctexCloth ::cLinctexCloth(int id_)
+    : cBaseCloth(eClothType::LINCTEX_CLOTH, id_)
+{
+}
 cLinctexCloth ::~cLinctexCloth() {}
 void cLinctexCloth ::Init(const Json::Value &conf)
 {
@@ -147,11 +150,21 @@ void cLinctexCloth::SetSimProperty(const tPhyPropertyPtr &prop)
 {
     mClothProp = prop;
     auto phyProp = mSeCloth->GetPhysicalProperties();
-    phyProp->SetStretchWarp(mClothProp->mStretchWarp);
-    phyProp->SetStretchWeft(mClothProp->mStretchWeft);
-    phyProp->SetBendingWarp(mClothProp->mBendingWarp);
-    phyProp->SetBendingWeft(mClothProp->mBendingWeft);
-    phyProp->SetBendingBias(mClothProp->mBendingBias);
+
+    // SIM_ERROR("cannot be set directly");
+    // exit(0);
+    phyProp->SetStretchWarp(
+        tPhyProperty::ConvertStretchCoefFromGUIToSim(mClothProp->mStretchWarp));
+    phyProp->SetStretchWeft(
+        tPhyProperty::ConvertStretchCoefFromGUIToSim(mClothProp->mStretchWeft));
+    phyProp->SetShearing(
+        tPhyProperty::ConvertStretchCoefFromGUIToSim(mClothProp->mStretchBias));
+    phyProp->SetBendingWarp(
+        tPhyProperty::ConvertBendingCoefFromGUIToSim(mClothProp->mBendingWarp));
+    phyProp->SetBendingWeft(
+        tPhyProperty::ConvertBendingCoefFromGUIToSim(mClothProp->mBendingWeft));
+    phyProp->SetBendingBias(
+        tPhyProperty::ConvertBendingCoefFromGUIToSim(mClothProp->mBendingBias));
 }
 
 tPhyPropertyPtr cLinctexCloth::GetSimProperty() const { return mClothProp; }

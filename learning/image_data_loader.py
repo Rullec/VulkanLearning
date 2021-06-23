@@ -1,5 +1,4 @@
 import time
-
 from torchvision import transforms
 from data_loader import DataLoader
 import os
@@ -7,7 +6,12 @@ from PIL import Image
 import numpy as np
 import json
 from tqdm import tqdm
-from image_data_loader_dist import get_subdirs, get_mesh_data
+import sys
+
+sys.path.append("../calibration")
+from file_util import get_subdirs
+from drawer_util import DynaPlotter
+from image_data_loader_dist import get_mesh_data
 import torch
 from torchvision.transforms import RandomAffine, GaussianBlur
 
@@ -101,13 +105,11 @@ class ImageDataLoader(DataLoader):
         ######### bigger noise test： succ
         self.affine = RandomAffine(degrees=(-5, 5),
                                    translate=(0.07, 0.07),
-                                   scale=(0.9, 1.1),
+                                   scale=(1.0, 1.0),
                                    shear=None)
         self.blur = GaussianBlur(kernel_size=3)
         self.data_transform_affine_blur = transforms.Compose(
-            [self.affine,
-            self.blur]
-        )
+            [self.affine, self.blur])
         self.noise_gaussian_std = 0.04
 
     def aug_torch(self, all_imgs):
@@ -275,6 +277,7 @@ class ImageDataLoader(DataLoader):
             for i in tqdm(range(len(X_lst))):
                 # for i in range(len(X_lst)):
                 for property_all_data_id in range(len(X_lst[i])):
+                    # plot.add(X_lst[i][property_all_data_id][0], "old data")
                     # single_point_shape = X_lst[i][property_all_data_id].shape
                     # print(single_point_shape)
                     # exit()
@@ -286,6 +289,10 @@ class ImageDataLoader(DataLoader):
                     Y_lst[i][property_all_data_id] = (
                         (Y_lst[i][property_all_data_id] - self.output_mean) /
                         self.output_std).astype(np.float32)
+                    # plot.add(X_lst[i][property_all_data_id][0], "new data")
+                    # plot.add((X_lst[i][property_all_data_id] * self.input_std +
+                    #           self.input_mean)[0], "restored data")
+                    # plot.show()
                     # print(X_lst[i][property_all_data_id].shape)
                     # print(self.input_mean.shape)
 
@@ -307,12 +314,26 @@ class ImageDataLoader(DataLoader):
             # self.train_X = np.expand_dims(list(itemgetter(*train_id)(X_lst)),
             #                               axis=1)
             # self.train_Y = list(itemgetter(*train_id)(Y_lst))
-
-            self.test_X = list(itemgetter(*test_id)(X_lst))
-            self.test_Y = list(itemgetter(*test_id)(Y_lst))
-            self.train_X = list(itemgetter(*train_id)(X_lst))
-            self.train_Y = list(itemgetter(*train_id)(Y_lst))
-
+            # exit()
+            # print(f"X_lst[0] type {type(X_lst[0])}")
+            # print(f"X_lst[0][0] type {type(X_lst[0][0])}")
+            # print(f"train id {train_id}")
+            # print(f"test id {test_id}")
+            if len(train_id) == 1:
+                self.train_X = [list(itemgetter(*train_id)(X_lst))]
+                self.train_Y = [list(itemgetter(*train_id)(Y_lst))]
+            else:
+                self.train_X = list(itemgetter(*train_id)(X_lst))
+                self.train_Y = list(itemgetter(*train_id)(Y_lst))
+            if len(test_id) == 1:
+                self.test_X = [list(itemgetter(*test_id)(X_lst))]
+                self.test_Y = [list(itemgetter(*test_id)(Y_lst))]
+            else:
+                self.test_X = list(itemgetter(*test_id)(X_lst))
+                self.test_Y = list(itemgetter(*test_id)(Y_lst))
+            # print(f"self.train_X[0] type {type(self.train_X[0])}")
+            # exit()
+            # print(f"self.train_X[0] shape {(self.train_X[0]).shape}")
             # print(len(self.test_X))
             # print(type(self.test_X))
             # print(len(self.test_X[0]))
@@ -378,8 +399,6 @@ class ImageDataLoader(DataLoader):
             #     print("dump done")
             #     exit()
             if self.enable_data_augment == True:
-                # print("image channels reordering augmentation")
-                # ed_time1 = time.time()
                 for id in range(len(output_X)):
                     # re permutate the view channels
                     low = 0
@@ -387,25 +406,22 @@ class ImageDataLoader(DataLoader):
                     if low < high:
                         rand = np.random.randint(0, high)
                         output_X[id] = np.roll(output_X[id], rand, axis=0)
-                # ed_time = time.time()
-                # print(
-                #     f"rearrange the view channels cost {ed_time - ed_time1} s")
-                # begin to apply screen space data aug
-
                 output_X = self.aug_torch(output_X)
-                # ed_time1 = time.time()
-
-                # exit()
-                # assert len(output_X[0].shape) == 1
-                # size = output_X[0].shape[0]
-                # for _idx in range(len(output_X)):
-                #     noise = (np.random.rand(3) - 0.5) / 10  # +-5cm
-                #     noise_all = np.tile(noise, size // 3)
-                #     output_X[_idx] += noise_all
-
-                # print(f"old norm {np.linalg.norm(np.array(output_X))}")
-                # self.apply_noise(output_X)
-                # print(f"new norm {np.linalg.norm(np.array(output_X))}")
-
             yield output_X, output_Y
             st += incre
+
+    def get_validation_data(self):
+
+        st = 0
+        while st < len(self.test_X):
+            incre = min(st + self.batch_size, len(self.test_X)) - st
+            if incre <= 0:
+                break
+            output_X, output_Y = self.test_X[st:st +
+                                             incre], self.test_Y[st:st + incre]
+            yield np.array(output_X), np.array(output_Y)
+            st += incre
+
+    def get_all_data(self):
+        yield np.array(self.train_X + self.test_X), np.array(self.train_Y +
+                                                             self.test_Y)

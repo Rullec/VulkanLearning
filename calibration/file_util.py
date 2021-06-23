@@ -51,3 +51,36 @@ def get_basename(fullname):
     filename = os.path.split(fullname)[-1]
     basename = filename[:filename.find(".")]
     return basename
+
+
+def get_subdirs(root_dir):
+    all_dirs = [
+        os.path.join(root_dir, i) for i in os.listdir(root_dir)
+        if os.path.isdir(os.path.join(root_dir, i))
+    ]
+    all_dirs.sort(key=os.path.getctime)
+    for _idx in range(len(all_dirs)):
+        all_dirs[_idx] = os.path.split(all_dirs[_idx])[-1]
+    return all_dirs
+
+
+def load_json(path):
+    assert os.path.join(path)
+    with open(path) as f:
+        return json.load(f)
+
+
+def save_json(path, cur_dict):
+    with open(path, 'w') as f:
+        json.dump(cur_dict, f)
+
+
+def get_subfiles(root_dir):
+    all_files = [
+        os.path.join(root_dir, i) for i in os.listdir(root_dir)
+        if os.path.isfile(os.path.join(root_dir, i))
+    ]
+    all_files.sort(key=os.path.getctime)
+    for _idx in range(len(all_files)):
+        all_files[_idx] = os.path.split(all_files[_idx])[-1]
+    return all_files

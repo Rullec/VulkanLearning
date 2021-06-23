@@ -227,8 +227,8 @@ void cLinctexScene::Init(const std::string &path)
     auto ptr = mSeScene->GetSimulationParameters();
     ptr->SetGravity(gGravity[1]);
     mEngineStart = false;
-    SaveCurrentScene();
-    exit(1);
+    // SaveCurrentScene();
+    // exit(1);
 }
 
 void cLinctexScene::CreateCloth(const Json::Value &conf)
@@ -447,14 +447,14 @@ void cLinctexScene::CreateObstacle(const Json::Value &conf)
 void cLinctexScene::Key(int key, int scancode, int action, int mods)
 {
     cSimScene::Key(key, scancode, action, mods);
-    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    if (key == GLFW_KEY_W && action == GLFW_PRESS)
     {
         DumpSimulationData(
             GetLinctexCloth()->GetClothFeatureVector(),
             GetLinctexCloth()->GetSimProperty()->BuildFullFeatureVector(),
             // tVector::Zero(),
             // tVector::Zero(),
-            "tmp.json");
+            "linctex_test_data.json");
     }
 }
 

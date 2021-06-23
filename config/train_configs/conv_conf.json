@@ -100,17 +100,17 @@
         }
     ],
     "model_output_dir": "../output/",
-    "model_path": "../output/06-22-09_58_54-0.0023.pkl",
-    "save_model_iters": 10,
+    "model_path": "../output/06-23-14_54_27-0.0010.pkl",
+    "save_model_iters": 3,
     "logging_iters": 1,
     "dropout": 0.0,
-    "mode": "test",
+    "mode": "train",
     "data_loader_config": {
         "batch_size": 64,
         "enable_log_prediction": false,
-        "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\isotropic_200prop_16samples_amp_0.05_gen_1view",
+        "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\isotropic_50prop_16samples_amp_0.05_1view_8rot",
         "train_perc": 0.8,
-        "enable_data_augment": true,
+        "enable_data_augment": false,
         "enable_select_validation_set_inside": true,
         "enable_split_same_rot_image_into_one_set": true
     }

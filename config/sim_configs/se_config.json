@@ -21,17 +21,17 @@
     "cloth_init_nodal_position": "",
     "geometry_type": "regular_triangle",
     "subdivision": 100,
-    "se_sim_platform": "cpu",
+    "se_sim_platform": "cuda",
     "se_enable_collision": true,
     "damping": 1e-3,
     "default_timestep": 1e-4,
     "cloth_property": {
-        "stretch_warp": 1e5,
-        "stretch_weft": 1e5,
-        "stretch_bias": 1e5,
-        "bending_warp": 2e3,
-        "bending_weft": 2e3,
-        "bending_bias": 2e3
+        "stretch_warp": 27,
+        "stretch_weft": 27,
+        "stretch_bias": 27,
+        "bending_warp": 38,
+        "bending_weft": 38,
+        "bending_bias": 38
     },
     "constraints": {
         "fixed_point.bak": [

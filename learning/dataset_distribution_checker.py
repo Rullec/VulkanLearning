@@ -80,13 +80,39 @@ def l2_metric(train_data_lst, label_lst, captured_image):
     print(f"begin to calc pairwise")
     dist_mat = pairwise_distances(train_data_lst)
     size = dist_mat.shape[0]
-    dist_mat[size, :]
+    samples = 60
+    rows, cols = calculate_subplot_size(samples + 3)
+    plot = DynaPlotter(rows, cols, iterative_mode=False)
+    plot.add_histogram(dist_mat[size - 1, :], "captured data")
+    for _idx, i in enumerate(range(0, size - 1, int(size / samples) + 1)):
+        # print(_idx)
+        plot.add_histogram(dist_mat[i, :], f"train data {i}")
+    plot.show()
+
+    capture_feature = dist_mat[dist_mat.shape[0] - 1, :]
+    capture_feature[dist_mat.shape[0] - 1] = np.max(capture_feature)
+    capture_feature_mean = np.mean(capture_feature)
+    capture_feature_min = np.min(capture_feature)
+    capture_feature_max = np.max(capture_feature)
+    capture_feature_std = np.std(capture_feature)
+    print(f"captured mean {capture_feature_mean}, std {capture_feature_std}, min {capture_feature_min} max {capture_feature_max}")
+
+    for _idx, i in enumerate(range(0, size - 1, int(size / 10) + 1)):
+        train_dist = dist_mat[i, :]
+        train_dist[i] = np.mean(train_dist)
+        train_dist[-1] = np.mean(train_dist)
+        train_dist_mean = np.mean(train_dist)
+        train_dist_min = np.min(train_dist)
+        train_dist_max = np.max(train_dist)
+        train_dist_std = np.std(train_dist)
+        print(f"train data mean {train_dist_mean}, std {train_dist_std}, min {train_dist_min} max {train_dist_max}")
     print(f"end to calc pairwise, dist_mat shape {dist_mat.shape}")
 
 
 if __name__ == "__main__":
     # 1. set the config
     dataset_path = "D:\\SimpleClothSimulator\\data\\export_data\\1view_smallset\\train_data_1tenth.pkl"
+    # dataset_path = "D:\\SimpleClothSimulator\\data\\export_data\\1view_smallset\\train_data.pkl"
     captured_image_path = "D:\\SimpleClothSimulator\\calibration\\no_background_dir.log\\20cm的-cutted-fixed-masked.pkl"
 
     # metric = "eye"

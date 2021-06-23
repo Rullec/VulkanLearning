@@ -25,24 +25,32 @@
         "properties": {
             "stretch_warp": {
                 "range": [
-                    1e5,
-                    1e5
+                    27,
+                    27
                 ],
                 "num_of_samples": 1,
                 "visible": false
             },
             "stretch_weft": {
                 "range": [
-                    1e5,
-                    1e5
+                    27,
+                    27
+                ],
+                "num_of_samples": 1,
+                "visible": false
+            },
+            "stretch_bias": {
+                "range": [
+                    27,
+                    27
                 ],
                 "num_of_samples": 1,
                 "visible": false
             },
             "bending_warp": {
                 "range": [
-                    5e2,
-                    5e3
+                    38,
+                    38
                 ],
                 "num_of_samples": 1,
                 "visible": true,
@@ -50,8 +58,8 @@
             },
             "bending_weft": {
                 "range": [
-                    5e2,
-                    5e3
+                    38,
+                    38
                 ],
                 "num_of_samples": 1,
                 "visible": true,
@@ -59,8 +67,8 @@
             },
             "bending_bias": {
                 "range": [
-                    1e3,
-                    5e3
+                    0,
+                    50
                 ],
                 "num_of_samples": 100,
                 "visible": true,
@@ -78,7 +86,7 @@
                 "stretch_weft"
             ]
         ],
-        "enable_external_property_samples": true,
+        "enable_external_property_samples": false,
         "external_property_samples_path": "./config/train_configs/isotropic_properties_sample_200.json"
     },
     "noise": {
@@ -89,9 +97,9 @@
         "min_fold_num": 3,
         "max_fold_num": 6
     },
-    "convergence_threshold": 0.0001,
+    "convergence_threshold": 0.001,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "isotropic_200prop_16samples_amp_0.05"
+    "export_data_dir": "percent_tag_0to50"
 }

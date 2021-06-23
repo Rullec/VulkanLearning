@@ -5,7 +5,9 @@ from PIL import Image
 import numpy as np
 import json
 from tqdm import tqdm
-
+import sys
+sys.path.append("../calibration")
+from file_util import get_subdirs
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader as torchDataLoader
 
@@ -42,15 +44,6 @@ def load_single_data(png_files, feature_path, enable_log_pred):
     return img_lst, feature
 
 
-def get_subdirs(root_dir):
-    all_dirs = [
-        os.path.join(root_dir, i) for i in os.listdir(root_dir)
-        if os.path.isdir(os.path.join(root_dir, i))
-    ]
-    all_dirs.sort(key=os.path.getctime)
-    for _idx in range(len(all_dirs)):
-        all_dirs[_idx] = os.path.split(all_dirs[_idx])[-1]
-    return all_dirs
 
 
 class MeshData:

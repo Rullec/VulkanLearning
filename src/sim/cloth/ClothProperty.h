@@ -9,15 +9,16 @@ struct tPhyProperty
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     double mStretchWarp;
     double mStretchWeft;
+    double mStretchBias;
     double mBendingWarp;
     double mBendingWeft;
     double mBendingBias;
 
-    inline static const int mNumOfProperties = 5;
+    inline static const int mNumOfProperties = 6;
     inline static const std::string
         mPropertiesName[tPhyProperty::mNumOfProperties] = {
-            "stretch_warp", "stretch_weft", "bending_warp", "bending_weft",
-            "bending_bias"};
+            "stretch_warp", "stretch_weft", "stretch_bias",
+            "bending_warp", "bending_weft", "bending_bias"};
 
     virtual void Init(const Json::Value &conf); // normal init
     virtual tVectorXd BuildFullFeatureVector() const;
@@ -25,6 +26,10 @@ struct tPhyProperty
     virtual void ReadFeatureVector(const tVectorXd &vec);
     static int GetFeatureIdx(std::string name);
     double GetFeature(std::string name) const;
+    static float ConvertBendingCoefFromGUIToSim(float gui_value);
+    static float ConvertBendingCoefFromSimToGUI(float sim_value);
+    static float ConvertStretchCoefFromGUIToSim(float gui_value);
+    static float ConvertStretchCoefFromSimToGUI(float sim_value);
 };
 
 struct tBatchProperty : public tPhyProperty

@@ -75,6 +75,11 @@ class DynaPlotter:
         ax.imshow(image)
         ax.title.set_text(title)
 
+    def add_histogram(self, value, title = "helo_hist"):
+        self.iter += 1
+        ax = self.fig.add_subplot(self.rows, self.cols, self.iter)
+        ax.hist(value)
+        ax.title.set_text(title)
     def show(self, dt=3e-2):
         if self.iterative_mode == True:
             plt.pause(dt)

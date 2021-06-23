@@ -158,9 +158,11 @@ class DataLoader():
                 from tqdm import tqdm
                 X_lst, Y_lst = [], []
                 if os.path.exists(self.data_dir) == True:
-                    
-                    for f in tqdm(os.listdir(self.data_dir),
-                                  f"Loading data from {os.path.split(self.data_dir)[-1]}"):
+
+                    for f in tqdm(
+                            os.listdir(self.data_dir),
+                            f"Loading data from {os.path.split(self.data_dir)[-1]}"
+                    ):
                         # if f[-4:] == "json":
                         tar_f = os.path.join(self.data_dir, f)
                         X, Y = DataLoader._load_single_data(
@@ -309,3 +311,45 @@ class DataLoader():
 
     def shuffle(self):
         self.__shuffle_train_data()
+
+    @staticmethod
+    def unnormalize(data, mean, std):
+        assert data.shape == mean.shape
+        assert data.shape == std.shape
+        return data * std + mean
+
+    def unnormalize_input_data(self, raw_data):
+        # for a list of data
+        if (type(raw_data) is list) or (raw_data.shape[1:]
+                                        == self.input_mean.shape):
+            if type(raw_data) is list:
+                num_of_items = len(raw_data)
+            else:
+                num_of_items = raw_data.shape[0]
+            for _idx in range(num_of_items):
+                raw_data[_idx] = DataLoader.unnormalize(
+                    raw_data[_idx], self.input_mean, self.input_std)
+        else:
+            assert type(raw_data) == np.ndarray
+            if raw_data.shape == self.input_mean.shape:
+                raw_data = DataLoader.unnormalize(raw_data, self.input_mean,
+                                                  self.input_std)
+        return raw_data
+
+    def unnormalize_output_data(self, raw_data):
+        # for a list of data
+        if (type(raw_data) is list) or (raw_data.shape[1:]
+                                        == self.output_mean.shape):
+            if type(raw_data) is list:
+                num_of_items = len(raw_data)
+            else:
+                num_of_items = raw_data.shape[0]
+            for _idx in range(num_of_items):
+                raw_data[_idx] = DataLoader.unnormalize(
+                    raw_data[_idx], self.output_mean, self.output_std)
+        else:
+            assert type(raw_data) == np.ndarray
+            if raw_data.shape == self.output_mean.shape:
+                raw_data = DataLoader.unnormalize(raw_data, self.output_mean,
+                                                  self.output_std)
+        return raw_data
