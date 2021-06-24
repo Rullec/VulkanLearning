@@ -17,8 +17,8 @@ def keyboard_callback(event):
 
 if __name__ == "__main__":
     # all counters
-    num_of_views = 4
-    num_of_datapoints = 4
+    num_of_views = 1
+    num_of_datapoints = 1
     output_dir = "./current_dir.log/"
     clear_and_create_dir(output_dir)
 

@@ -40,7 +40,7 @@ if __name__ == "__main__":
             import json
 
             print(
-                f"self pos {json.dumps(list(self_cam_pos))} self focus {json.dumps(list(self_cam_focus))}"
+                f"self pos {json.dumps(list(self_cam_pos * 1e-3))} self focus {json.dumps(list(self_cam_focus * 1e-3) )}"
             )
             # print(f"self err {self_error} sdk err {sdk_error}")
 

@@ -6,10 +6,14 @@
 
 # 7. compare two intrinsics, do undistort and display
 from types import DynamicClassAttribute
+from typing import Sequence
 import cv2
 import json
 import numpy as np
 from copy import deepcopy
+
+from numpy.core.fromnumeric import squeeze
+from numpy.lib.type_check import real_if_close
 from drawer_util import DynaPlotter, calculate_subplot_size, resize
 
 
@@ -25,7 +29,7 @@ def draw_image_points(img_lst, imgpoints_lst, chessboard_size_tuple):
     assert len(img_lst) == len(imgpoints_lst)
     size = len(img_lst)
     rows, cols = calculate_subplot_size(size)
-    plot = DynaPlotter(rows, cols, "draw_chessboard")
+    plot = DynaPlotter(rows, cols, "draw_chessboard", iterative_mode=False)
     for _idx in range(size):
         cur_img = cv2.drawChessboardCorners(img_lst[_idx],
                                             chessboard_size_tuple,
@@ -137,22 +141,14 @@ class Calibration:
         return objp
 
     def calc_corner(self, cur_img):
-        scale = 1
-        if cur_img.shape[0] == 1024 and cur_img.shape[1] == 1024:
-            small_img = deepcopy(cur_img)
-            small_img = resize(small_img, 512)
-            scale = 2
-        else:
-            small_img = cur_img
 
         ret, corners = cv2.findChessboardCorners(
-            small_img, (self.chessboard_rows, self.chessboard_cols),
+            cur_img, (self.chessboard_rows, self.chessboard_cols),
             cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FAST_CHECK +
             cv2.CALIB_CB_NORMALIZE_IMAGE)
 
+        # print(f"ignore subpix")
         if ret == True:
-            for i in range(len(corners)):
-                corners[i] *= scale
             criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
                         100, 0.0001)
             corners = cv2.cornerSubPix(cur_img, corners, (11, 11), (-1, -1),
@@ -248,14 +244,18 @@ class Calibration:
         '''
         objp = self.calc_objpoints()
         objpoints, imgpoints = self.calc_imgpoints([image], objp)
-        if len(objpoints) == 0 and len(imgpoints) == 0:
+
+        if (len(objpoints) == 0 and len(imgpoints) == 0):
             return None, None, None, None
 
+        num_obj = np.squeeze(np.array(objpoints[0])).shape[0]
+        num_img = np.squeeze(np.array(imgpoints[0])).shape[0]
+        if num_obj != num_img:
+            print(f"[warn] obj points {num_obj} != num points {num_img}")
+            return None, None, None, None
         assert len(objpoints) == 1
-        ret, rvecs, tvecs = cv2.solvePnP(objpoints[0],
-                                         imgpoints[0],
-                                         mtx,
-                                         dist)
+
+        ret, rvecs, tvecs = cv2.solvePnP(objpoints[0], imgpoints[0], mtx, dist)
 
         def draw_axis(img, corners, imgpts):
             corner = tuple(corners[0].ravel())
@@ -280,6 +280,32 @@ class Calibration:
                                                     rvecs, tvecs, mtx, dist)
         return rvecs, tvecs, new_image, reproj_error
 
+    def convert_rtvecs_to_transform(self, rvecs, tvecs):
+        '''
+            return the transformation matrix, convert camera points to world coordinates
+        '''
+        obj_pts_to_camera_coords = convert_rtvecs_to_transform(rvecs, tvecs)[0]
+
+        # world coordinate to obj coordinate
+        world_pts_to_camera_coords = np.matmul(obj_pts_to_camera_coords,
+                                               self.world_pts_to_obj_coords)
+        # print(f"world_pts_to_obj_coords\n{self.world_pts_to_obj_coords}")
+        # print(f"obj_pts_to_camera_coords\n{obj_pts_to_camera_coords}")
+        # print(f"world_pts_to_camera_coords\n{world_pts_to_camera_coords}")
+        # exit()
+        # print(f"tvecs {tvecs.T}")
+        camera_pts_to_world_coords = np.linalg.inv(world_pts_to_camera_coords)
+        return camera_pts_to_world_coords
+
+    def convert_transform_to_campos_and_camfocus(self,
+                                                 camera_pts_to_world_coords):
+
+        camera_pos = np.matmul(camera_pts_to_world_coords,
+                               np.array([0, 0, 0, 1]))[:3]
+        camera_focus = calc_focus(camera_pts_to_world_coords[:3, :3],
+                                  camera_pos)
+        return camera_pos, camera_focus
+
     def calc_extrinsics_camera_parameter(self, image, mtx, dist):
         '''
             Given an ir passive image, calculate the camera position and camera focus vector acoordly
@@ -294,20 +320,8 @@ class Calibration:
         if rvecs is None:
             return None, None, None
 
-        obj_pts_to_camera_coords = convert_rtvecs_to_transform(rvecs, tvecs)[0]
-
-        # world coordinate to obj coordinate
-        world_pts_to_camera_coords = np.matmul(obj_pts_to_camera_coords,
-                                               self.world_pts_to_obj_coords)
-        # print(f"world_pts_to_obj_coords\n{self.world_pts_to_obj_coords}")
-        # print(f"obj_pts_to_camera_coords\n{obj_pts_to_camera_coords}")
-        # print(f"world_pts_to_camera_coords\n{world_pts_to_camera_coords}")
-        # exit()
-        # print(f"tvecs {tvecs.T}")
-        camera_pts_to_world_coords = np.linalg.inv(world_pts_to_camera_coords)
-
-        camera_pos = np.matmul(camera_pts_to_world_coords,
-                               np.array([0, 0, 0, 1]))[:3]
-        camera_focus = calc_focus(camera_pts_to_world_coords[:3, :3],
-                                  camera_pos)
+        camera_pts_to_world_coords = self.convert_rtvecs_to_transform(
+            rvecs, tvecs)
+        camera_pos, camera_focus = self.convert_transform_to_campos_and_camfocus(
+            camera_pts_to_world_coords)
         return camera_pos, camera_focus, camera_pts_to_world_coords

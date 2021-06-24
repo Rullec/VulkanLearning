@@ -1,3 +1,4 @@
+from device_util import get_depth_to_color_image
 import numpy as np
 from drawer_util import DynaPlotter
 from device_util import get_depth_image, create_kinect_device, get_depth_mode_str, get_mtx_and_dist_from_sdk
@@ -12,15 +13,14 @@ from copy import deepcopy
 '''
 
 
-def get_calibrated_camera_extrinsics():
+def get_calibrated_camera_extrinsics_old():
 
-    real_cam_pos = np.array([2.1079, 468.7629, 350.01404, 1]) * 1e-3
-    real_cam_focus = np.array([3.2936509265447738, 262.06643546591494, 0.0, 1
-                               ]) * 1e-3
+    real_cam_pos = np.array(
+        [0.01760628071078309, 0.4716434966730053, 0.40155680889293943, 1])
+    real_cam_focus = np.array(
+        [0.01124955884155198, 0.22071030716450926, 0.0, 1])
+
     real_cam_fov = 61.92
-
-    real_cam_focus[3] = 1
-    real_cam_focus[3] = 1
     return real_cam_pos, real_cam_focus, real_cam_fov
 
 
@@ -58,8 +58,7 @@ def cut_depth_image_by_given_window(scene, old_full_image):
     return old_full_image
 
 
-def calculate_raycast_result(cam_pos, cam_focus, cam_fov):
-
+def calculate_raycast_result(scene, cam_pos, cam_focus, cam_fov):
     shape = scene.GetDepthImageShape()
     raycast_depth_image = scene.CalcEmptyDepthImage(cam_pos, cam_focus,
                                                     cam_fov)
@@ -92,30 +91,71 @@ def get_scene():
     return scene
 
 
-if __name__ == "__main__":
+def get_calibrated_camera_extrinsics_new():
+
+    # rgb camera ori & pos
+    real_cam_pos = np.array(
+        [0.049792031956888125, 0.4808656785922257, 0.4155189073952698, 1])
+    real_cam_focus = np.array(
+        [0.027227736992100748, 0.24315683743796296, 0.0, 1])
+    real_cam_fov = 58
+
+    return real_cam_pos, real_cam_focus, real_cam_fov
+
+
+def old_nfov_unbinned_comp():
     # 0. create depth image
     cam = create_kinect_device(mode=get_depth_mode_str())
 
     scene = get_scene()
     # 1. get calibrated camera extrinsics
-    real_cam_pos, real_cam_focus, real_cam_fov = get_calibrated_camera_extrinsics(
+    real_cam_pos, real_cam_focus, real_cam_fov = get_calibrated_camera_extrinsics_old(
     )
 
     # 2. calcualte the raycast result
-    raycast_depth_image = calculate_raycast_result(real_cam_pos,
-                                                   real_cam_focus,
-                                                   real_cam_fov)
+    raycast_depth_image = calculate_raycast_result(
+        scene, real_cam_pos, real_cam_focus, real_cam_fov) * 1e3
 
     # 4. do display
-    plot = DynaPlotter(1, 3, iterative_mode=True)
+    plot = DynaPlotter(1, 4, iterative_mode=True)
 
     while plot.is_end == False:
         # 3. get the depth image from camera
         real_depth_image_distort = get_depth_image(cam)
         real_depth_image_undistort = undistort_depth_image_by_sdk_intrinsics(
-            scene, cam, real_depth_image_distort)
-
-        plot.add(raycast_depth_image)
+            scene, cam, real_depth_image_distort) * 1e3
+        plot.add(raycast_depth_image, f"raycast")
         plot.add(real_depth_image_undistort, "undistort")
         plot.add(real_depth_image_distort, "distort")
+        plot.add(raycast_depth_image - real_depth_image_undistort,
+                 "raycast - undistort")
         plot.show()
+
+
+def new_depth_to_color_comp():
+    # 1. create depth to color image
+    cam = create_kinect_device(mode=get_depth_mode_str())
+    scene = get_scene()
+
+    # 2. get extrinsics
+    real_cam_pos, real_cam_focus, real_cam_fov = get_calibrated_camera_extrinsics_new(
+    )
+
+    raycast_depth_image = calculate_raycast_result(
+        scene, real_cam_pos, real_cam_focus, real_cam_fov) * 1e3
+    plot = DynaPlotter(1, 3, iterative_mode=True)
+
+    while plot.is_end == False:
+        depth_to_color_image = get_depth_to_color_image(cam)
+        print(f"depth image shape {depth_to_color_image.shape}")
+        plot.add(depth_to_color_image, f"reals depth image")
+        plot.add(raycast_depth_image, f"raycasted result")
+        plot.add(depth_to_color_image - raycast_depth_image, f"real - raycast")
+        plot.show()
+
+    pass
+
+
+if __name__ == "__main__":
+    # old_nfov_unbinned_comp()
+    new_depth_to_color_comp()

@@ -2,8 +2,8 @@
     "scene_type": "data_process",
     "pause_at_first": false,
     "enable_draw": true,
-    "window_height": 576,
-    "window_width": 640,
+    "window_height": 720,
+    "window_width": 1280,
     "enable_obstacle": true,
     "simulation_conf": "./config/sim_configs/se_config.json",
     "camera": {
@@ -40,15 +40,15 @@
         0
     ],
     "casting_width_range": [
-        170,
-        470
+        400,
+        880
     ],
     "casting_height_range": [
-        138,
-        438
+        180,
+        540
     ],
     "upsampling": 1,
-    "enable_only_exporting_cutted_window": true,
+    "enable_only_exporting_cutted_window": false,
     "capture_camera_fov": 61.92,
     "enable_cloth_geometry": true,
     "geometry_info": "./log/geo_info.json",
@@ -62,10 +62,10 @@
         "camera_noise_samples": 1,
         "num_of_cloth_views": 1,
         "disable_depth_for_objects": {
-            "cyliner": true,
-            "rotating_table": true,
-            "ground": true,
-            "back_wall": true
+            "cyliner": false,
+            "rotating_table": false,
+            "ground": false,
+            "back_wall": false
         }
     },
     "export_image_format": ".png",
