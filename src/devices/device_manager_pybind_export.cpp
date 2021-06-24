@@ -33,8 +33,15 @@ PYBIND11_MODULE(device_manager, m)
              &cKinectManager::GetDepthIntrinsicDistCoef_sdk)
         .def("GetDepthIntrinsicMtx_sdk",
              &cKinectManager::GetDepthIntrinsicMtx_sdk)
+        .def("GetColorIntrinsicDistCoef_sdk",
+             &cKinectManager::GetColorIntrinsicDistCoef_sdk)
+        .def("GetColorIntrinsicMtx_sdk",
+             &cKinectManager::GetColorIntrinsicMtx_sdk)
         .def("GetDepthIntrinsicDistCoef_self",
              &cKinectManager::GetDepthIntrinsicDistCoef_self)
         .def("GetDepthIntrinsicMtx_self",
-             &cKinectManager::GetDepthIntrinsicMtx_self);
+             &cKinectManager::GetDepthIntrinsicMtx_self)
+        .def("GetColorImage", &cKinectManager::GetColorImage)
+        .def("GetDepthToColorImage", &cKinectManager::GetDepthToColorImage);
+    ;
 }

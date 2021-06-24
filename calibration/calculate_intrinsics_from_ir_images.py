@@ -54,18 +54,20 @@ def show_undistort_result(mtx, dist, images):
 
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
-    output_image_dir = "passive_ir_images.log/"
+    # output_image_dir = "passive_ir_images.log/"
+    output_image_dir = "color_images.log"
 
     # 1. loading images from the directory
     def load_ir_images_from_directory():
         files = os.listdir(output_image_dir)
-        files = [os.path.join(output_image_dir, i) for i in files]
+        files = [os.path.join(output_image_dir, i) for i in files if i.find("pkl") !=-1]
         img_lst = [load_pkl(filepath) for filepath in files]
         return img_lst
 
     # 2. do calibration by calling APIs
     all_images = load_ir_images_from_directory()
     calib = Calibration("calib_config.json")
+    # calib.set_debug_mode(True)
     ret, mtx, dist, rvecs, tvecs = calib.calc_intrinsics_from_images(
         all_images)
 
@@ -76,7 +78,8 @@ if __name__ == "__main__":
     print(f"sdk mtx {sdk_mtx}")
     print(f"sdk dist {sdk_dist}")
     # compare_intrinsics_sdk_and_self(mtx, dist, sdk_mtx, sdk_dist, all_images[:3])
-    show_calibration_images(all_images)
+    # show_calibration_images(all_images)
+    show_undistort_result(mtx, dist, all_images)
     # compare the result
     # get_mtx_and_dist_from_sdk()
     # print(f"rvecs {rvecs}")

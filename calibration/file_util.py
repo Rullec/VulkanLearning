@@ -19,6 +19,7 @@ def save_png_image(path, image):
 
 
 def save_pkl(path, obj):
+    assert type(path) is str, "path is the first param"
     with open(path, 'wb') as f:
         pickle.dump(obj, f)
         log_print(f"save pkl to {path}")

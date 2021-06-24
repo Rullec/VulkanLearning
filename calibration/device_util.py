@@ -109,6 +109,23 @@ def get_mtx_and_dist_from_sdk(device):
     return device.GetDepthIntrinsicMtx_sdk(
     ), device.GetDepthIntrinsicDistCoef_sdk()
 
+def get_color_mtx_and_dist_from_sdk(device):
+    return device.GetColorIntrinsicMtx_sdk(
+    ), device.GetColorIntrinsicDistCoef_sdk()
+
+
+def get_color_image(device):
+    '''
+        get rgb colorized image (BGRA uint8 format)
+    '''
+    image = np.moveaxis(np.array(device.GetColorImage(), dtype=np.uint8), 0,
+                        -1)
+    return image
+
+
+def get_depth_to_color_image(device):
+    return device.GetDepthToColorImage()
+
 
 if __name__ == "__main__":
     log_print("begin to test device utils")

@@ -11,12 +11,12 @@ cKinectManager::cKinectManager(std::string mode_str)
 #include <windows.h>
 k4a_capture_t cKinectManager::GetCapture() const
 {
-    bool get_depth_image_succ = false;
+    bool get_capture = false;
 
     k4a_capture_t capture = NULL;
     const int32_t TIMEOUT_IN_MS = 1000;
 
-    while (get_depth_image_succ == false)
+    while (get_capture == false)
     {
         // k4a_image_t image;
 
@@ -24,7 +24,7 @@ k4a_capture_t cKinectManager::GetCapture() const
         switch (k4a_device_get_capture(mDevice, &capture, TIMEOUT_IN_MS))
         {
         case K4A_WAIT_RESULT_SUCCEEDED:
-            get_depth_image_succ = true;
+            get_capture = true;
             // std::cout << "case succ\n";
             break;
         case K4A_WAIT_RESULT_TIMEOUT:
@@ -43,14 +43,9 @@ k4a_capture_t cKinectManager::GetCapture() const
     // exit(0);
     return capture;
 }
-/**
- * \brief           Begin to get the depth image
- */
-tMatrixXi cKinectManager::GetDepthImage()
+
+tMatrixXi convert_k4a_depth_image_to_eigen_image(k4a_image_t image)
 {
-    // get captured
-    auto capture = GetCapture();
-    k4a_image_t image = k4a_capture_get_depth_image(capture);
     int height = 0, width = 0, stride_bytes = 0;
     if (image != NULL)
     {
@@ -92,6 +87,17 @@ tMatrixXi cKinectManager::GetDepthImage()
     {
         assert(false && "supported depth image type");
     }
+    return depth_mat;
+}
+/**
+ * \brief           Begin to get the depth image
+ */
+tMatrixXi cKinectManager::GetDepthImage()
+{
+    // get captured
+    auto capture = GetCapture();
+    k4a_image_t image = k4a_capture_get_depth_image(capture);
+    tMatrixXi depth_mat = convert_k4a_depth_image_to_eigen_image(image);
     // tMatrixXi
     // release the image
     k4a_image_release(image);
@@ -220,16 +226,19 @@ void cKinectManager::Init()
     SIM_ASSERT(res == K4A_RESULT_SUCCEEDED);
 
     // set up the configuration
-    k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
-    config.color_format = K4A_IMAGE_FORMAT_COLOR_MJPG;
-    config.color_resolution = K4A_COLOR_RESOLUTION_OFF;
-    config.depth_mode = mDepthMode;
-    // config.depth_mode = K4A_DEPTH_MODE_WFOV_UNBINNED;
-    config.camera_fps = K4A_FRAMES_PER_SECOND_30;
-    // config.camera_fps = K4A_FRAMES_PER_SECOND_15;
+    mConfig = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
+    mConfig.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
+    // mConfig.color_format = K4A_IMAGE_FORMAT_COLOR_MJPG;
+    mConfig.color_resolution = K4A_COLOR_RESOLUTION_720P;
+    // mConfig.color_resolution = K4A_COLOR_RESOLUTION_1080P;
+    mConfig.depth_mode = mDepthMode;
+    // mConfig.depth_mode = K4A_DEPTH_MODE_WFOV_UNBINNED;
+    mConfig.camera_fps = K4A_FRAMES_PER_SECOND_30;
+    mConfig.synchronized_images_only = true;
+    // mConfig.camera_fps = K4A_FRAMES_PER_SECOND_15;
 
     // start the camera
-    if (K4A_RESULT_SUCCEEDED != k4a_device_start_cameras(mDevice, &config))
+    if (K4A_RESULT_SUCCEEDED != k4a_device_start_cameras(mDevice, &mConfig))
     {
         printf("[debug] start the camera failed, exit\n");
         exit(1);
@@ -241,19 +250,10 @@ cKinectManager::~cKinectManager() { k4a_device_close(this->mDevice); }
 k4a_calibration_camera_t cKinectManager::GetDepthCalibration() const
 {
     k4a_calibration_t calibration;
-
-    k4a_device_configuration_t deviceConfig =
-        K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
-    deviceConfig.color_format = K4A_IMAGE_FORMAT_COLOR_MJPG;
-    deviceConfig.color_resolution = K4A_COLOR_RESOLUTION_1080P;
-    deviceConfig.depth_mode = mDepthMode;
-    deviceConfig.camera_fps = K4A_FRAMES_PER_SECOND_30;
-    deviceConfig.wired_sync_mode = K4A_WIRED_SYNC_MODE_STANDALONE;
-    deviceConfig.synchronized_images_only = true;
     // get calibration
     if (K4A_RESULT_SUCCEEDED !=
-        k4a_device_get_calibration(this->mDevice, deviceConfig.depth_mode,
-                                   deviceConfig.color_resolution, &calibration))
+        k4a_device_get_calibration(this->mDevice, this->mConfig.depth_mode,
+                                   mConfig.color_resolution, &calibration))
     {
         std::cout << "Failed to get calibration" << std::endl;
         exit(-1);
@@ -261,6 +261,19 @@ k4a_calibration_camera_t cKinectManager::GetDepthCalibration() const
     return calibration.depth_camera_calibration;
 }
 
+k4a_calibration_camera_t cKinectManager::GetColorCalibration() const
+{
+    k4a_calibration_t calibration;
+    // get calibration
+    if (K4A_RESULT_SUCCEEDED !=
+        k4a_device_get_calibration(this->mDevice, this->mConfig.depth_mode,
+                                   mConfig.color_resolution, &calibration))
+    {
+        std::cout << "Failed to get calibration" << std::endl;
+        exit(-1);
+    }
+    return calibration.color_camera_calibration;
+}
 /**
  * \brief               Get intrinsics self
  */
@@ -367,3 +380,172 @@ k4a_depth_mode_t cKinectManager::BuildModeFromString(std::string mode_str)
 }
 
 void cKinectManager::CloseDevice() { k4a_device_close(mDevice); }
+
+/**
+ * \brief           get rgb image from the device
+ */
+std::vector<tMatrixXi> cKinectManager::GetColorImage() const
+{
+    auto capture = GetCapture();
+    auto color_image = k4a_capture_get_color_image(capture);
+    if (color_image == 0)
+    {
+        printf("Failed to get color image from capture\n");
+        exit(1);
+    }
+
+    // convert this color image into the eigen format
+    int height = k4a_image_get_height_pixels(color_image);
+    int width = k4a_image_get_width_pixels(color_image);
+    uint8_t *image_data = (uint8_t *)(void *)k4a_image_get_buffer(color_image);
+    std::vector<tMatrixXi> bgra_images(4, tMatrixXi::Zero(height, width));
+    for (int row = 0; row < height; row++)
+        for (int col = 0; col < width; col++)
+        {
+            int offset = (row * width + col) * 4;
+            for (int j = 0; j < 4; j++)
+            {
+                bgra_images[j](row, col) = image_data[offset + j];
+            }
+
+            // ;
+            // image_data[offset + 1];
+            // image_data[offset + 2];
+            // image_data[offset + 3];
+        }
+    return bgra_images;
+    // cv::Mat color_frame =
+    //     cv::Mat(height, width, CV_8UC4, image_data, cv::Mat::AUTO_STEP);
+}
+
+static tMatrixXi
+point_cloud_depth_to_color(k4a_transformation_t transformation_handle,
+                           const k4a_image_t depth_image,
+                           const k4a_image_t color_image)
+{
+    // transform color image into depth camera geometry
+    int color_image_width_pixels = k4a_image_get_width_pixels(color_image);
+    int color_image_height_pixels = k4a_image_get_height_pixels(color_image);
+    k4a_image_t transformed_depth_image = NULL;
+    if (K4A_RESULT_SUCCEEDED !=
+        k4a_image_create(K4A_IMAGE_FORMAT_DEPTH16, color_image_width_pixels,
+                         color_image_height_pixels,
+                         color_image_width_pixels * (int)sizeof(uint16_t),
+                         &transformed_depth_image))
+    {
+        printf("Failed to create transformed depth image\n");
+        exit(1);
+    }
+
+    k4a_image_t point_cloud_image = NULL;
+    if (K4A_RESULT_SUCCEEDED !=
+        k4a_image_create(K4A_IMAGE_FORMAT_CUSTOM, color_image_width_pixels,
+                         color_image_height_pixels,
+                         color_image_width_pixels * 3 * (int)sizeof(int16_t),
+                         &point_cloud_image))
+    {
+        printf("Failed to create point cloud image\n");
+        exit(1);
+    }
+
+    if (K4A_RESULT_SUCCEEDED !=
+        k4a_transformation_depth_image_to_color_camera(
+            transformation_handle, depth_image, transformed_depth_image))
+    {
+        printf("Failed to compute transformed depth image\n");
+        exit(1);
+    }
+
+    if (K4A_RESULT_SUCCEEDED !=
+        k4a_transformation_depth_image_to_point_cloud(
+            transformation_handle, transformed_depth_image,
+            K4A_CALIBRATION_TYPE_COLOR, point_cloud_image))
+    {
+        printf("Failed to compute point cloud\n");
+        exit(1);
+    }
+
+    tMatrixXi depth_image_eigen =
+        convert_k4a_depth_image_to_eigen_image(transformed_depth_image);
+
+    k4a_image_release(transformed_depth_image);
+    k4a_image_release(point_cloud_image);
+
+    return depth_image_eigen;
+}
+
+/**
+ * \brief           get depth image which is aligned with the color image
+ */
+tMatrixXi cKinectManager::GetDepthToColorImage() const
+{
+    k4a_calibration_t calibration;
+    if (K4A_RESULT_SUCCEEDED !=
+        k4a_device_get_calibration(mDevice, mConfig.depth_mode,
+                                   mConfig.color_resolution, &calibration))
+    {
+        printf("Failed to get calibration\n");
+        exit(1);
+    }
+
+    k4a_transformation_t transformation =
+        k4a_transformation_create(&calibration);
+
+    // Get a capture
+    k4a_capture_t capture = GetCapture();
+
+    // Get a depth image
+    auto depth_image = k4a_capture_get_depth_image(capture);
+    if (depth_image == 0)
+    {
+        printf("Failed to get depth image from capture\n");
+        exit(1);
+    }
+
+    // Get a color image
+    auto color_image = k4a_capture_get_color_image(capture);
+    if (color_image == 0)
+    {
+        printf("Failed to get color image from capture\n");
+        exit(1);
+    }
+
+    // Compute color point cloud by warping depth image into color camera
+    // geometry
+    tMatrixXi depth_image_eigen =
+        point_cloud_depth_to_color(transformation, depth_image, color_image);
+    return depth_image_eigen;
+}
+
+/**
+ * \brief           get the intrinsics for color camera
+ */
+tMatrix3d cKinectManager::GetColorIntrinsicMtx_sdk() const
+{
+    auto color_calib = GetColorCalibration();
+    tMatrix3d mat = tMatrix3d::Identity();
+
+    mat(0, 0) = color_calib.intrinsics.parameters.param.fx;
+    mat(1, 1) = color_calib.intrinsics.parameters.param.fy;
+    mat(0, 2) = color_calib.intrinsics.parameters.param.cx;
+    mat(1, 2) = color_calib.intrinsics.parameters.param.cy;
+    return mat;
+}
+
+/**
+ * \brief           get the intrinsics for color camera
+ */
+tVectorXd cKinectManager::GetColorIntrinsicDistCoef_sdk() const
+{
+    auto color_calib = GetColorCalibration();
+    tVectorXd res = tVectorXd::Zero(8);
+    res[0] = color_calib.intrinsics.parameters.param.k1;
+    res[1] = color_calib.intrinsics.parameters.param.k2;
+    res[2] = color_calib.intrinsics.parameters.param.p1;
+    res[3] = color_calib.intrinsics.parameters.param.p2;
+    res[4] = color_calib.intrinsics.parameters.param.k3;
+    res[5] = color_calib.intrinsics.parameters.param.k4;
+    res[6] = color_calib.intrinsics.parameters.param.k5;
+    res[7] = color_calib.intrinsics.parameters.param.k6;
+    return res;
+}

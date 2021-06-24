@@ -75,11 +75,12 @@ class DynaPlotter:
         ax.imshow(image)
         ax.title.set_text(title)
 
-    def add_histogram(self, value, title = "helo_hist"):
+    def add_histogram(self, value, title="helo_hist"):
         self.iter += 1
         ax = self.fig.add_subplot(self.rows, self.cols, self.iter)
         ax.hist(value)
         ax.title.set_text(title)
+
     def show(self, dt=3e-2):
         if self.iterative_mode == True:
             plt.pause(dt)
@@ -128,6 +129,10 @@ def resize(image, size=128):
     image = image.resize((size, size))
     image = np.array(image, dtype=old_type)
     return image
+
+
+def to_gray(img):
+    return (np.dot(img[..., :3], [0.299, 0.587, 0.114])).astype(np.uint8)
 
 
 if __name__ == "__main__":

@@ -192,7 +192,10 @@ class Calibration:
     def judge_image_recognizable(self, images):
         objp_pattern = self.calc_objpoints()
         objpt_lst, imgpt_lst = self.calc_imgpoints(images, objp_pattern)
-        return len(images) == len(objpt_lst)
+        num_objpt = np.squeeze(np.array(objpt_lst)).shape
+        num_imgpt = np.squeeze(np.array(imgpt_lst)).shape
+        # print(f"num objpt {num_objpt} num imgpt {num_imgpt}")
+        return (num_objpt[0] == num_imgpt[0]) and (num_objpt[0] != 0)
 
     # 5. given a batch of image, calculate the intrinsics (calibration)
     def calc_intrinsics_from_images(self, images):
@@ -213,6 +216,9 @@ class Calibration:
         # print(f"imgpoints len {len(imgpoints_lst)}")
         import time
         st = time.time()
+        # for i in range(len(objpoints_lst)):
+        #     print(f"num of objs {len(objpoints_lst[i])}")
+        #     print(f"num of imgs {len(imgpoints_lst[i])}")
         ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
             objpoints_lst, imgpoints_lst, images[0].shape[::-1], None,
             np.zeros(8))
@@ -249,8 +255,7 @@ class Calibration:
         ret, rvecs, tvecs = cv2.solvePnP(objpoints[0],
                                          imgpoints[0],
                                          mtx,
-                                         dist,
-                                         flags=cv2.SOLVEPNP_IPPE)
+                                         dist)
 
         def draw_axis(img, corners, imgpts):
             corner = tuple(corners[0].ravel())
@@ -283,9 +288,9 @@ class Calibration:
 
         # begin to draw the image
         # if True:
-            # plot = DynaPlotter(1, 1, iterative_mode=False)
-            # plot.add(new_image)
-            # plot.show()
+        # plot = DynaPlotter(1, 1, iterative_mode=False)
+        # plot.add(new_image)
+        # plot.show()
         if rvecs is None:
             return None, None, None
 
