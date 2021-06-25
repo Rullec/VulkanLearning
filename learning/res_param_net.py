@@ -74,7 +74,7 @@ class CNNParamNet(ParamNet):
             cur_epoch_train_loss = 0
             iters = 0
             total_num = 0
-            st_epoch = time.time()
+            
             self.data_loader.shuffle()
             for i_batch, sampled_batched in enumerate(
                     self.data_loader.get_train_data()):
@@ -88,6 +88,7 @@ class CNNParamNet(ParamNet):
                 outputs = np.array(outputs)
                 # print(f"outputs = {outputs}")
                 # exit(0)
+                st_epoch = time.time()
                 # print(f"outut shape {outputs.shape}")
                 inputs = torch.from_numpy(inputs).to(self.device)
                 Y = torch.from_numpy(outputs).to(self.device)
@@ -128,6 +129,8 @@ class CNNParamNet(ParamNet):
                 #     print(f"loss is {loss}")
                 loss.backward()
                 self.optimizer.step()
+                ed_epoch = time.time()
+                print(f"batch train cost {ed_epoch - st_epoch} s")
                 # print(f"[train] single mse {loss} num {inputs.shape[0]}")
                 cur_epoch_train_loss += loss.item() * num
                 iters += 1

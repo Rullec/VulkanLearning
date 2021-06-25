@@ -80,7 +80,7 @@ def l2_metric(train_data_lst, label_lst, captured_image):
     print(f"begin to calc pairwise")
     dist_mat = pairwise_distances(train_data_lst)
     size = dist_mat.shape[0]
-    samples = 60
+    samples = 40
     rows, cols = calculate_subplot_size(samples + 3)
     plot = DynaPlotter(rows, cols, iterative_mode=False)
     plot.add_histogram(dist_mat[size - 1, :], "captured data")
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # 1. set the config
     dataset_path = "D:\\SimpleClothSimulator\\data\\export_data\\1view_smallset\\train_data_1tenth.pkl"
     # dataset_path = "D:\\SimpleClothSimulator\\data\\export_data\\1view_smallset\\train_data.pkl"
-    captured_image_path = "D:\\SimpleClothSimulator\\calibration\\no_background_dir.log\\20cm的-cutted-fixed-masked.pkl"
+    captured_image_path = "D:\\SimpleClothSimulator\\calibration\\manual_fix_dir.log\\new.pkl"
 
     # metric = "eye"
     metric = "l2"

@@ -24,11 +24,15 @@ class DynaPlotter:
         self.window_title = window_title
         self.is_end = False
         self.keyboard_callback = None
+        self.mouse_press_callback = None
         self.iterative_mode = iterative_mode
         self.__dyna_init()
 
     def set_keypress_callback(self, func):
         self.keyboard_callback = func
+
+    def set_mousepress_callback(self, func):
+        self.mouse_press_callback = func
 
     def __on_key_press_callback(self, event):
         '''
@@ -40,12 +44,18 @@ class DynaPlotter:
             self.is_end = True
             log_print("keyboard escape captured, ending...")
 
+    def __on_mouse_press_callback(self, event):
+        if self.mouse_press_callback is not None:
+            self.mouse_press_callback(event)
+
     def __connect(self):
         '''
             matplotlib, figure callback connection
         '''
         self.fig.canvas.mpl_connect('key_press_event',
                                     self.__on_key_press_callback)
+        self.fig.canvas.mpl_connect('button_press_event',
+                                    self.__on_mouse_press_callback)
 
     def set_supresstitle(self, title):
         self.fig.suptitle(title)

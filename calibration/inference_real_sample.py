@@ -3,7 +3,7 @@ import sys
 
 from file_util import load_pkl
 import numpy as np
-from drawer_util import DynaPlotter
+from drawer_util import *
 
 sys.path.append("../learning")
 
@@ -23,15 +23,18 @@ def load_image_data(data_dir):
 
 
 def compare_result(train_data, real_data):
-    plotter = DynaPlotter(1, 3, iterative_mode=False)
+    size = 1 + 1 + real_data.shape[0]
+    rows, cols = calculate_subplot_size(size)
+    plotter = DynaPlotter(rows, cols, iterative_mode=False)
     # enable_train = train_data[0] > 130
     # enable_real = real_data[0] > 130
     # enable_mask = np.logical_and(enable_train, enable_real)
-    diff = train_data[0] - real_data[0]
-    # diff[enable_mask == False] = 0
-    plotter.add(train_data[0], f"train data")
-    plotter.add(real_data[0], f"real data")
+    diff = np.squeeze(train_data[0] - real_data[0])
     plotter.add(diff, f"diff")
+    plotter.add(np.squeeze(train_data[0]), f"train data")
+    # diff[enable_mask == False] = 0
+    for i in range(real_data.shape[0]):
+        plotter.add(np.squeeze(real_data[i]), f"real data {i}")
     plotter.show()
     exit()
     # plotter = DynaPlotter(2, 4, iterative_mode=False)
@@ -44,7 +47,7 @@ def compare_result(train_data, real_data):
 
 if __name__ == "__main__":
     # 1. load the image data
-    data_dir = "no_background_dir.log"
+    data_dir = "manual_fix_dir.log"
     img_lst = load_image_data(data_dir)
 
     # 2. begin to build network, load the agent, load the mean and standard
@@ -62,18 +65,21 @@ if __name__ == "__main__":
 
     print(f"input mean shape {input_mean.shape}")
     print(f"input std shape {input_std.shape}")
-    train_input_example = output_X[0]
-    train_input_example = train_input_example * input_std + input_mean
+    train_input_example = net.data_loader.unnormalize_input_data(output_X)
 
-    data_input = np.expand_dims(img_lst[0][0], axis=0)
-    data_input = np.expand_dims(data_input, axis=0)
-    train_input_example = np.expand_dims(train_input_example, axis=0)
+    print(f"train input example shape {train_input_example.shape}")
+    # exit(0)
+    # data_input = np.expand_dims(img_lst[0][0], axis=0)
+    # data_input = np.expand_dims(data_input, axis=0)
+    # train_input_example = np.expand_dims(train_input_example, axis=0)
+    real_input_example = np.array(img_lst)
+    print(f"real data shape {real_input_example.shape}")
     # print(data_input.shape)
     # exit()
-    real_output = net.infer(data_input)
+    real_output = net.infer(real_input_example)
     print(f"real_output {real_output}")
 
     train_output = net.infer(train_input_example)
     print(f"train_output {train_output}")
 
-    compare_result(train_input_example[0], data_input[0])
+    compare_result(train_input_example[0], real_input_example)

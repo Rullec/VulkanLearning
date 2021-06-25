@@ -6,8 +6,12 @@ from drawer_util import DynaPlotter
 
 if __name__ == "__main__":
     # output_dir = "current_dir.log"
-    output_dir = "cutted_dir.log"
-    files = [os.path.join(output_dir, i) for i in os.listdir(output_dir)]
+    output_dir = "no_background_dir.log"
+    # output_dir = "manual_fix_dir.log"
+    files = [
+        os.path.join(output_dir, i) for i in os.listdir(output_dir)
+        if i.find("pkl") != -1
+    ]
 
     # 1. begin to load the pkl files
     depth_image_lst = [load_pkl(pkl) for pkl in files]

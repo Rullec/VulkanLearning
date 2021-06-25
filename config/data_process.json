@@ -48,24 +48,24 @@
         540
     ],
     "upsampling": 1,
-    "enable_only_exporting_cutted_window": false,
+    "enable_only_exporting_cutted_window": true,
     "capture_camera_fov": 61.92,
     "enable_cloth_geometry": true,
     "geometry_info": "./log/geo_info.json",
     "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\isotropic_50prop_16samples_amp_0.05",
-    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\isotropic_50prop_16samples_amp_0.05_1view_8rot",
+    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\test_output",
     "preprocess_info": {
-        "num_of_init_rotation_angle": 8,
+        "num_of_init_rotation_angle": 1,
         "enable_camera_noise": false,
-        "camera_translation_noise": 0.05,
-        "camera_orientation_noise": 0.05,
+        "camera_translation_noise": 0.01,
+        "camera_orientation_noise": 0.01,
         "camera_noise_samples": 1,
         "num_of_cloth_views": 1,
         "disable_depth_for_objects": {
             "cyliner": false,
             "rotating_table": false,
-            "ground": false,
-            "back_wall": false
+            "ground": true,
+            "back_wall": true
         }
     },
     "export_image_format": ".png",
