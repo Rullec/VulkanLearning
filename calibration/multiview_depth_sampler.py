@@ -2,7 +2,7 @@
 sample a group of depth images as a data point in network
 '''
 from drawer_util import DynaPlotter
-from device_util import get_depth_image, create_kinect_device, get_depth_mode_str
+from device_util import get_depth_image, create_kinect_device, get_depth_mode_str, get_depth_to_color_image
 import numpy as np
 from file_util import save_pkl, clear_and_create_dir
 
@@ -18,7 +18,7 @@ def keyboard_callback(event):
 if __name__ == "__main__":
     # all counters
     num_of_views = 1
-    num_of_datapoints = 1
+    num_of_datapoints = 4
     output_dir = "./current_dir.log/"
     clear_and_create_dir(output_dir)
 
@@ -33,7 +33,8 @@ if __name__ == "__main__":
     cur_datapoint_idx = 0
     while cur_datapoint_idx < num_of_datapoints:
         # 1. get depth image
-        depth_image = get_depth_image(device)
+        # depth_image = get_depth_image(device)
+        depth_image = get_depth_to_color_image(device)
 
         # 2. show the depth image
         plotter.add(depth_image)

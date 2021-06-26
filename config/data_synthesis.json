@@ -51,7 +51,7 @@
                 "range": [
                     27
                 ],
-                "num_of_samples": 1,
+                "num_of_samples": 15,
                 "visible": true,
                 "index": 0
             },
@@ -59,7 +59,7 @@
                 "range": [
                     27
                 ],
-                "num_of_samples": 1,
+                "num_of_samples": 15,
                 "visible": true,
                 "index": 1
             },
@@ -68,7 +68,7 @@
                     1,
                     50
                 ],
-                "num_of_samples": 25,
+                "num_of_samples": 15,
                 "visible": true,
                 "index": 2
             }
@@ -101,5 +101,5 @@
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "test_output"
+    "export_data_dir": "uniform_sample15_noised16"
 }

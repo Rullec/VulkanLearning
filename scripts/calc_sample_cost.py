@@ -1,6 +1,6 @@
-N = 10
-noised_samples = 16
-avg_cost = 19  # unit: s
+N = 15
+noised_samples = 12
+avg_cost = 15  # unit: s
 
 num_of_prop = int(N * N * (N + 1) / 2)
 num_of_meshes = num_of_prop * noised_samples
