@@ -244,7 +244,9 @@ void cSynDataScene::OfflineSampling()
     int num_of_properties = mPropManager->GetNumOfProperties();
     int num_of_samples = num_of_properties;
     num_of_samples *= this->mSynDataNoise->mNumOfSamplesPerProp;
-    printf("[log] we will have %d samples\n", num_of_samples);
+    float time_cost_per_sample = 16; // s
+    float total_time_day = time_cost_per_sample * num_of_samples / (3600 * 24);
+    printf("[log] we will have %d samples, nearly cost %.1f day\n", num_of_samples, total_time_day);
     for (int i = 0; i < num_of_properties; i++)
     {
         // 1. reset the internal linctex scene,

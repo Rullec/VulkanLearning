@@ -49,19 +49,19 @@
             },
             "bending_warp": {
                 "range": [
-                    38,
-                    38
+                    0,
+                    50
                 ],
-                "num_of_samples": 1,
+                "num_of_samples": 10,
                 "visible": true,
                 "index": 0
             },
             "bending_weft": {
                 "range": [
-                    38,
-                    38
+                    0,
+                    50
                 ],
-                "num_of_samples": 1,
+                "num_of_samples": 10,
                 "visible": true,
                 "index": 1
             },
@@ -70,7 +70,7 @@
                     0,
                     50
                 ],
-                "num_of_samples": 100,
+                "num_of_samples": 10,
                 "visible": true,
                 "index": 2
             }
@@ -95,11 +95,11 @@
         "enable_low_freq_noise": true,
         "max_fold_amp": 5e-2,
         "min_fold_num": 3,
-        "max_fold_num": 6
+        "max_fold_num": 10
     },
     "convergence_threshold": 0.001,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "percent_tag_0to50"
+    "export_data_dir": "uniform_sample10_noised16"
 }
