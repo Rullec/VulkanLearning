@@ -130,7 +130,7 @@ class CNNParamNet(ParamNet):
                 loss.backward()
                 self.optimizer.step()
                 ed_epoch = time.time()
-                print(f"batch train cost {ed_epoch - st_epoch} s")
+                # print(f"batch train cost {ed_epoch - st_epoch} s")
                 # print(f"[train] single mse {loss} num {inputs.shape[0]}")
                 cur_epoch_train_loss += loss.item() * num
                 iters += 1

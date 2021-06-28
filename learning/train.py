@@ -46,8 +46,8 @@ if __name__ == "__main__":
     # net = ParamNet(conf_path, device)
     device = init_env()
     
-    conf_path = "..\config\\train_configs\\conv_conf.json"
-    # conf_path = "..\config\\train_configs\\fc_conf.json"
+    # conf_path = "..\config\\train_configs\\conv_conf.json"
+    conf_path = "..\config\\train_configs\\fc_conf.json"
 
     with open(conf_path) as f:
         mode = json.load(f)["mode"]

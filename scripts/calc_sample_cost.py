@@ -1,9 +1,9 @@
 N = 10
-noised_samples = 12
-avg_cost = 15  # unit: s
+noised_samples = 16
+avg_cost = 19  # unit: s
 
 num_of_prop = int(N * N * (N + 1) / 2)
-num_of_meshes = num_of_prop * 12
+num_of_meshes = num_of_prop * noised_samples
 sample_cost_time_seconds = num_of_meshes * avg_cost
 sample_cost_time_days = sample_cost_time_seconds / (3600 * 24)
 
