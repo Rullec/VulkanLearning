@@ -1,7 +1,8 @@
-from param_net import ParamNet
-from image_data_loader import ImageDataLoader
-from image_data_loader_dist import ImageDataLoaderDist
+from .param_net import ParamNet
+import sys
 
+sys.path.append("../data_loader/")
+from data_loader.img_data_mani import ImageDataManipulator
 from net_core import cnn_net
 import torch
 import time
@@ -16,41 +17,21 @@ class CNNParamNet(ParamNet):
     NAME = "CNNParamNet"
     IMAGE_DATALOADER_TYPE_KEY = "image_dataloader_type"
 
-    def __init__(self, config_path, device, only_load_statistic_data):
-        super().__init__(config_path, device, only_load_statistic_data)
+    def __init__(self, config_path, device):
+        super().__init__(config_path, device)
 
     def _load_param(self):
         super()._load_param()
         self.image_dataloader_type = self.conf[
             CNNParamNet.IMAGE_DATALOADER_TYPE_KEY]
 
-    def _build_dataloader(self, only_load_statistic_data):
-        print("[log] begin to build dataloader in resnet")
-        if self.image_dataloader_type == "image_dataloader":
-            # self.data_loader = ImageDataLoader(
-            #     self.data_dir,
-            #     0.8,
-            #     0.2,
-            #     self.batch_size,
-            #     enable_log_prediction=self.enable_log_prediction,
-            #     only_load_statistic_data=only_load_statistic_data)
-            self.data_loader = ImageDataLoader(self.conf[self.DATA_LOADER_KEY],
-                                               only_load_statistic_data)
-        elif self.image_dataloader_type == "image_dataloader_dist":
-            self.data_loader = ImageDataLoaderDist(
-                self.data_dir,
-                0.8,
-                0.2,
-                self.batch_size,
-                enable_log_prediction=self.enable_log_prediction,
-                only_load_statistic_data=only_load_statistic_data)
-        else:
-            assert False
-        self.input_size = self.data_loader.get_input_size()
-        self.output_size = self.data_loader.get_output_size()[0]
-        # print(f"input size {self.input_size}")
-        # print(f"output size {self.output_size}")
-        # exit(0)
+    def _build_dataloader(self):
+
+        data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        self.train_dataloader, self.test_dataloader = data_mani.get_dataloader(
+        )
+        print(f"begin to build dataloader")
+        exit()
 
     def _build_net(self):
 
@@ -74,7 +55,7 @@ class CNNParamNet(ParamNet):
             cur_epoch_train_loss = 0
             iters = 0
             total_num = 0
-            
+
             self.data_loader.shuffle()
             for i_batch, sampled_batched in enumerate(
                     self.data_loader.get_train_data()):

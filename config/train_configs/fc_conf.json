@@ -16,9 +16,8 @@
     "data_loader_config": {
         "data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\1e3_2e3_nonoise_50prop_8sample_thre1mm_amp5cm",
         "batch_size": 32,
-        "enable_log_prediction": false,
         "train_perc": 0.8,
-        "enable_data_augment": false,
-        "enable_select_validation_set_inside": true
+        "enable_data_augment": true,
+        "load_all_data_into_mem": true
     }
 }

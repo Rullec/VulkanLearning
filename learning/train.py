@@ -1,8 +1,7 @@
 import numpy as np
 import torch
-from param_net import ParamNet
 import json
-from res_param_net import CNNParamNet
+from agents.agent_builder import build_net
 
 
 def init_env():
@@ -24,35 +23,19 @@ def init_env():
         device = torch.device("cpu", 0)
     return device
 
-def build_net(conf):
-    with open(conf) as f:
-        cont = json.load(f)
-    assert ParamNet.NAME_KEY in cont, f"no {ParamNet.NAME_KEY} key in given config {conf}"
-    param_name = cont[ParamNet.NAME_KEY]
-
-    if param_name == ParamNet.NAME:
-        print(f"[log] build {param_name} net succ")
-        return ParamNet
-    elif param_name == CNNParamNet.NAME:
-        print(f"[log] build {param_name} net succ")
-        return CNNParamNet
-    else:
-        raise ValueError(f"unsupport net type {param_name}")
-    # print(param_name)
-
 
 if __name__ == "__main__":
 
     # net = ParamNet(conf_path, device)
     device = init_env()
-    
-    # conf_path = "..\config\\train_configs\\conv_conf.json"
-    conf_path = "..\config\\train_configs\\fc_conf.json"
+
+    conf_path = "..\config\\train_configs\\conv_conf.json"
+    # conf_path = "..\config\\train_configs\\fc_conf.json"
 
     with open(conf_path) as f:
         mode = json.load(f)["mode"]
     net_type = build_net(conf_path)
-    net = net_type(conf_path, device, only_load_statistic_data=False)
+    net = net_type(conf_path, device)
 
     if mode == "test":
         net.test()

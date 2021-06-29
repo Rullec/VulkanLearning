@@ -3,7 +3,7 @@ import json
 
 from numpy.random import sample
 from net_core import fc_net
-from data_loader import DataLoader
+from data_loader.mesh_data_mani import MeshDataManipulator
 import torch.optim as optim
 import torch
 import time
@@ -35,7 +35,7 @@ class ParamNet:
     DROPOUT_KEY = "dropout"
     DATA_LOADER_KEY = "data_loader_config"
 
-    def __init__(self, config_path, device, only_load_statistic_data=False):
+    def __init__(self, config_path, device):
         '''
         :param config_path: config string path
         :param device: cuda or cpu?
@@ -45,7 +45,7 @@ class ParamNet:
         with open(config_path) as f:
             self.conf = json.load(f)
         self._load_param()
-        self._build_dataloader(only_load_statistic_data)
+        self._build_dataloader()
         self._build_net()
         self._build_optimizer()
         self._postprocess()
@@ -110,14 +110,17 @@ class ParamNet:
             total += i.numel()
         self.criterion = torch.nn.MSELoss()
 
-    def _build_dataloader(self, only_load_statistic_data_):
+    def _build_dataloader(self):
         '''
         Create dataloader and get the data size
         '''
-        self.data_loader = DataLoader(self.conf[self.DATA_LOADER_KEY],
-                                      only_load_statistic_data_)
-        self.input_size = self.data_loader.get_input_size()
-        self.output_size = self.data_loader.get_output_size()
+        data_manipulator = MeshDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        self.train_dataloader, self.test_dataloader = data_manipulator.get_dataloader(
+        )
+
+        self.input_size = self.train_dataloader.get_input_size()[0]
+        self.output_size = self.train_dataloader.get_output_size()[0]
+        # exit()
 
     def _build_optimizer(self):
         if self.optimizer_type == "SGD":
@@ -219,19 +222,17 @@ class ParamNet:
             iters = 0
             total_validation_err = 0
             total_num = 0
-            for _idx, sampled_batched in enumerate(
-                    self.data_loader.get_validation_data()):
+            for _idx, sampled_batched in enumerate(self.test_dataloader):
 
                 inputs, outputs = sampled_batched
-                inputs = np.array(inputs)
-                outputs = np.array(outputs)
+
                 num = inputs.shape[0]
                 # if num == 1:
                 #     # print("validation, num = 1, ignore")
                 #     continue
                 # print(f"outut shape {outputs.shape}")
-                inputs = torch.from_numpy(inputs).to(self.device)
-                Y = torch.from_numpy(outputs).to(self.device)
+                inputs = inputs.to(self.device)
+                Y = outputs.to(self.device)
 
                 # self.optimizer.zero_grad()
                 pred = self.net(inputs)
@@ -251,8 +252,8 @@ class ParamNet:
                 #     print(f"diff {diff}")
                 #     # exit()
 
-            output_mean = self.data_loader.get_output_mean()
-            output_std = self.data_loader.get_output_std()
+            # output_mean = self.test_dataloader.get_output_mean()
+            # output_std = self.test_dataloader.get_output_std()
             # print(f"output mean {output_mean}")
             # print(f"output std {output_std}")
             np_pred = pred.cpu()[0].detach().numpy()
@@ -277,20 +278,20 @@ class ParamNet:
             iters = 0
             total_num = 0
             st_epoch = time.time()
-            self.data_loader.shuffle()
-            for i_batch, sampled_batched in enumerate(
-                    self.data_loader.get_train_data()):
+            for i_batch, sampled_batched in enumerate(self.train_dataloader):
                 self.net.train()
                 # st1 = time.time()
                 # print(i_batch)
                 inputs, outputs = sampled_batched
-                inputs = np.array(inputs)
-                outputs = np.array(outputs)
+                # print(f"input shaep {inputs.shape}, {inputs.dtype}")
+                # print(f"outputs shaep {outputs.shape}, {outputs.dtype}")
+                # exit(0)
+
                 # print(f"outputs = {outputs}")
                 # exit(0)
                 # print(f"outut shape {outputs.shape}")
-                inputs = torch.from_numpy(inputs).to(self.device)
-                Y = torch.from_numpy(outputs).to(self.device)
+                inputs = inputs.to(self.device)
+                Y = outputs.to(self.device)
                 num = inputs.shape[0]
 
                 # outputs.type(torch.float32)

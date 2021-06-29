@@ -42,9 +42,6 @@ class DataLoader():
         self.train_perc = data_loader_config_dict[self.TRAIN_PERC_KEY]
         self.test_perc = 1 - self.train_perc
         assert self.test_perc > 0
-        # print(self.train_perc)
-        # print(self.test_perc)
-        # exit()
         self.enable_log_predction = data_loader_config_dict[
             self.ENABLE_LOG_PREDICTION_KEY]
         self.enable_data_augment = data_loader_config_dict[
