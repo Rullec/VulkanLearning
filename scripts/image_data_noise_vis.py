@@ -1,5 +1,7 @@
 import pickle
+import os
 
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import numpy as np
 with open("img.pkl", 'rb') as f:
     imgs = pickle.load(f)
@@ -77,30 +79,45 @@ def aug_cpu(all_imgs):
 
 import torch
 from torchvision.transforms import RandomAffine, GaussianBlur
+
 torch.manual_seed(0)
 device = torch.device("cuda", 0)
 # device = torch.device("cpu", 0)
 
-affine = RandomAffine(degrees=(-5, 5), translate = (0.07, 0.07), scale = (0.9, 1.1), shear = None)
+
+class AddGaussianNoise(object):
+    def __init__(self, mean=0., std=1.):
+        self.std = std
+        self.mean = mean
+
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(
+            self.mean, self.std)
+
+from torchvision import transforms
+affine = RandomAffine(degrees=(-5, 5),
+                      translate=(0.07, 0.07),
+                      scale=(0.9, 1.1),
+                      shear=None)
 blur = GaussianBlur(kernel_size=3)
-noise_gaussian_std = 0.04
+gaussian_noise = AddGaussianNoise(mean=0, std=0.04)
+trans_aug = transforms.Compose([affine, blur, gaussian_noise])
+    #     [affine, blur])
 
 def aug_torch(all_imgs):
     global noise_gaussian_std
     torch_all_imgs = torch.from_numpy(np.array(all_imgs))
     # height, width = all_imgs[0].shape[1], all_imgs[0].shape[2]
-
-    torch_all_imgs = affine(torch_all_imgs)
-    torch_all_imgs = blur(torch_all_imgs)
-
-    noise = torch.randn_like(torch_all_imgs[0]) * noise_gaussian_std
-    print(f"image mean {np.mean(np.abs(all_imgs))}")
-    print(f"noise mean {torch.mean(torch.abs(noise))}")
-    torch_all_imgs += noise 
+    torch_all_imgs = trans_aug(torch_all_imgs)
+    # torch_all_imgs = affine(torch_all_imgs)
+    # torch_all_imgs = blur(torch_all_imgs)
+    # torch_all_imgs = gaussian_noise(torch_all_imgs)
     return np.array(torch_all_imgs)
     # print(torch_all_imgs.shape)
     # exit()
-
 
 
 while True:

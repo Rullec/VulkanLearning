@@ -1,5 +1,4 @@
 from ntpath import join
-from data_loader import DataLoader
 import os
 from PIL import Image
 import numpy as np

@@ -30,8 +30,8 @@ class CNNParamNet(ParamNet):
         data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
         self.train_dataloader, self.test_dataloader = data_mani.get_dataloader(
         )
-        print(f"begin to build dataloader")
-        exit()
+        self.input_size = self.train_dataloader.get_input_size()
+        self.output_size = self.train_dataloader.get_output_size()[0]
 
     def _build_net(self):
 
@@ -56,9 +56,8 @@ class CNNParamNet(ParamNet):
             iters = 0
             total_num = 0
 
-            self.data_loader.shuffle()
             for i_batch, sampled_batched in enumerate(
-                    self.data_loader.get_train_data()):
+                    self.train_dataloader):
                 # st1 = time.time()
                 # print(i_batch)
                 self.net.train()
