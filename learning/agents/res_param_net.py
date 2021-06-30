@@ -16,6 +16,7 @@ class CNNParamNet(ParamNet):
     '''
     NAME = "CNNParamNet"
     IMAGE_DATALOADER_TYPE_KEY = "image_dataloader_type"
+    INPUT_NORMALZE_MODE_KEY = "input_normalize_mode"
 
     def __init__(self, config_path, device):
         super().__init__(config_path, device)
@@ -26,7 +27,6 @@ class CNNParamNet(ParamNet):
             CNNParamNet.IMAGE_DATALOADER_TYPE_KEY]
 
     def _build_dataloader(self):
-
         data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
         self.train_dataloader, self.test_dataloader = data_mani.get_dataloader(
         )
@@ -56,8 +56,7 @@ class CNNParamNet(ParamNet):
             iters = 0
             total_num = 0
 
-            for i_batch, sampled_batched in enumerate(
-                    self.train_dataloader):
+            for i_batch, sampled_batched in enumerate(self.train_dataloader):
                 # st1 = time.time()
                 # print(i_batch)
                 self.net.train()

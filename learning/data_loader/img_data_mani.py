@@ -10,11 +10,38 @@ from file_util import get_subdirs, load_json, load_png_image
 from .mesh_data_mani import MeshDataManipulator
 from itertools import repeat
 import os
-from multiprocessing import Pool
+from multiprocessing import Pool, Value
+
+from enum import Enum
+
+
+class NORMALIZE_MODE(Enum):
+    PER_PIXEL = 0
+    ALL_FLOAT = 1
+
+    @staticmethod
+    def build_mode_from_str(mode_str):
+        if mode_str == "per_pixel":
+            return NORMALIZE_MODE.PER_PIXEL
+        elif mode_str == "all_float":
+            return NORMALIZE_MODE.ALL_FLOAT
+        else:
+            raise Value(mode_str)
+
+    @staticmethod
+    def build_str_from_mode(mode):
+        if mode == NORMALIZE_MODE.PER_PIXEL:
+            return "per_pixel"
+        elif mode == NORMALIZE_MODE.ALL_FLOAT:
+            return "all_float"
+        else:
+            raise Value(mode)
 
 
 class ImageDataManipulator(MeshDataManipulator):
     FEATURE_JSON_NAME = "feature.json"
+    INPUT_NORMALZE_MODE_KEY = "input_normalize_mode"
+    NORMALIZE_MODE_HDF5_KEY = "normalize_mode"
 
     def __init__(self, conf_dict):
         self.conf_dict = conf_dict
@@ -27,8 +54,7 @@ class ImageDataManipulator(MeshDataManipulator):
         if self._check_archive_exists() == False or self._validate_archive(
         ) == False:
             train_dirs, test_dirs = self._load_mesh_data()
-            stats = ImageDataManipulator._calc_statistics_distributed_perpixel(
-                train_dirs + test_dirs)
+            stats = self._calc_statistics_distributed(train_dirs + test_dirs)
 
             self._save_archive(self.get_archive_path(), train_dirs, test_dirs,
                                stats)
@@ -39,50 +65,30 @@ class ImageDataManipulator(MeshDataManipulator):
 
     def _parse_config(self, conf_dict):
         super()._parse_config(conf_dict)
+        self.normalize_mode = NORMALIZE_MODE.build_mode_from_str(
+            conf_dict[ImageDataManipulator.INPUT_NORMALZE_MODE_KEY])
 
-    def _test(self):
-        self._remove_archive()
-        train_dirs, test_dirs = self._load_mesh_data()
-        dist_stats = ImageDataManipulator._calc_statistics_distributed_perpixel(
-            train_dirs + test_dirs)
-        print(f"_calc_statistics_distributed done")
-        mem_stats = ImageDataManipulator._calc_statistics_allmem(train_dirs +
-                                                                 test_dirs)
+    def _validate_archive(self):
+        valid = super()._validate_archive()
+        f = h5py.File(self.get_archive_path(), 'r')
+        all_keys = f.keys()
+        valid = (ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY
+                 in f.attrs) and valid
 
-        print(f"_calc_statistics_allmem done")
-        # begin to compare
-        for key in dist_stats.keys():
-            diff = np.abs(dist_stats[key] - mem_stats[key])
-            max_diff = np.max(diff)
-            if max_diff > 1e-2:
-                raise ValueError(f"{key} test failed, max diff {max_diff}")
+        if valid is True:
+            hdf5_mode_str = f.attrs[
+                ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY]
+            cur_str = NORMALIZE_MODE.build_str_from_mode(self.normalize_mode)
+            valid = (hdf5_mode_str == cur_str)
 
-            else:
-                print(f"test {key} succ, max diff {max_diff}")
+        return valid
 
-        exit()
-
-    def _calc_statistics_allmem(all_dirs):
-        input_lst = []
-        output_lst = []
-        # for cur_dir in all_dirs:
-        for cur_dir in tqdm(all_dirs):
-            input, output = ImageDataManipulator._load_image_dir(cur_dir)
-            input_lst.append(input)
-            output_lst.append(output)
-
-        input_lst = np.vstack(input_lst)
-        output_lst = np.vstack(output_lst)
-        assert len(input_lst.shape) == 4, f"{input_lst.shape}"
-        assert len(output_lst.shape) == 2
-        input_mean = np.mean(input_lst, axis=0)
-        input_std = np.std(input_lst, axis=0)
-        output_mean = np.mean(output_lst, axis=0)
-        output_std = np.std(output_lst, axis=0)
-        input_std, output_std = MeshDataManipulator._std_clip(
-            input_std, output_std)
-        return MeshDataManipulator._pack_statistics(input_mean, input_std,
-                                                    output_mean, output_std)
+    def _build_data_augmentation(self):
+        if self.enable_data_aug is True:
+            from .data_aug import apply_depth_aug
+            self.data_aug = apply_depth_aug
+        else:
+            self.data_aug = None
 
     def _load_mesh_data(self):
         print(f"begin to load depth data from {self.data_dir}")
@@ -118,7 +124,7 @@ class ImageDataManipulator(MeshDataManipulator):
         assert len(png_lst.shape) == 3
         return png_lst
 
-    def _load_image_dir(cur_dir):
+    def _load_image_parent_dir(cur_dir):
         # 1. judge the feature.json
         assert os.path.exists(cur_dir) == True, f"{cur_dir}"
         feature_filename = os.path.join(cur_dir,
@@ -139,38 +145,14 @@ class ImageDataManipulator(MeshDataManipulator):
         # 3. return feature vector & data list
         return input_array, label
 
-    def _calc_sum_per_pixel(dir_path_lst):
-        # 1. given a batch of dir, read all image and calculate the sum
-        input_sum = None
-        output_sum = None
-        total_num = 0
-        for cur_dir in tqdm(dir_path_lst):
-            input_array, output = ImageDataManipulator._load_image_dir(cur_dir)
-            assert len(input_array.shape) == 4, f"{input_array.shape}"
-            cur_num = input_array.shape[0]
-            total_num += cur_num
-            if input_sum is None:
-                input_sum = np.sum(input_array, axis=0)
-                output_sum = output * cur_num
-            else:
-                input_sum += np.sum(input_array, axis=0)
-                output_sum += output * cur_num
-
-        return total_num, input_sum, output_sum
-
-    def _calc_statistics_distributed_perpixel(all_dirs):
-        stats = MeshDataManipulator._calc_statistics_distributed(
-            all_dirs, ImageDataManipulator._calc_sum_per_pixel,
-            ImageDataManipulator.calc_x_minus_xbar_perpixel)
-        return stats
-
-    def calc_x_minus_xbar_perpixel(dir_path_lst, input_mean, output_mean):
+    def _calc_x_minus_xbar_perpixel(dir_path_lst, input_mean, output_mean):
         total_num = 0
         input_sum = None
         output_sum = None
         # for cur_dir in tqdm(dir_path_lst):
         for cur_dir in tqdm(dir_path_lst):
-            input_array, output = ImageDataManipulator._load_image_dir(cur_dir)
+            input_array, output = ImageDataManipulator._load_image_parent_dir(
+                cur_dir)
             assert len(input_array.shape) == 4
             num = input_array.shape[0]
             total_num += num
@@ -190,26 +172,139 @@ class ImageDataManipulator(MeshDataManipulator):
                     input_sum += input_diff_squ
                     output_sum += output_diff_squ
 
-        return total_num, input_sum, output_sum
+        return total_num, total_num, input_sum, output_sum
 
-    def _calc_statistics_perpixel_numpy(self, all_dirs):
-        print(f"begin to calc statistics numpy from {all_dirs}")
-        exit()
+    def _calc_sum_per_pixel(dir_path_lst):
+        # 1. given a batch of dir, read all image and calculate the sum
+        input_sum = None
+        output_sum = None
+        total_num = 0
+        for cur_dir in tqdm(dir_path_lst):
+            input_array, output = ImageDataManipulator._load_image_parent_dir(
+                cur_dir)
+            assert len(input_array.shape) == 4, f"{input_array.shape}"
+            cur_num = input_array.shape[0]
+            total_num += cur_num
+            if input_sum is None:
+                input_sum = np.sum(input_array, axis=0)
+                output_sum = output * cur_num
+            else:
+                input_sum += np.sum(input_array, axis=0)
+                output_sum += output * cur_num
+
+        return total_num, total_num, input_sum, output_sum
+
+    def _calc_sum_allfloat(dir_path_lst):
+        input_sum = None
+        output_sum = None
+        num_input_total = 0
+        num_output_total = 0
+        for cur_dir in tqdm(dir_path_lst):
+            input_array, output = ImageDataManipulator._load_image_parent_dir(
+                cur_dir)
+            assert len(input_array.shape) == 4, f"{input_array.shape}"
+            num_input_total += input_array.size
+            num_output_total += output.size
+            if input_sum is None:
+                input_sum = np.sum(input_array)
+                output_sum = np.sum(output)
+            else:
+                input_sum += np.sum(input_array)
+                output_sum += np.sum(output)
+
+        return num_input_total, num_output_total, input_sum, output_sum
+
+    def _calc_x_minus_xbar_allfloat(dir_path_lst, input_mean, output_mean):
+
+        input_sum = 0.0
+        output_sum = 0.0
+        num_input_total = 0
+        num_output_total = 0
+        # for cur_dir in tqdm(dir_path_lst):
+        for cur_dir in tqdm(dir_path_lst):
+            input_array, output = ImageDataManipulator._load_image_parent_dir(
+                cur_dir)
+            assert len(input_array.shape) == 4
+            num_input_total += input_array.size
+            num_output_total += output.size
+            input_sum += np.sum(np.square(input_array - input_mean))
+            output_sum += np.sum(np.square(output - output_mean))
+        return num_input_total, num_output_total, input_sum, output_sum
+
+    def _calc_statistics_distributed_perpixel(all_dirs):
+        stats = MeshDataManipulator._calc_statistics_distributed(
+            all_dirs, ImageDataManipulator._calc_sum_per_pixel,
+            ImageDataManipulator._calc_x_minus_xbar_perpixel)
+        return stats
+
+    def _calc_statistics_distributed_allfloat(all_dirs):
+        stats = MeshDataManipulator._calc_statistics_distributed(
+            all_dirs, ImageDataManipulator._calc_sum_allfloat,
+            ImageDataManipulator._calc_x_minus_xbar_allfloat)
+        return stats
 
     def _calc_statistics_distributed(self, all_dirs):
-        input_mean, input_std, output_mean, output_std = ImageDataManipulator._calc_statistics_distributed_perpixel(
-            all_dirs)
-
+        if self.normalize_mode == NORMALIZE_MODE.PER_PIXEL:
+            stats = ImageDataManipulator._calc_statistics_distributed_perpixel(
+                all_dirs)
+        elif self.normalize_mode == NORMALIZE_MODE.ALL_FLOAT:
+            stats = ImageDataManipulator._calc_statistics_distributed_allfloat(
+                all_dirs)
+        else:
+            raise ValueError(f"{self.normalize_mode} unsupported")
+        input_mean, input_std, output_mean, output_std = MeshDataManipulator._unpack_statistics(
+            stats)
         input_std, output_std = ImageDataManipulator._std_clip(
             input_std, output_std)
-
         stats = MeshDataManipulator._pack_statistics(
             input_mean.astype(np.float32), input_std.astype(np.float32),
             output_mean.astype(np.float32), output_std.astype(np.float32))
 
-        # stats_np = self._calc_statistics_perpixel_numpy(all_dirs)
-
         return stats
+
+    def _calc_statistics_allmem_perpixel(all_dirs):
+        input_lst = []
+        output_lst = []
+        # for cur_dir in all_dirs:
+        for cur_dir in tqdm(all_dirs):
+            input, output = ImageDataManipulator._load_image_parent_dir(
+                cur_dir)
+            input_lst.append(input)
+            output_lst.append(output)
+
+        input_lst = np.vstack(input_lst)
+        output_lst = np.vstack(output_lst)
+        assert len(input_lst.shape) == 4, f"{input_lst.shape}"
+        assert len(output_lst.shape) == 2
+        input_mean = np.mean(input_lst, axis=0)
+        input_std = np.std(input_lst, axis=0)
+        output_mean = np.mean(output_lst, axis=0)
+        output_std = np.std(output_lst, axis=0)
+        input_std, output_std = MeshDataManipulator._std_clip(
+            input_std, output_std)
+        return MeshDataManipulator._pack_statistics(input_mean, input_std,
+                                                    output_mean, output_std)
+
+    def _calc_statistics_allmem_allfloat(all_dirs):
+        input_lst = []
+        output_lst = []
+        # for cur_dir in all_dirs:
+        for cur_dir in tqdm(all_dirs):
+            input, output = ImageDataManipulator._load_image_parent_dir(
+                cur_dir)
+            input_lst.append(input)
+            output_lst.append(output)
+
+        input_lst = np.vstack(input_lst)
+        output_lst = np.vstack(output_lst)
+        input_mean = np.mean(input_lst)
+        input_std = np.std(input_lst)
+        output_mean = np.mean(output_lst)
+        output_std = np.std(output_lst)
+        input_std, output_std = MeshDataManipulator._std_clip(
+            input_std, output_std)
+        return MeshDataManipulator._pack_statistics(input_mean, input_std,
+                                                    output_mean, output_std)
 
     def load_datadir_and_feature_file_for_archive(_idx, group_name, data_dir,
                                                   feature_file, archive_path,
@@ -275,11 +370,56 @@ class ImageDataManipulator(MeshDataManipulator):
         f = h5py.File(output_file, 'a')
         for i in list(stats.keys()):
             f.create_dataset(i, stats[i].shape, data=stats[i])
+
+        f.attrs["normalize_mode"] = NORMALIZE_MODE.build_str_from_mode(
+            self.normalize_mode)
         print(f"[log] save archive succ")
 
-    def _build_data_augmentation(self):
-        if self.enable_data_aug is True:
-            from .data_aug import apply_depth_aug
-            self.data_aug = apply_depth_aug
-        else:
-            self.data_aug = None
+    def _test(self):
+        if self.normalize_mode == NORMALIZE_MODE.PER_PIXEL:
+            self._test_perpixel()
+        elif self.normalize_mode == NORMALIZE_MODE.ALL_FLOAT:
+            self._test_allfloat()
+        exit()
+
+    def _test_perpixel(self):
+        self._remove_archive()
+        train_dirs, test_dirs = self._load_mesh_data()
+        dist_stats = ImageDataManipulator._calc_statistics_distributed_perpixel(
+            train_dirs + test_dirs)
+        print(f"_calc_statistics_distributed perpixel done")
+        mem_stats = ImageDataManipulator._calc_statistics_allmem_perpixel(
+            train_dirs + test_dirs)
+
+        print(f"_calc_statistics_allmem perpixel ldone")
+        # begin to compare
+        for key in dist_stats.keys():
+            diff = np.abs(dist_stats[key] - mem_stats[key])
+            max_diff = np.max(diff)
+            if max_diff > 1e-2:
+                raise ValueError(f"{key} test failed, max diff {max_diff}")
+
+            else:
+                print(f"test {key} succ, max diff {max_diff}")
+
+    def _test_allfloat(self):
+        self._remove_archive()
+        train_dirs, test_dirs = self._load_mesh_data()
+        dist_stats = ImageDataManipulator._calc_statistics_distributed_allfloat(
+            train_dirs + test_dirs)
+        print(f"_calc_statistics_distributed allfloat done")
+        mem_stats = ImageDataManipulator._calc_statistics_allmem_allfloat(
+            train_dirs + test_dirs)
+
+        print(f"_calc_statistics_allmem allfloat ldone")
+        # begin to compare
+        for key in dist_stats.keys():
+            diff = np.abs(dist_stats[key] - mem_stats[key])
+            max_diff = np.max(diff)
+            if max_diff > 1e-2:
+                raise ValueError(f"{key} test failed, max diff {max_diff}")
+
+            else:
+                print(f"test {key} succ, max diff {max_diff}")
+        print(dist_stats)
+        pass

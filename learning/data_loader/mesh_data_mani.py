@@ -98,6 +98,8 @@ class MeshDataManipulator(ABC):
         valid = (MeshDataManipulator.INPUT_STD_KEY in all_keys) and valid
         valid = (MeshDataManipulator.OUTPUT_MEAN_KEY in all_keys) and valid
         valid = (MeshDataManipulator.OUTPUT_STD_KEY in all_keys) and valid
+        f.close()
+
         return valid
 
     def _remove_archive(self):
@@ -188,9 +190,9 @@ class MeshDataManipulator(ABC):
         for _idx, cur_file in tqdm(enumerate(train_files),
                                    "saving training set"):
             res = MeshDataManipulator.load_single_json_mesh_data_for_archive
-            (_idx, "train_set", cur_file, output_file, input_mean,
-                 input_std, output_mean, output_std)
-                
+            (_idx, "train_set", cur_file, output_file, input_mean, input_std,
+             output_mean, output_std)
+
             MeshDataManipulator.save_files_to_grp(res)
             # pool = Pool(4)
             # pool.apply(
@@ -200,7 +202,7 @@ class MeshDataManipulator(ABC):
             #     callback=MeshDataManipulator.save_files_to_grp)
             # pool.close()
             # pool.join()
-        
+
         for _idx, cur_file in tqdm(enumerate(test_files), "saving test set"):
             pool = Pool(4)
             pool.apply(
@@ -210,7 +212,7 @@ class MeshDataManipulator(ABC):
                 callback=MeshDataManipulator.save_files_to_grp)
             pool.close()
             pool.join()
-        
+
         # output statistics
         f = h5py.File(output_file, 'a')
         for i in list(stats.keys()):
@@ -284,7 +286,7 @@ class MeshDataManipulator(ABC):
             else:
                 input_sum += feature
                 output_sum += output
-        return len(files), input_sum, output_sum
+        return len(files), len(files), input_sum, output_sum
 
     @staticmethod
     def calc_x_minus_xbar(files, input_mean, output_mean):
@@ -305,40 +307,50 @@ class MeshDataManipulator(ABC):
                 input_sum += input_diff_squ
                 output_sum += output_diff_squ
 
-        return len(files), input_sum, output_sum
+        return len(files), len(files), input_sum, output_sum
 
     def _calc_dataset_mean_by_pool(pool, calc_data_sum_func, params):
         total_input_sum = None
         total_output_sum = None
-        total_num = 0
-        for data_num, subbatch_input_sum, subbatch_output_sum in pool.map(
+        num_input_total = 0
+        num_output_total = 0
+        for input_num, output_num, subbatch_input_sum, subbatch_output_sum in pool.map(
                 calc_data_sum_func, params):
-            total_num += data_num
+            num_input_total += input_num
+            num_output_total += output_num
+
             if total_input_sum is None:
                 total_input_sum = subbatch_input_sum
                 total_output_sum = subbatch_output_sum
             else:
                 total_input_sum += subbatch_input_sum
                 total_output_sum += subbatch_output_sum
-        input_mean = total_input_sum / total_num
-        output_mean = total_output_sum / total_num
+        input_mean = total_input_sum / num_input_total
+        output_mean = total_output_sum / num_output_total
         return input_mean, output_mean
 
     def _std_clip(input_std, output_std, thre=1e-2):
-
-        np.clip(input_std, thre, None, input_std)
-        np.clip(output_std, thre, None, output_std)
+        if isinstance(input_std, np.ndarray):
+            np.clip(input_std, thre, None, input_std)
+            np.clip(output_std, thre, None, output_std)
+        elif isinstance(input_std, np.floating):
+            input_std = max(input_std, thre)
+            output_std = max(output_std, thre)
+        else:
+            raise ValueError(f"unsupported type {type(input_std)}")
         return input_std, output_std
 
     def _calc_dataset_std_by_pool(pool, calc_data_x_minux_xbar_func, params,
                                   input_mean, output_mean):
         input_std = None
         output_std = None
-        total_num = 0
-        for num_data, input_sum, output_sum in pool.starmap(
+        num_input_total = 0
+        num_output_total = 0
+        for input_num, output_num, input_sum, output_sum in pool.starmap(
                 calc_data_x_minux_xbar_func,
                 zip(params, repeat(input_mean), repeat(output_mean))):
-            total_num += num_data
+            num_input_total += input_num
+            num_output_total += output_num
             if input_std is None:
                 input_std = input_sum
                 output_std = output_sum
@@ -348,8 +360,8 @@ class MeshDataManipulator(ABC):
         # print(f"total num = {total_num}")
         # print(f"input std sum = {np.sum(input_std)}")
         # print(f"input mean sum = {np.sum(input_mean)}")
-        input_std = np.sqrt(input_std / (total_num))
-        output_std = np.sqrt(output_std / (total_num))
+        input_std = np.sqrt(input_std / num_input_total)
+        output_std = np.sqrt(output_std / num_output_total)
 
         return input_std, output_std
 
@@ -367,17 +379,17 @@ class MeshDataManipulator(ABC):
         input_mean, output_mean = MeshDataManipulator._calc_dataset_mean_by_pool(
             pool, calc_sum_func, params)
 
-        print(f"beginto calc std")
         # 2. calculate std statistics
         input_std, output_std = MeshDataManipulator._calc_dataset_std_by_pool(
             pool, calc_xminusxbar_func, params, input_mean, output_mean)
+
+        print(input_std, output_std)
         input_std, output_std = MeshDataManipulator._std_clip(
             input_std, output_std)
 
         stats = MeshDataManipulator._pack_statistics(
             input_mean.astype(np.float32), input_std.astype(np.float32),
             output_mean.astype(np.float32), output_std.astype(np.float32))
-        print(f"stats done")
         return stats
 
     def _calc_statistics_allmem(all_files):
