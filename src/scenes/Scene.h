@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 #include <memory>
 #include <string>
 class cScene : public std::enable_shared_from_this<cScene>

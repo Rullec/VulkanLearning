@@ -6,7 +6,10 @@
 #include "geometries/Triangulator.h"
 #include "utils/FileUtil.h"
 #include "utils/JsonUtil.h"
+#include "utils/MPIUtil.h"
+#include "utils/SysUtil.h"
 #include "utils/TimeUtil.hpp"
+#include <algorithm>
 #include <iostream>
 cProcessTrainDataScene::cProcessTrainDataScene()
 {
@@ -157,8 +160,6 @@ void cProcessTrainDataScene::CalcDepthMapNoCloth()
 /**
  * \brief           main loop to calculate the depth map for each data point
  */
-#include "utils/SysUtil.h"
-#include <algorithm>
 extern bool comp_filename(const std::string &name0, const std::string &name1);
 void cProcessTrainDataScene::CalcDepthMapLoop()
 {
@@ -181,13 +182,31 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
     std::sort(paths.begin(), paths.end(), comp_filename);
 
     SIM_ASSERT(paths.size() > 0);
-    cTimeUtil::Begin("total");
     tVectorXd feature_vec_buf;
 
+    // init mpi
+    {
+        if (cMPIUtil::Init() == false)
+        {
+            printf("[error] init mpi failed\n");
+            exit(1);
+        }
+    }
+    int world_size = cMPIUtil::GetWorldSize();
+    int world_rank = cMPIUtil::GetWorldRank();
+
     // 1. for each mesh
+    int num_of_handled_mesh = 0;
     tVectorXd mesh_pos_vector;
+    std::string time_label = "total_proc" + std::to_string(world_rank);
+    cTimeUtil::Begin(time_label);
+
     for (int mesh_id = 0; mesh_id < paths.size(); mesh_id++)
     {
+        if ((mesh_id % world_size) != world_rank)
+        {
+            continue;
+        }
         cTimeUtil::Begin("handle_img");
         std::string raycast_output_dir_level0 =
             mGenDataDir + "\\" + "mesh" + std::to_string(mesh_id);
@@ -247,10 +266,17 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
                                      raycast_output_dir_level0, "feature.json"),
                                  feature_json, true);
         }
-        printf("[log] handle mesh %d/%d, cost %.3f ms\n", mesh_id + 1,
-               paths.size(), cTimeUtil::End("handle_img"));
+        if (world_rank == 0)
+        {
+            printf("[log] handle mesh %d/%d, cost %.3f ms\n",
+                   num_of_handled_mesh + 1, paths.size() / world_size,
+                   cTimeUtil::End("handle_img"));
+        }
+        num_of_handled_mesh++;
     }
-    cTimeUtil::End("total");
+    cTimeUtil::End(time_label);
+
+    cMPIUtil::End();
     // std::cout << "finished exit\n";
     // exit(1);
 }
