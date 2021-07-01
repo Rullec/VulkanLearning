@@ -19,8 +19,11 @@ endif()
 
 find_package(Vulkan REQUIRED)
 if(Vulkan_FOUND)
-include_directories(${Vulkan_INCLUDE_DIRS})
+    include_directories(${Vulkan_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "vulkan not found")
 endif()
+
 
 find_package(GLFW3 REQUIRED)
 include_directories(./src)
@@ -37,8 +40,6 @@ if(WIN32)
     # use sanitzer
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
     # add_definitions("/fsanitize=address")
-    set(USE_OPTIX ON)
-    add_definitions(-D USE_OPTIX)
 else()
     add_definitions(-std=c++17)
     # message(FATAL_ERROR add unix c++17 definitions)
@@ -46,6 +47,10 @@ else()
     add_definitions(-g)
 endif()
 
+if(NOT APPLE)
+    set(USE_OPTIX ON)
+    add_definitions(-D USE_OPTIX)
+endif()
 # -------------------enable openmp---------------------
 
 if(USE_OPENMP)

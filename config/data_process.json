@@ -1,7 +1,7 @@
 {
     "scene_type": "data_process",
     "pause_at_first": false,
-    "enable_draw": true,
+    "enable_draw": false,
     "window_height": 720,
     "window_width": 1280,
     "enable_obstacle": true,
@@ -52,8 +52,8 @@
     "capture_camera_fov": 61.92,
     "enable_cloth_geometry": true,
     "geometry_info": "./log/geo_info.json",
-    "raw_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\uniform_sample10_noised16",
-    "gen_data_dir": "D:\\SimpleClothSimulator\\data\\export_data\\test_mesh_data_gen",
+    "raw_data_dir": "data/export_data/uniform_sample10_noised16",
+    "gen_data_dir": "data/export_data/test_mesh_data_gen",
     "preprocess_info": {
         "num_of_init_rotation_angle": 4,
         "enable_camera_noise": true,

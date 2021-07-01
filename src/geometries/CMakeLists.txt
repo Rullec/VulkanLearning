@@ -17,7 +17,6 @@ add_library(
 
 if(USE_OPTIX)
 target_link_libraries(geo_lib
-    ${optix_LIBRARY}
     ${CUDA_LIBRARIES}
     ${CUDA_CUDA_LIBRARY}
   )

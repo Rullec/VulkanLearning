@@ -1,4 +1,5 @@
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
+
 #include "ProcessTrainDataScene.h"
 #include "cameras/ArcBallCamera.h"
 #include "geometries/OptixRaycaster.h"
@@ -209,7 +210,7 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
         }
         cTimeUtil::Begin("handle_img");
         std::string raycast_output_dir_level0 =
-            mGenDataDir + "\\" + "mesh" + std::to_string(mesh_id);
+            mGenDataDir + "/" + "mesh" + std::to_string(mesh_id);
 
         // 2. regenerate the camera pos & orientations
         GenerateCameraViews();
@@ -231,7 +232,7 @@ void cProcessTrainDataScene::CalcDepthMapLoop()
             // 4. restore the mesh
             now_cloth_pos.noalias() = mesh_pos_vector;
             std::string raycast_output_dir_level1 = raycast_output_dir_level0 +
-                                                    "\\init_rot" +
+                                                    "/init_rot" +
                                                     std::to_string(init_rot_id);
 
             // 5. apply the init rotation angle
@@ -400,7 +401,7 @@ void cProcessTrainDataScene::CalcDepthMapMultiViews(
         for (int j = 0; j < camera_array.size(); j++)
         {
             std::string output_dir_level1 =
-                output_dir + "\\" + "cam" + std::to_string(j);
+                output_dir + "/" + "cam" + std::to_string(j);
             if (cFileUtil::ExistsDir(output_dir_level1) == false)
                 cFileUtil::CreateDir(output_dir_level1.c_str());
             png_array.push_back(cFileUtil::ConcatFilename(

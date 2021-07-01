@@ -1,7 +1,7 @@
 // #ifdef USE_OPTIX
 #pragma once
 
-#include "optix7.h"
+#include "Optix7.h"
 #include "utils/MathUtil.h"
 #define OPTIX_LAUNCH_PARAM_NUM_OF_RANDOM_NUMBER 10000
 struct MY_ALIGN(16) LaunchParams

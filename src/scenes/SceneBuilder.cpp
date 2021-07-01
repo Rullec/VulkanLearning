@@ -36,16 +36,21 @@ cSceneBuilder::BuildSimScene(const std::string config_file)
         scene = std::make_shared<cSimScene>();
         break;
 #ifdef _WIN32
+    // only for  windows platform
     case eSceneType::SCENE_SE:
         scene = std::make_shared<cLinctexScene>();
         break;
     case eSceneType::SCENE_SYN_DATA:
         scene = std::make_shared<cSynDataScene>();
         break;
+#endif
+
+#if defined(_WIN32) || defined(__linux__)
     case eSceneType::SCENE_PROCESS_DATA:
         scene = std::make_shared<cProcessTrainDataScene>();
         break;
 #endif
+    
     case eSceneType::SCENE_MESH_VIS:
         scene = std::make_shared<cMeshVisScene>();
         break;

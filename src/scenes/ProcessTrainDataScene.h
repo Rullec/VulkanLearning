@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
 #pragma once
 #include "SimScene.h"
 #include "utils/DefUtil.h"

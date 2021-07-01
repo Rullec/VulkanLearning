@@ -27,7 +27,8 @@ add_library(
 
 target_link_libraries(sim_scenes_lib sim_lib geo_lib utils_lib)
 
-target_link_libraries(scenes_lib ${GLFW3_LIBRARY} ${Vulkan_LIBRARIES}  draw_scene_lib sim_scenes_lib)
+target_link_libraries(draw_scene_lib ${Vulkan_LIBRARIES})
+target_link_libraries(scenes_lib ${GLFW3_LIBRARY}  draw_scene_lib sim_scenes_lib)
 
 if(WIN32)
     if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
