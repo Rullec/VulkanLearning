@@ -85,8 +85,12 @@ class ImageDataManipulator(MeshDataManipulator):
 
     def _build_data_augmentation(self):
         if self.enable_data_aug is True:
-            from .data_aug import apply_depth_aug
-            self.data_aug = apply_depth_aug
+            from .data_aug import apply_depth_albumentation, apply_depth_aug
+            # self.data_aug = apply_depth_aug
+            # print("[log] do torch aug")
+            
+            self.data_aug = apply_depth_albumentation
+            print("[log] do albumentation aug")
         else:
             self.data_aug = None
 

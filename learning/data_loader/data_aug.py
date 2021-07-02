@@ -1,8 +1,9 @@
 import numpy as np
 import torch
+from torch.functional import Tensor
 from torchvision.transforms import RandomAffine, GaussianBlur
 from torchvision import transforms
-from torchvision.transforms.transforms import RandomRotation
+from torchvision.transforms.transforms import RandomRotation, ToTensor
 
 
 def apply_mesh_data_noise(batch):
@@ -29,16 +30,23 @@ class AddGaussianNoise(object):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(
             self.mean, self.std)
 
+
 affine = RandomAffine(degrees=(-5, 5),
-                        translate=(0.07, 0.07),
-                        scale=(1.0, 1.0))
+                      translate=(0.07, 0.07),
+                      scale=(1.0, 1.0))
 blur = GaussianBlur(kernel_size=3)
 gaussian_noise = AddGaussianNoise(mean=0, std=0.04)
 trans_aug = transforms.Compose([affine, blur, gaussian_noise])
 
-def apply_depth_aug(batch):
-    inputs, outputs = batch
+import time
+
+
+def apply_depth_aug(inputs):
+    inputs = torch.from_numpy(inputs)
+    # st = time.time()
     inputs = trans_aug(inputs)
+    # ed = time.time()
+    # print(f"torch aug cost {ed - st} s")
     # data_transform_affine_blur_noise = transforms.Compose(
     #     [affine, blur, gaussian_noise])
     # gaussian_noise = AddGaussianNoise(mean=0, std=0.04)
@@ -46,7 +54,23 @@ def apply_depth_aug(batch):
     #     [affine, blur])
     # return data_transform_affine_blur_noise
     # return blur
-    return (inputs, outputs)
+    return inputs
+
+
+import albumentations as A
+
+a_ssr = A.ShiftScaleRotate(p=1.0)
+a_gb = A.GaussianBlur(p=1.0)
+a_gn = A.GaussNoise(p=1.0)
+trans_aug_A = A.Compose([ a_ssr, a_gb, a_gn])
+
+
+def apply_depth_albumentation(inputs):
+    st = time.time()
+    inputs = trans_aug_A(image=inputs)["image"]
+    ed = time.time()
+    # print(f"albumentations aug cost = {ed - st}")
+    return inputs
 
 
 import os

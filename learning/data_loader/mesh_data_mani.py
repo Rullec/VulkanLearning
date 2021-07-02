@@ -425,26 +425,28 @@ class MeshDataManipulator(ABC):
 
         f = h5py.File(self.get_archive_path(), mode='r')
 
-        train_dataset = CustomDataset(f["train_set"],
-                                      f[MeshDataManipulator.INPUT_MEAN_KEY],
-                                      f[MeshDataManipulator.INPUT_STD_KEY],
-                                      f[MeshDataManipulator.OUTPUT_MEAN_KEY],
-                                      f[MeshDataManipulator.OUTPUT_STD_KEY],
-                                      load_all_data_into_mem = self.load_all_data_into_mem)
-        test_dataset = CustomDataset(f["test_set"],
-                                     f[MeshDataManipulator.INPUT_MEAN_KEY],
-                                     f[MeshDataManipulator.INPUT_STD_KEY],
-                                     f[MeshDataManipulator.OUTPUT_MEAN_KEY],
-                                     f[MeshDataManipulator.OUTPUT_STD_KEY],
-                                     load_all_data_into_mem = self.load_all_data_into_mem)
+        train_dataset = CustomDataset(
+            f["train_set"],
+            f[MeshDataManipulator.INPUT_MEAN_KEY],
+            f[MeshDataManipulator.INPUT_STD_KEY],
+            f[MeshDataManipulator.OUTPUT_MEAN_KEY],
+            f[MeshDataManipulator.OUTPUT_STD_KEY],
+            load_all_data_into_mem=self.load_all_data_into_mem,
+            data_aug=self.data_aug)
+        test_dataset = CustomDataset(
+            f["test_set"],
+            f[MeshDataManipulator.INPUT_MEAN_KEY],
+            f[MeshDataManipulator.INPUT_STD_KEY],
+            f[MeshDataManipulator.OUTPUT_MEAN_KEY],
+            f[MeshDataManipulator.OUTPUT_STD_KEY],
+            load_all_data_into_mem=self.load_all_data_into_mem)
 
         return train_dataset, test_dataset
 
     def _create_dataloader(self):
         train_dataset, test_dataset = self.__create_dataset()
         self.train_dataloader = CustomDataLoader(train_dataset,
-                                                 self.batch_size,
-                                                 self.data_aug)
+                                                 self.batch_size)
         self.val_dataloader = CustomDataLoader(test_dataset, self.batch_size)
         print(f"create dataloader succ")
 

@@ -11,7 +11,9 @@ class CustomDataset(Dataset):
                  input_std,
                  output_mean,
                  output_std,
-                 load_all_data_into_mem=False):
+                 load_all_data_into_mem=False,
+                 data_aug=None):
+        self.data_aug = data_aug
         self.hdf5_grp_handle = hdf5_grp_handle
         self.input_mean = input_mean
         self.input_std = input_std
@@ -51,8 +53,10 @@ class CustomDataset(Dataset):
             input, output = self.__getitem_from_mem(index)
         else:
             input, output = self.__getitem_from_disk(index)
-        # print(f"input shape {input.shape}")
-        # print(f"output shape {output.shape}")
+        if self.data_aug is not None:
+            input = self.data_aug(input)
+            # print("done dataaug, exit")
+            # exit()
         return input, output
 
     def __len__(self):
@@ -68,9 +72,8 @@ class CustomDataset(Dataset):
 
 
 class CustomDataLoader(DataLoader):
-    def __init__(self, dataset, batchsize, data_aug=None):
+    def __init__(self, dataset, batchsize):
         self.dataset = dataset
-        self.data_aug = data_aug
         platform.system() == "Linux"
         if platform.system() == "Linux":
             workers = 12
@@ -81,14 +84,7 @@ class CustomDataLoader(DataLoader):
         super().__init__(self.dataset,
                          batch_size=batchsize,
                          shuffle=True,
-                         collate_fn=self.custom_collate,
                          num_workers=workers)
-
-    def custom_collate(self, batch):
-        batch = default_collate(batch)
-        if self.data_aug is not None:
-            batch = self.data_aug(batch)
-        return batch
 
     def input_unnormalize(self, val):
         return val * self.input_std + self.input_mean
