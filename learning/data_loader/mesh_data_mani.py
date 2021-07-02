@@ -372,7 +372,7 @@ class MeshDataManipulator(ABC):
         if platform.system() == "Linux":
             num_of_thread = 12 if num_of_files > 12 else num_of_files
         elif platform.system() == "Windows":
-            num_of_thread = 6 if num_of_files > 6 else num_of_files
+            num_of_thread = 4 if num_of_files > 4 else num_of_files
         else:
             raise ValueError("unsupported platform {platform.system()}")
         pool = Pool(num_of_thread)

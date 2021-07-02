@@ -1,6 +1,8 @@
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from torch.utils.data._utils.collate import default_collate
+import platform
+
 
 class CustomDataset(Dataset):
     def __init__(self,
@@ -69,17 +71,24 @@ class CustomDataLoader(DataLoader):
     def __init__(self, dataset, batchsize, data_aug=None):
         self.dataset = dataset
         self.data_aug = data_aug
+        platform.system() == "Linux"
+        if platform.system() == "Linux":
+            workers = 12
+        elif platform.system() == "Windows":
+            workers = 0
+        else:
+            raise ValueError(f"unsupported platform {platform.system()}")
         super().__init__(self.dataset,
                          batch_size=batchsize,
                          shuffle=True,
-                         collate_fn=self.custom_collate, num_workers = 12)
+                         collate_fn=self.custom_collate,
+                         num_workers=workers)
 
     def custom_collate(self, batch):
         batch = default_collate(batch)
         if self.data_aug is not None:
             batch = self.data_aug(batch)
         return batch
-        
 
     def input_unnormalize(self, val):
         return val * self.input_std + self.input_mean
