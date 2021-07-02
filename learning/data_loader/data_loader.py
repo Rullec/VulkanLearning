@@ -72,7 +72,7 @@ class CustomDataLoader(DataLoader):
         super().__init__(self.dataset,
                          batch_size=batchsize,
                          shuffle=True,
-                         collate_fn=self.custom_collate)
+                         collate_fn=self.custom_collate, num_workers = 12)
 
     def custom_collate(self, batch):
         batch = default_collate(batch)

@@ -344,7 +344,14 @@ class ImageDataManipulator(MeshDataManipulator):
             for i in range(len(data_dirs)):
                 test_data_dirs.append((data_dirs[i], feature_file))
 
-        pool = Pool(4)
+        import platform
+        if platform.system() == "Linux":
+            pool = Pool(12)
+        elif platform.system() == "Windows":
+            pool = Pool(4)
+        else:
+            raise ValueError("unsupported platform {platform.system()}")
+            
         print("begin to save train set...")
         for _idx, value in enumerate(train_data_dirs):
             # MeshDataManipulator.save_files_to_grp(

@@ -368,7 +368,13 @@ class MeshDataManipulator(ABC):
     def _calc_statistics_distributed(all_files, calc_sum_func,
                                      calc_xminusxbar_func):
         num_of_files = len(all_files)
-        num_of_thread = 6 if num_of_files > 6 else num_of_files
+        import platform
+        if platform.system() == "Linux":
+            num_of_thread = 12 if num_of_files > 12 else num_of_files
+        elif platform.system() == "Windows":
+            num_of_thread = 6 if num_of_files > 6 else num_of_files
+        else:
+            raise ValueError("unsupported platform {platform.system()}")
         pool = Pool(num_of_thread)
         # 1. calculate mean statistics
         params = [[] for i in range(num_of_thread)]
@@ -424,13 +430,13 @@ class MeshDataManipulator(ABC):
                                       f[MeshDataManipulator.INPUT_STD_KEY],
                                       f[MeshDataManipulator.OUTPUT_MEAN_KEY],
                                       f[MeshDataManipulator.OUTPUT_STD_KEY],
-                                      self.load_all_data_into_mem)
+                                      load_all_data_into_mem = self.load_all_data_into_mem)
         test_dataset = CustomDataset(f["test_set"],
                                      f[MeshDataManipulator.INPUT_MEAN_KEY],
                                      f[MeshDataManipulator.INPUT_STD_KEY],
                                      f[MeshDataManipulator.OUTPUT_MEAN_KEY],
                                      f[MeshDataManipulator.OUTPUT_STD_KEY],
-                                     self.load_all_data_into_mem)
+                                     load_all_data_into_mem = self.load_all_data_into_mem)
 
         return train_dataset, test_dataset
 
