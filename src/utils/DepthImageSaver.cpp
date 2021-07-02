@@ -104,7 +104,7 @@ bool SavePNGSingleChannel(const float *depth_pixels, int width, int height,
         
         // = rgba;
     }
-    printf("max pixel %d min pixel %d\n", max_val, min_val);
+    // printf("max pixel %d min pixel %d\n", max_val, min_val);
     stbi_write_png(outfile_name, width, height, 1, png_pixels,
                    width * sizeof(uint8_t));
     // std::cout << "[debug] save png image to " << outfile_name << std::endl;

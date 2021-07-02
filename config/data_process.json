@@ -53,9 +53,9 @@
     "enable_cloth_geometry": true,
     "geometry_info": "./log/geo_info.json",
     "raw_data_dir": "data/export_data/uniform_sample10_noised16",
-    "gen_data_dir": "data/export_data/test_mesh_data_gen",
+    "gen_data_dir": "data/export_data/uniform_sample10_noised16_2camnoised_4rot_4view",
     "preprocess_info": {
-        "num_of_init_rotation_angle": 4,
+        "num_of_init_rotation_angle": 2,
         "enable_camera_noise": true,
         "camera_translation_noise": 0.01,
         "camera_orientation_noise": 0.01,
