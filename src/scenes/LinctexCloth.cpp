@@ -35,7 +35,8 @@ void cLinctexCloth ::Init(const Json::Value &conf)
     mClothProp = std::make_shared<tPhyProperty>();
     mClothProp->Init(conf);
     AddPiece();
-    mSeCloth->AddFixedVertices(mFixedPointIds);
+    if (mFixedPointIds.size())
+        mSeCloth->AddFixedVertices(mFixedPointIds);
     InitClothFeatureVector();
 }
 void cLinctexCloth ::UpdatePos(double dt)

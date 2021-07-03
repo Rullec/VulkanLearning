@@ -51,7 +51,7 @@ void cObjUtil::LoadObj(const cObjUtil::tParams &param,
     // int num_of_edges = shape.lines.indices.size();
     // v_array.resize(num_of_vertices, nullptr);
     // e_array.resize(num_of_edges, nullptr);
-    printf("[debug] %d vertices, %d edges\n", v_array.size(), e_array.size());
+    // printf("[debug] %d vertices, %d edges\n", v_array.size(), e_array.size());
     // exit(0);
     {
         // Loop over faces(polygon)
@@ -194,7 +194,7 @@ void cObjUtil::BuildEdge(const std::vector<tVertex *> &v_array,
         //    e_array.size() - 1, v0, v1, edge->mRawLength, tid0, tid1,
         //    edge->mIsBoundary);
     }
-    std::cout << "[debug] build " << e_array.size() << " edges\n";
+    // std::cout << "[debug] build " << e_array.size() << " edges\n";
 }
 
 /**

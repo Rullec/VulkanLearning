@@ -21,7 +21,7 @@
     "geometry_type_bak": "uniform_square",
     "geometry_type_bak1": "skew_triangle",
     "geometry_type": "regular_triangle",
-    "subdivision": 20,
+    "subdivision": 30,
     "damping": 1e-3,
     "default_timestep": 1e-2,
     "pbd_config": {
@@ -65,5 +65,8 @@
         "far": 100
     },
     "enable_profiling": true,
-    "enable_collision_detection": false
+    "enable_collision_detection": false,
+    "ground_png_path": "data/grid0.png",
+    "enable_cloth": true,
+    "object_name": "cloth"
 }

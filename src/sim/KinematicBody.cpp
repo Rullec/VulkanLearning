@@ -59,8 +59,8 @@ void cKinematicBody::Init(const Json::Value &value)
     }
     tVector min, max;
     CalcAABB(min, max);
-    std::cout << "[debug] obstacle aabb min = " << min.transpose() << std::endl;
-    std::cout << "[debug] obstacle aabb max = " << max.transpose() << std::endl;
+    // std::cout << "[debug] obstacle aabb min = " << min.transpose() << std::endl;
+    // std::cout << "[debug] obstacle aabb max = " << max.transpose() << std::endl;
 }
 
 eKinematicBodyShape

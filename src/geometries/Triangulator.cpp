@@ -44,7 +44,14 @@ void cTriangulator::BuildGeometry(const Json::Value &config,
     else if (geo_type == "regular_triangle")
     {
         cTriangulator::BuildGeometry_UniformTriangle(
-            width, subdivision, vertices_array, edges_array, triangles_array);
+            width, subdivision, vertices_array, edges_array, triangles_array,
+            false);
+    }
+    else if (geo_type == "regular_triangle_perturb")
+    {
+        cTriangulator::BuildGeometry_UniformTriangle(
+            width, subdivision, vertices_array, edges_array, triangles_array,
+            true);
     }
     else
     {
@@ -81,7 +88,7 @@ void cTriangulator::BuildGeometry_UniformSquare(
     triangles_array.clear();
     // 2. create vertices
 
-    BuildSquareVertices(width, subdivision, vertices_array);
+    BuildSquareVertices(width, subdivision, vertices_array, false);
     int num_of_lines = (subdivision + 1); // = 3
     int num_of_vertices = num_of_lines * num_of_lines;
     SIM_ASSERT(num_of_vertices = vertices_array.size());
@@ -209,7 +216,7 @@ void cTriangulator::BuildGeometry_SkewTriangle(
     triangles_array.clear();
 
     // 2. create vertices
-    BuildSquareVertices(width, subdivision, vertices_array);
+    BuildSquareVertices(width, subdivision, vertices_array, false);
 
     // 3. create triangles
     int num_of_lines = (subdivision + 1); // = 3
@@ -352,7 +359,7 @@ void cTriangulator::BuildGeometry_SkewTriangle(
 void cTriangulator::BuildGeometry_UniformTriangle(
     double width, int subdivision, std::vector<tVertex *> &vertices_array,
     std::vector<tEdge *> &edges_array,
-    std::vector<tTriangle *> &triangles_array)
+    std::vector<tTriangle *> &triangles_array, bool add_vertices_perturb)
 {
     // 1. clear all
     vertices_array.clear();
@@ -360,7 +367,8 @@ void cTriangulator::BuildGeometry_UniformTriangle(
     triangles_array.clear();
 
     // 2. create vertices
-    BuildSquareVertices(width, subdivision, vertices_array);
+    BuildSquareVertices(width, subdivision, vertices_array,
+                        add_vertices_perturb);
 
     // 3. create triangles
     int num_of_lines = (subdivision + 1); // = 3
@@ -574,11 +582,51 @@ void cTriangulator::BuildGeometry_UniformTriangle(
  * \brief                   create vertices as a uniform, square vertices
  */
 void cTriangulator::BuildSquareVertices(double width, int subdivision,
-                                        std::vector<tVertex *> &vertices_array)
+                                        std::vector<tVertex *> &vertices_array,
+                                        bool add_vertices_perturb)
 {
     vertices_array.clear();
     int gap = subdivision + 1;
     double unit_edge_length = width / subdivision;
+
+    /*
+    y axis positive (i--)
+    |
+    |
+    |
+    |
+    |
+    |
+    |
+    |
+    |
+    --------------------------- x axis (j++)
+    */
+    tVector2d texture_origin_corner(-width / 2, width / 2);
+    tVector2d texture_max_corner(width / 2, -width / 2);
+
+    auto CalcTextureCoord = [](const tVector2d &texture_origin_cartesian_pos,
+                               const tVector2d &texture_max_cartesian_pos,
+                               const tVector2d &cur_cartesian_pos) -> tVector2f
+    {
+        tVector2f tex_coord(0, 0);
+        tex_coord[1] = static_cast<float>(
+            (cur_cartesian_pos[0] - texture_origin_cartesian_pos[0]) /
+            (texture_max_cartesian_pos[0] - texture_origin_cartesian_pos[0]));
+        tex_coord[0] = static_cast<float>(
+            (cur_cartesian_pos[1] - texture_origin_cartesian_pos[1]) /
+            (texture_max_cartesian_pos[1] - texture_origin_cartesian_pos[1]));
+        return tex_coord;
+    };
+
+    // if (add_vertices_perturb)
+    // {
+
+    //     exit(1);
+    // }
+
+    double noise_max_radius = unit_edge_length / 5;
+    // double noise_max_radius = 0;
 
     for (int i = 0; i < gap; i++)
         for (int j = 0; j < gap; j++)
@@ -586,11 +634,50 @@ void cTriangulator::BuildSquareVertices(double width, int subdivision,
             tVertex *v = new tVertex();
 
             v->mPos = tVector(unit_edge_length * j - width / 2,
-                              width - unit_edge_length * i - width / 2, 0, 1);
+                              width / 2 - unit_edge_length * i, 0, 1);
+
+            if (add_vertices_perturb)
+            {
+                if (i != 0 && i != gap - 1 && j != 0 && j != gap - 1)
+                {
+                    // std::cout << "add_vertices_perturb\n";
+                    v->mPos[0] += cMathUtil::RandDouble(-noise_max_radius,
+                                                        noise_max_radius);
+                    v->mPos[1] += cMathUtil::RandDouble(-noise_max_radius,
+                                                        noise_max_radius);
+                }
+            }
             v->mPos[3] = 1;
             v->mColor = tVector(0, 196.0 / 255, 1, 0);
             vertices_array.push_back(v);
-            v->muv = tVector2f(i * 1.0 / subdivision, j * 1.0 / subdivision);
+            v->muv = CalcTextureCoord(texture_origin_corner, texture_max_corner,
+                                      v->mPos.segment(0, 2));
+
+            // tVector2f new_tex_coords =
+            //     CalcTextureCoord(texture_origin_corner, texture_max_corner,
+            //                      v->mPos.segment(0, 2));
+            // if ((new_tex_coords - v->muv).norm() > 1e-6)
+            // {
+            //     std::cout << "wrong result\n";
+            //     std::cout << "new tex coord = " << new_tex_coords.transpose()
+            //               << std::endl;
+            //     std::cout << "olg tex coord = " << v->muv.transpose()
+            //               << std::endl;
+
+            //     std::cout << "cartesian of texture origin"
+            //               << texture_origin_corner.transpose() << std::endl;
+            //     ;
+            //     std::cout << "cartesian of texture max"
+            //               << texture_max_corner.transpose() << std::endl;
+            //     ;
+            //     std::cout << "current pos ="
+            //               << v->mPos.segment(0, 2).transpose() << std::endl;
+            //     exit(1);
+            // }
+            // else
+            // {
+            //     std::cout << "correct result\n";
+            // }
             // std::cout << "uv = " << v->muv.transpose() << std::endl;
             // printf("create vertex %d at (%.3f, %.3f), uv (%.3f, %.3f)\n",
             //        vertices_array.size() - 1, v->mPos[0], v->mPos[1],

@@ -37,13 +37,13 @@ protected:
                                std::vector<tVertex *> &vertices_array,
                                std::vector<tEdge *> &edges_array,
                                std::vector<tTriangle *> &triangles_array);
-    static void
-    BuildGeometry_UniformTriangle(double width, int subdivistion,
-                                  std::vector<tVertex *> &vertices_array,
-                                  std::vector<tEdge *> &edges_array,
-                                  std::vector<tTriangle *> &triangles_array);
+    static void BuildGeometry_UniformTriangle(
+        double width, int subdivistion, std::vector<tVertex *> &vertices_array,
+        std::vector<tEdge *> &edges_array,
+        std::vector<tTriangle *> &triangles_array, bool add_vertices_perturb);
     static void BuildSquareVertices(double width, int subdivision,
-                                    std::vector<tVertex *> &edges_array);
+                                    std::vector<tVertex *> &edges_array,
+                                    bool add_vertices_perturb);
 
     inline static const std::string NUM_OF_VERTICES_KEY = "num_of_vertices",
                                     EDGE_ARRAY_KEY = "edge_array",
