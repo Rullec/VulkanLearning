@@ -6,6 +6,7 @@ from multiprocessing import Pool
 import os
 import json
 from .dali_helper import get_subdirs
+from tqdm import tqdm
 
 
 class DALIPngReader(object):
@@ -121,7 +122,7 @@ import h5py
 class DALIHdf5Reader(object):
     ARCHIVE_PATH = "archive.hdf5"
 
-    def __init__(self, batch_size, data_dir, hdf5_key):
+    def __init__(self, batch_size, data_dir, hdf5_key, load_all_data_into_mem):
         '''
             the batch size is the num of data points
             batch_size * num_of_view = num_of_imgs
@@ -129,6 +130,7 @@ class DALIHdf5Reader(object):
         self.batch_size = batch_size
         self.archive_path = os.path.join(data_dir, DALIHdf5Reader.ARCHIVE_PATH)
         self.hdf5_key = hdf5_key
+        self.load_all_data_into_mem = load_all_data_into_mem
         # 1. load all png files, 4 groups
         # self.pool = Pool(12)
         self.__load_path()
@@ -154,6 +156,18 @@ class DALIHdf5Reader(object):
         self.index_map = np.arange(self.num_of_data)
         self.cur_idx = 0
         self.num_of_view = 4
+
+        if self.load_all_data_into_mem == True:
+            self.input_lst = []
+            self.output_lst = []
+            grp = h5py.File(self.archive_path, 'r')[self.hdf5_key]
+            for i in tqdm(range(self.num_of_data), "loading dataset..."):
+                dst = grp[str(i)]
+                val = dst[...]
+                label = dst.attrs["label"]
+                self.input_lst.append(val)
+                self.output_lst.append(label)
+
         f.close()
 
     def shuffle(self):
@@ -170,7 +184,7 @@ class DALIHdf5Reader(object):
             length += 1
         return length
 
-    def __next__(self):
+    def __next_from_hdf5(self):
         # st = time.time()
         batch_imgs = []
         labels = []
@@ -205,6 +219,44 @@ class DALIHdf5Reader(object):
             # exit()
         # batch_imgs = np.vstack(batch_imgs)
         return (batch_imgs, labels)
+
+    def __next_from_mem(self):
+        batch_imgs = []
+        labels = []
+        # 1. if stop
+        if self.cur_idx >= self.num_of_data:
+            self.shuffle()
+            self.cur_idx = 0
+            raise StopIteration
+
+        # 2. else, get batch data
+        for i in range(self.batch_size):
+            data_idx = self.index_map[self.cur_idx]
+            val = self.input_lst[data_idx]
+            assert len(val.shape) == 3
+            shift = np.random.randint(0, val.shape[0])
+            val = np.roll(val, shift, axis=0)
+            label = self.output_lst[data_idx]
+
+            self.cur_idx += 1
+
+            for id in range(val.shape[0]):
+                batch_imgs.append(np.expand_dims(val[id], -1))
+                labels.append(label)
+                # print(batch_imgs[-1].shape)
+                # print(labels[-1].shape)
+            
+
+            if self.cur_idx >= self.num_of_data:
+                break
+
+        return (batch_imgs, labels)
+
+    def __next__(self):
+        if self.load_all_data_into_mem == False:
+            return self.__next_from_hdf5()
+        else:
+            return self.__next_from_mem()
 
 
 import torch

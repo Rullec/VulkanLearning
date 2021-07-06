@@ -29,8 +29,8 @@ class CNNParamNet(ParamNet):
             CNNParamNet.IMAGE_DATALOADER_TYPE_KEY]
 
     def _build_dataloader(self):
-        data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
-        # data_mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        # data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        data_mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
         self.train_dataloader, self.test_dataloader = data_mani.get_dataloader(
         )
         self.input_size = self.train_dataloader.get_input_size()
@@ -108,7 +108,7 @@ class CNNParamNet(ParamNet):
                 # print(f"4 {st6 - st5}")
             ed_epoch = time.time()
             print(
-                f"epoch cost {ed_epoch - st_epoch}, train cost {total_train_cost_time}, dataload cost {total_datafetch_cost_time}"
+                f"train epoch cost {ed_epoch - st_epoch}, train cost {total_train_cost_time}, dataloader cost {total_datafetch_cost_time}"
             )
             mean_train_loss = cur_epoch_train_loss / total_num
             # print(f"[train] total err {mean_train_loss} num {total_num}")

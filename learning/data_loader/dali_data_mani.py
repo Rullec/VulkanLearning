@@ -9,8 +9,16 @@ class DALIDataManipulator(ImageDataManipulator):
     '''
     def __init__(self, conf_dict):
         print(f"init DALIDataManipulator")
-        self._config_dict = conf_dict
+        self.conf_dict = conf_dict
         self._parse_config(conf_dict)
+        if self._check_archive_exists() == False or self._validate_archive(
+        ) == False:
+            train_dirs, test_dirs = self._load_mesh_data()
+            stats = self._calc_statistics_distributed(train_dirs + test_dirs)
+
+            self._save_archive(self.get_archive_path(), train_dirs, test_dirs,
+                               stats)
+
         self._create_dataloader()
 
     def _parse_config(self, config_dict):
@@ -18,8 +26,10 @@ class DALIDataManipulator(ImageDataManipulator):
 
     def _create_dataloader(self):
         train_reader = DALIHdf5Reader(self.batch_size, self.data_dir,
-                                      "train_set")
-        val_reader = DALIHdf5Reader(self.batch_size, self.data_dir, "test_set")
+                                      "train_set",
+                                      self.conf_dict["load_all_data_into_mem"])
+        val_reader = DALIHdf5Reader(self.batch_size, self.data_dir, "test_set",
+                                    self.conf_dict["load_all_data_into_mem"])
         self.train_dataloader = build_dali_torch_wrapper(
             file_reader=train_reader, batch_size=self.batch_size)
         self.val_dataloader = build_dali_torch_wrapper(

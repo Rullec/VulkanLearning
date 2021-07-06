@@ -319,7 +319,7 @@ class ParamNet:
                 step = epoch / self.iters_logging
                 validation_err = self._calc_validation_error()
                 print(
-                    f"iter {epoch} train loss {mean_train_loss:5.5f} validation loss {validation_err:5.5f}, avg cost {(time.time() - st_time)/(epoch + 1):5.5f}"
+                    f"\niter {epoch} train loss {mean_train_loss:5.5f} validation loss {validation_err:5.5f}, avg cost {(time.time() - st_time)/(epoch + 1):5.5f}"
                 )
                 self.writer.add_scalar("train_loss", mean_train_loss, step)
                 self.writer.add_scalar("validation_error", validation_err,

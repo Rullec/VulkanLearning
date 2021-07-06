@@ -62,7 +62,7 @@ if __name__ == "__main__":
     #                      datapoint_judge_func=mesh_datapoint_judge_func,
     #                      sort_func=mesh_sort_func)
     noised_sample_per_prop = 16
-    sample_gap_prop = 4
+    sample_gap_prop = 2
 
     depth_origin_dir = f"uniform_sample10_noised{noised_sample_per_prop}_2camnoised_2rot_4view"
     depth_target_dir = f"uniform_sample10_noised{int(noised_sample_per_prop / sample_gap_prop)}_2camnoised_2rot_4view"
