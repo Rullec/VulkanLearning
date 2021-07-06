@@ -1,4 +1,3 @@
-from operator import itemgetter
 from typing_extensions import get_args
 import numpy as np
 import os
@@ -43,7 +42,7 @@ class MeshDataManipulator(ABC):
                 train_files + test_files, MeshDataManipulator.calc_sum,
                 MeshDataManipulator.calc_x_minus_xbar)
 
-            self._save_archive(self.get_archive_path(), train_files,
+            self._save_archive(self.get_default_archive_path(), train_files,
                                test_files, stats)
 
         self._build_data_augmentation()
@@ -82,17 +81,17 @@ class MeshDataManipulator(ABC):
         else:
             self.data_aug = apply_mesh_data_noise
 
-    def get_archive_path(self):
+    def get_default_archive_path(self):
         return os.path.join(self.data_dir, MeshDataManipulator.ARCHIVE_NAME)
 
     def _check_archive_exists(self):
-        exists = os.path.exists(self.get_archive_path()) == True
+        exists = os.path.exists(self.get_default_archive_path()) == True
         return exists
 
     def _validate_archive(self):
         if self._check_archive_exists() == False:
             return False
-        f = h5py.File(self.get_archive_path(), 'r')
+        f = h5py.File(self.get_default_archive_path(), 'r')
         all_keys = f.keys()
         valid = (MeshDataManipulator.INPUT_MEAN_KEY in all_keys)
         valid = (MeshDataManipulator.INPUT_STD_KEY in all_keys) and valid
@@ -104,11 +103,11 @@ class MeshDataManipulator(ABC):
 
     def _remove_archive(self):
         if self._check_archive_exists() == True:
-            os.remove(self.get_archive_path())
+            os.remove(self.get_default_archive_path())
         assert self._check_archive_exists() == False
 
     # def __load_archive(self):
-    #     f = h5py.File(self.get_archive_path(), mode='r')
+    #     f = h5py.File(self.get_default_archive_path(), mode='r')
     #     print(f.keys())
     #     print(f["train_set"].keys())
     #     exit()
@@ -135,6 +134,7 @@ class MeshDataManipulator(ABC):
         group_name, idx, input, output, archive_path = res
         f = h5py.File(archive_path, 'a')
         grp = f[group_name]
+        # print(f"save files {idx} to {archive_path} done")
         dst = grp.create_dataset(f"{idx}",
                                  shape=input.shape,
                                  data=input,
@@ -157,7 +157,23 @@ class MeshDataManipulator(ABC):
         output = (output - output_mean) / output_std
         return (group_name, _idx, input, output, archive_path)
 
+    def get_all_hdf5_archive(self):
+        lst = []
+        for i in os.listdir(self.data_dir):
+            if i.find(".hdf5") != -1:
+                lst.append(os.path.join(self.data_dir, i))
+        return lst
+
+    def _remove_all_hdf5(self):
+        lst = self.get_all_hdf5_archive()
+        for i in lst:
+            os.remove(i)
+        num = len(lst)
+        print(f"[log] remove all hdf5 in self.data_dir, total num = {num}")
+
     def _create_hdf5_archive_empty_file(output_file):
+        if os.path.exists(output_file):
+            os.remove(output_file)
         f = h5py.File(output_file, 'w')
         # output train data and test data
         train_grp = f.create_group("train_set")
@@ -183,6 +199,7 @@ class MeshDataManipulator(ABC):
     def _save_archive(self, output_file, train_files, test_files, stats):
         print(f"begin to save archive to {output_file}...")
         assert type(stats) is dict
+        self._remove_all_hdf5()
         MeshDataManipulator._create_hdf5_archive_empty_file(output_file)
         input_mean, input_std, output_mean, output_std = MeshDataManipulator._unpack_statistics(
             stats)
@@ -423,22 +440,29 @@ class MeshDataManipulator(ABC):
     def __create_dataset(self):
         from .data_loader import CustomDataset
 
-        f = h5py.File(self.get_archive_path(), mode='r')
+        ultimate_f = h5py.File(self.get_default_archive_path(), mode='r')
 
+        archive_lst = self.get_all_hdf5_archive()
+        train_handle_lst = []
+        test_handle_lst = []
+        for i in archive_lst:
+            f = h5py.File(i)
+            train_handle_lst.append(f["train_set"])
+            test_handle_lst.append(f["test_set"])
         train_dataset = CustomDataset(
-            f["train_set"],
-            f[MeshDataManipulator.INPUT_MEAN_KEY],
-            f[MeshDataManipulator.INPUT_STD_KEY],
-            f[MeshDataManipulator.OUTPUT_MEAN_KEY],
-            f[MeshDataManipulator.OUTPUT_STD_KEY],
+            train_handle_lst,
+            ultimate_f[MeshDataManipulator.INPUT_MEAN_KEY],
+            ultimate_f[MeshDataManipulator.INPUT_STD_KEY],
+            ultimate_f[MeshDataManipulator.OUTPUT_MEAN_KEY],
+            ultimate_f[MeshDataManipulator.OUTPUT_STD_KEY],
             load_all_data_into_mem=self.load_all_data_into_mem,
             data_aug=self.data_aug)
         test_dataset = CustomDataset(
-            f["test_set"],
-            f[MeshDataManipulator.INPUT_MEAN_KEY],
-            f[MeshDataManipulator.INPUT_STD_KEY],
-            f[MeshDataManipulator.OUTPUT_MEAN_KEY],
-            f[MeshDataManipulator.OUTPUT_STD_KEY],
+            test_handle_lst,
+            ultimate_f[MeshDataManipulator.INPUT_MEAN_KEY],
+            ultimate_f[MeshDataManipulator.INPUT_STD_KEY],
+            ultimate_f[MeshDataManipulator.OUTPUT_MEAN_KEY],
+            ultimate_f[MeshDataManipulator.OUTPUT_STD_KEY],
             load_all_data_into_mem=self.load_all_data_into_mem)
 
         return train_dataset, test_dataset

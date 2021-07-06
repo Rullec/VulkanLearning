@@ -1,6 +1,4 @@
-from operator import itemgetter
 import h5py
-from PIL.Image import Image
 import numpy as np
 from tqdm import tqdm
 import sys
@@ -8,7 +6,6 @@ import sys
 sys.path.append("../calibration")
 from file_util import get_subdirs, load_json, load_png_image
 from .mesh_data_mani import MeshDataManipulator
-from itertools import repeat
 import os
 from multiprocessing import Pool, Value
 
@@ -42,6 +39,8 @@ class ImageDataManipulator(MeshDataManipulator):
     FEATURE_JSON_NAME = "feature.json"
     INPUT_NORMALZE_MODE_KEY = "input_normalize_mode"
     NORMALIZE_MODE_HDF5_KEY = "normalize_mode"
+    NUM_OF_ITEMS_KEY = "num_of_items"
+    ARCHIVE_SPLIT_THRESHOLD = 5000
 
     def __init__(self, conf_dict):
         self.conf_dict = conf_dict
@@ -54,11 +53,11 @@ class ImageDataManipulator(MeshDataManipulator):
         if self._check_archive_exists() == False or self._validate_archive(
         ) == False:
             train_dirs, test_dirs = self._load_mesh_data()
+
             stats = self._calc_statistics_distributed(train_dirs + test_dirs)
 
-            self._save_archive(self.get_archive_path(), train_dirs, test_dirs,
-                               stats)
-
+            self._save_archive(self.get_default_archive_path(), train_dirs,
+                               test_dirs, stats)
         self._build_data_augmentation()
         # begin to init dataloader
         self._create_dataloader()
@@ -68,10 +67,97 @@ class ImageDataManipulator(MeshDataManipulator):
         self.normalize_mode = NORMALIZE_MODE.build_mode_from_str(
             conf_dict[ImageDataManipulator.INPUT_NORMALZE_MODE_KEY])
 
+    def _validate_archive_num_of_data(self):
+        # check train set: num of data
+        f = h5py.File(self.get_default_archive_path(), 'r')
+
+        # the num of item key exist
+        train_grp, test_grp = f["train_set"], f["test_set"]
+        if (ImageDataManipulator.NUM_OF_ITEMS_KEY not in train_grp.attrs) or (
+                ImageDataManipulator.NUM_OF_ITEMS_KEY not in test_grp.attrs):
+            return False
+        # the num of item key exist, load the number
+        num_of_train_items = int(
+            train_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY])
+        num_of_test_items = int(
+            test_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY])
+        thre = ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD
+        cur_st = 0
+        end = num_of_train_items - 1
+        cur_iter = 0
+        valid = True
+        while cur_st + 1 <= num_of_train_items and valid:
+            # how much items should be in this package
+            cur_end = min((cur_iter + 1) * thre - 1, end)
+            ideal_num = cur_end - cur_st + 1
+            cur_path = self.get_splitted_archive_path_by_file_id(cur_iter)
+            if os.path.exists(cur_path) == False:
+                valid = False
+                break
+
+            real_num = ImageDataManipulator.get_num_of_items(
+                cur_path, "train_set")
+            # print(f"train real num {real_num} ideal num {ideal_num} iter {cur_iter}")
+            # print(locals())
+            valid = valid and (real_num == ideal_num)
+            cur_st += thre
+            cur_iter += 1
+        # print(f"tmp valid {valid}")
+
+        cur_st = 0
+        end = num_of_test_items - 1
+        cur_iter = 0
+        # print(f"num_of_test_items {num_of_test_items}")
+        while cur_st + 1 <= num_of_test_items and valid:
+            # how much items should be in this package
+            cur_end = min((cur_iter + 1) * thre - 1, end)
+            ideal_num = cur_end - cur_st + 1
+            cur_path = self.get_splitted_archive_path_by_file_id(cur_iter)
+            if os.path.exists(cur_path) == False:
+                valid = False
+                break
+
+            real_num = ImageDataManipulator.get_num_of_items(
+                cur_path, "test_set")
+            # print(f"test real num {real_num} ideal num {ideal_num} iter {cur_iter}")
+            valid = valid and (real_num == ideal_num)
+            cur_st += thre
+            cur_iter += 1
+        # print(f"valid {valid}")
+        # exit()
+        return valid
+
+    def get_splitted_archive_path_by_file_id(self, i):
+        if i != 0:
+            old_archive = MeshDataManipulator.ARCHIVE_NAME
+
+            name = old_archive[:old_archive.find(".")]
+            suffix = old_archive[old_archive.find(".") + 1:]
+            new_archive = f"{name}{i}.{suffix}"
+
+            return os.path.join(self.data_dir, new_archive)
+        else:
+            return os.path.join(self.data_dir,
+                                MeshDataManipulator.ARCHIVE_NAME)
+
+    def get_splitted_archive_path_by_itemid(self, i):
+        cur_iter = 0
+        while True:
+            if (i >= cur_iter * ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD
+                ) and (i < (cur_iter + 1) *
+                       ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD):
+                break
+            cur_iter += 1
+        return self.get_splitted_archive_path_by_file_id(cur_iter)
+
+    def get_num_of_items(path, key):
+        f = h5py.File(path, 'r')
+        dst = f[key]
+        return len(dst)
+
     def _validate_archive(self):
         valid = super()._validate_archive()
-        f = h5py.File(self.get_archive_path(), 'r')
-        all_keys = f.keys()
+        f = h5py.File(self.get_default_archive_path(), 'r')
         valid = (ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY
                  in f.attrs) and valid
 
@@ -81,6 +167,9 @@ class ImageDataManipulator(MeshDataManipulator):
             cur_str = NORMALIZE_MODE.build_str_from_mode(self.normalize_mode)
             valid = (hdf5_mode_str == cur_str)
 
+        if valid is True:
+            valid = valid and (self._validate_archive_num_of_data())
+
         return valid
 
     def _build_data_augmentation(self):
@@ -88,7 +177,7 @@ class ImageDataManipulator(MeshDataManipulator):
             from .data_aug import apply_depth_albumentation, apply_depth_aug
             self.data_aug = apply_depth_aug
             print("[log] do torch aug")
-            
+
             # self.data_aug = apply_depth_albumentation
             # print("[log] do albumentation aug")
         else:
@@ -248,6 +337,14 @@ class ImageDataManipulator(MeshDataManipulator):
         return stats
 
     def _calc_statistics_distributed(self, all_dirs):
+
+        # files = os.listdir(all_dirs[0])
+        # print(files)
+        # exit()
+        # input_mean = np.ones([4, 360, 480])
+        # input_std = np.ones([4, 360, 480])
+        # output_mean = np.ones(3)
+        # output_std = np.ones(3)
         if self.normalize_mode == NORMALIZE_MODE.PER_PIXEL:
             stats = ImageDataManipulator._calc_statistics_distributed_perpixel(
                 all_dirs)
@@ -328,6 +425,9 @@ class ImageDataManipulator(MeshDataManipulator):
                       stats):
         print(f"begin to save depth archive to {output_file}...")
         assert type(stats) is dict
+        # print(f"stop!")
+        # exit()
+        self._remove_all_hdf5()
         MeshDataManipulator._create_hdf5_archive_empty_file(output_file)
         input_mean, input_std, output_mean, output_std = MeshDataManipulator._unpack_statistics(
             stats)
@@ -348,42 +448,52 @@ class ImageDataManipulator(MeshDataManipulator):
             for i in range(len(data_dirs)):
                 test_data_dirs.append((data_dirs[i], feature_file))
 
-        import platform
-        if platform.system() == "Linux":
-            pool = Pool(12)
-        elif platform.system() == "Windows":
-            pool = Pool(4)
-        else:
-            raise ValueError("unsupported platform {platform.system()}")
-            
-        print("begin to save train set...")
-        for _idx, value in enumerate(train_data_dirs):
-            # MeshDataManipulator.save_files_to_grp(
-            #     ImageDataManipulator.load_datadir_and_feature_file_for_archive(
-            #         _idx, "train_set", data_dir, feature_file, output_file,
-            #         input_mean, input_std, output_mean, output_std))
-            data_dir, feature_file = value
-            pool.apply_async(
-                ImageDataManipulator.load_datadir_and_feature_file_for_archive,
-                (_idx, "train_set", data_dir, feature_file, output_file,
-                 input_mean, input_std, output_mean, output_std),
-                callback=MeshDataManipulator.save_files_to_grp)
+        # print("begin to save train set...")
+        # print(f"train num {len(train_data_dirs)}")
+        # print(f"test num {len(test_data_dirs)}")
+        # exit()
 
-        for _idx, value in enumerate(test_data_dirs):
+        for _idx, value in enumerate(
+                tqdm(train_data_dirs, "begin to archive train data")):
             data_dir, feature_file = value
-            pool.apply_async(
-                ImageDataManipulator.load_datadir_and_feature_file_for_archive,
-                (_idx, "test_set", data_dir, feature_file, output_file,
-                 input_mean, input_std, output_mean, output_std),
-                callback=MeshDataManipulator.save_files_to_grp)
-        pool.close()
-        pool.join()
+            output_file = self.get_splitted_archive_path_by_itemid(_idx)
+
+            if os.path.exists(output_file) == False:
+                ImageDataManipulator._create_hdf5_archive_empty_file(
+                    output_file)
+            output = ImageDataManipulator.load_datadir_and_feature_file_for_archive(
+                _idx, "train_set", data_dir, feature_file, output_file,
+                input_mean, input_std, output_mean, output_std)
+            MeshDataManipulator.save_files_to_grp(output)
+
+        for _idx, value in enumerate(
+                tqdm(test_data_dirs, "begin to archive test data")):
+            data_dir, feature_file = value
+            output_file = self.get_splitted_archive_path_by_itemid(_idx)
+
+            if os.path.exists(output_file) == False:
+                ImageDataManipulator._create_hdf5_archive_empty_file(
+                    output_file)
+            output = ImageDataManipulator.load_datadir_and_feature_file_for_archive(
+                _idx, "test_set", data_dir, feature_file, output_file,
+                input_mean, input_std, output_mean, output_std)
+            MeshDataManipulator.save_files_to_grp(output)
+
+        output_file = self.get_default_archive_path()
         f = h5py.File(output_file, 'a')
         for i in list(stats.keys()):
             f.create_dataset(i, stats[i].shape, data=stats[i])
 
         f.attrs["normalize_mode"] = NORMALIZE_MODE.build_str_from_mode(
             self.normalize_mode)
+        train_grp = f["train_set"]
+        test_grp = f["test_set"]
+        train_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY] = len(
+            train_data_dirs)
+        test_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY] = len(
+            test_data_dirs)
+
+        f.close()
         print(f"[log] save archive succ")
 
     def _test(self):

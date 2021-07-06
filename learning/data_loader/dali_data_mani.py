@@ -1,5 +1,13 @@
 from .img_data_mani import ImageDataManipulator
-from .dali_utils.dali_torch_wrapper import build_dali_torch_wrapper
+
+# only import dali on Linux platform
+try:
+    import platform
+    if platform.system() != "Linux":
+        raise ImportError
+    from .dali_utils.dali_torch_wrapper import build_dali_torch_wrapper
+except ImportError as e:
+    pass
 from .dali_utils.dali_file_reader import DALIHdf5Reader
 import h5py
 
@@ -16,8 +24,8 @@ class DALIDataManipulator(ImageDataManipulator):
             train_dirs, test_dirs = self._load_mesh_data()
             stats = self._calc_statistics_distributed(train_dirs + test_dirs)
 
-            self._save_archive(self.get_archive_path(), train_dirs, test_dirs,
-                               stats)
+            self._save_archive(self.get_default_archive_path(), train_dirs,
+                               test_dirs, stats)
 
         self._create_dataloader()
 

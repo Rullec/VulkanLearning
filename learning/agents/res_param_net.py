@@ -29,8 +29,8 @@ class CNNParamNet(ParamNet):
             CNNParamNet.IMAGE_DATALOADER_TYPE_KEY]
 
     def _build_dataloader(self):
-        # data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
-        data_mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        # data_mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
         self.train_dataloader, self.test_dataloader = data_mani.get_dataloader(
         )
         self.input_size = self.train_dataloader.get_input_size()
