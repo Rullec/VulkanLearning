@@ -10,8 +10,8 @@ Copy the image to the first level of the folder
 '''
 
 if __name__ == "__main__":
-    origin_dir = "isotropic_50prop_16samples_amp_0.05_1view_4rot_4cam"
-    target_dir = "isotropic_debug_check"
+    origin_dir = "test_data"
+    target_dir = "test_data_exposed"
     clear_and_create_dir(target_dir)
 
     for mesh_idx, mesh_dir in enumerate(tqdm(get_subdirs(origin_dir))):

@@ -2,7 +2,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from torch.utils.data._utils.collate import default_collate
 import platform
-
+import numpy as np
 
 class CustomDataset(Dataset):
     def __init__(self,
@@ -54,6 +54,13 @@ class CustomDataset(Dataset):
         else:
             input, output = self.__getitem_from_disk(index)
         if self.data_aug is not None:
+            assert len(input.shape) == 3
+            num_of_views = input.shape[0]
+            shift = np.random.randint(0, num_of_views)
+            input = np.roll(input, shift, axis = 0)
+            # print(f"shift {shift}")
+
+        if self.data_aug is not None:
             input = self.data_aug(input)
             # print("done dataaug, exit")
             # exit()
@@ -84,7 +91,8 @@ class CustomDataLoader(DataLoader):
         super().__init__(self.dataset,
                          batch_size=batchsize,
                          shuffle=True,
-                         num_workers=workers)
+                        #  num_workers=workers, persistent_workers = True, prefetch_factor =2)
+                         num_workers=workers, persistent_workers = False, prefetch_factor =2)
 
     def input_unnormalize(self, val):
         return val * self.input_std + self.input_mean

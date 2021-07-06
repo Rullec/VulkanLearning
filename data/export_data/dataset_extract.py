@@ -64,8 +64,8 @@ if __name__ == "__main__":
     noised_sample_per_prop = 16
     sample_gap_prop = 4
 
-    depth_origin_dir = f"uniform_sample10_noised{noised_sample_per_prop}_4camnoised_4rot_4view"
-    depth_target_dir = f"uniform_sample10_noised{int(noised_sample_per_prop / sample_gap_prop)}_4camnoised_4rot_4view_selection"
+    depth_origin_dir = f"uniform_sample10_noised{noised_sample_per_prop}_2camnoised_2rot_4view"
+    depth_target_dir = f"uniform_sample10_noised{int(noised_sample_per_prop / sample_gap_prop)}_2camnoised_2rot_4view"
 
     def depth_sort_func(e):
         st_int = e.find("mesh") + len("mesh")
