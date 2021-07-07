@@ -7,7 +7,8 @@ import json
 from multiprocessing import Pool, Value
 from itertools import repeat
 import h5py
-from .data_loader import CustomDataLoader
+# from .data_loader import CustomDataLoader
+from data_loader import CustomDataLoader
 from abc import ABC
 from tqdm import tqdm
 
@@ -194,6 +195,16 @@ class MeshDataManipulator(ABC):
         input_std = stats[MeshDataManipulator.INPUT_STD_KEY]
         output_mean = stats[MeshDataManipulator.OUTPUT_MEAN_KEY]
         output_std = stats[MeshDataManipulator.OUTPUT_STD_KEY]
+        return input_mean, input_std, output_mean, output_std
+
+    def _load_statistics_from_archive(self):
+        default_archive = self.get_default_archive_path()
+        f = h5py.File(default_archive, 'r')
+        input_mean = f[MeshDataManipulator.INPUT_MEAN_KEY][...]
+        input_std = f[MeshDataManipulator.INPUT_STD_KEY][...]
+        output_mean = f[MeshDataManipulator.OUTPUT_MEAN_KEY][...]
+        output_std = f[MeshDataManipulator.OUTPUT_STD_KEY][...]
+        f.close()
         return input_mean, input_std, output_mean, output_std
 
     def _save_archive(self, output_file, train_files, test_files, stats):
@@ -386,12 +397,14 @@ class MeshDataManipulator(ABC):
                                      calc_xminusxbar_func):
         num_of_files = len(all_files)
         import platform
+
         if platform.system() == "Linux":
-            num_of_thread = 12 if num_of_files > 12 else num_of_files
+            num_of_thread = os.cpu_count(
+            ) if num_of_files > os.cpu_count() else num_of_files
         elif platform.system() == "Windows":
             num_of_thread = 4 if num_of_files > 4 else num_of_files
         else:
-            raise ValueError("unsupported platform {platform.system()}")
+            raise ValueError(f"unsupported platform {platform.system()}")
         pool = Pool(num_of_thread)
         # 1. calculate mean statistics
         params = [[] for i in range(num_of_thread)]
@@ -438,7 +451,8 @@ class MeshDataManipulator(ABC):
                                                     output_mean, output_std)
 
     def __create_dataset(self):
-        from .data_loader import CustomDataset
+        # from .data_loader import CustomDataset
+        from data_loader import CustomDataset
 
         ultimate_f = h5py.File(self.get_default_archive_path(), mode='r')
 

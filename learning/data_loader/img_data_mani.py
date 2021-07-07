@@ -4,8 +4,10 @@ from tqdm import tqdm
 import sys
 
 sys.path.append("../calibration")
+sys.path.append("../../calibration")
 from file_util import get_subdirs, load_json, load_png_image
-from .mesh_data_mani import MeshDataManipulator
+# from .mesh_data_mani import MeshDataManipulator
+from mesh_data_mani import MeshDataManipulator
 import os
 from multiprocessing import Pool, Value
 
@@ -174,7 +176,8 @@ class ImageDataManipulator(MeshDataManipulator):
 
     def _build_data_augmentation(self):
         if self.enable_data_aug is True:
-            from .data_aug import apply_depth_albumentation, apply_depth_aug
+            # from .data_aug import apply_depth_albumentation, apply_depth_aug
+            from data_aug import apply_depth_albumentation, apply_depth_aug
             self.data_aug = apply_depth_aug
             print("[log] do torch aug")
 
@@ -544,3 +547,28 @@ class ImageDataManipulator(MeshDataManipulator):
                 print(f"test {key} succ, max diff {max_diff}")
         print(dist_stats)
         pass
+
+
+if __name__ == "__main__":
+    import time
+    print("begin to test the dataloader")
+    conf_dict = {
+        "batch_size": 64,
+        "enable_log_prediction": False,
+        "data_dir":
+        "../../data/export_data/uniform_sample10_noised2_4camnoised_2rot_4view",
+        "train_perc": 0.8,
+        "enable_data_augment": True,
+        "load_all_data_into_mem": False,
+        "enable_test": False,
+        "input_normalize_mode": "per_pixel"
+    }
+
+    mani = ImageDataManipulator(conf_dict)
+    train_loader, val_loader = mani.get_dataloader()
+    st = time.time()
+
+    for _idx, batched in enumerate(train_loader):
+        print(_idx)
+    ed = time.time()
+    print(f"cost {ed - st}")

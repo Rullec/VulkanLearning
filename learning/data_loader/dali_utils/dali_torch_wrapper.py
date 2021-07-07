@@ -57,10 +57,11 @@ class DALITorchWrapper:
     def get_output_size(self):
         return self.output_mean.shape
 
-
+import os
 def build_dali_torch_wrapper(file_reader, batch_size):
+    
     train_pipe = DALIDataAugPipeline(batch_size=batch_size,
-                                     num_threads=6,
+                                     num_threads=os.cpu_count(),
                                      device_id=0,
                                      external_data=file_reader)
 

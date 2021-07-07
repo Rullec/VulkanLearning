@@ -122,53 +122,48 @@ import h5py
 class DALIHdf5Reader(object):
     ARCHIVE_PATH = "archive.hdf5"
 
-    def __init__(self, batch_size, data_dir, hdf5_key, load_all_data_into_mem):
+    def __init__(self, batch_size, grp_handles, load_all_data_into_mem,
+                 input_mean, input_std, output_mean, output_std):
         '''
             the batch size is the num of data points
             batch_size * num_of_view = num_of_imgs
         '''
         self.batch_size = batch_size
-        self.archive_path = os.path.join(data_dir, DALIHdf5Reader.ARCHIVE_PATH)
-        self.hdf5_key = hdf5_key
         self.load_all_data_into_mem = load_all_data_into_mem
         # 1. load all png files, 4 groups
-        # self.pool = Pool(12)
-        self.__load_path()
-        self.__load_statistics()
+        self.grp_handles = grp_handles
+        self.input_mean = input_mean
+        self.input_std = input_std
+        self.output_mean = output_mean
+        self.output_std = output_std
+        self.num_of_view = self.input_mean.shape[0]
 
-    def __load_statistics(self):
-        f = h5py.File(self.archive_path, 'r')
-        self.input_mean = f["input_mean"][...]
-        self.input_std = f["input_std"][...]
-        self.output_mean = f["output_mean"][...]
-        self.output_std = f["output_std"][...]
-        # print(f"input mean {self.input_mean.shape}")
-        # print(f"input std {self.input_std.shape}")
-        # print(f"output mean {self.output_mean.shape}")
-        # print(f"output std {self.output_std.shape}")
-        # exit()
+        self.__load_h5py_dataset()
+        if load_all_data_into_mem is True:
+            self.__load_into_mem()
 
-    def __load_path(self):
-        print(f"loading {self.hdf5_key} from {self.archive_path}...")
-        f = h5py.File(self.archive_path, 'r')
-        assert self.hdf5_key in f
-        self.num_of_data = len(f[self.hdf5_key])
-        self.index_map = np.arange(self.num_of_data)
+    def __load_into_mem(self):
+        self.input_lst = []
+        self.output_lst = []
+        for i in self.dst_lst:
+            self.input_lst.append(i[...])
+            self.output_lst.append(i.attrs["label"])
+
+    def __load_h5py_dataset(self):
+        self.num_of_data = 0
         self.cur_idx = 0
-        self.num_of_view = 4
+        for handle in self.grp_handles:
+            self.num_of_data += len(handle.keys())
+        self.dst_lst = [None for _ in range(self.num_of_data)]
 
-        if self.load_all_data_into_mem == True:
-            self.input_lst = []
-            self.output_lst = []
-            grp = h5py.File(self.archive_path, 'r')[self.hdf5_key]
-            for i in tqdm(range(self.num_of_data), "loading dataset..."):
-                dst = grp[str(i)]
-                val = dst[...]
-                label = dst.attrs["label"]
-                self.input_lst.append(val)
-                self.output_lst.append(label)
+        for handle in self.grp_handles:
+            for key in handle.keys():
+                key_id = int(key)
+                self.dst_lst[key_id] = handle[key]
+        for i in self.dst_lst:
+            assert i is not None
 
-        f.close()
+        self.index_map = [i for i in range(self.num_of_data)]
 
     def shuffle(self):
         self.index_map = np.random.permutation(self.num_of_data)
@@ -184,22 +179,20 @@ class DALIHdf5Reader(object):
             length += 1
         return length
 
-    def __next_from_hdf5(self):
-        # st = time.time()
-        batch_imgs = []
-        labels = []
+    def __next__(self):
+        
         # 1. if stop
         if self.cur_idx >= self.num_of_data:
             self.shuffle()
             self.cur_idx = 0
             raise StopIteration
 
-        grp = h5py.File(self.archive_path, 'r')[self.hdf5_key]
         batch_imgs = []
+        labels = []
         # 2. else, get batch data
         for i in range(self.batch_size):
             data_idx = self.index_map[self.cur_idx]
-            dst = grp[str(data_idx)]
+            dst = self.dst_lst[data_idx]
             val = dst[...]
             assert len(val.shape) == 3
             shift = np.random.randint(0, val.shape[0])
@@ -219,44 +212,6 @@ class DALIHdf5Reader(object):
             # exit()
         # batch_imgs = np.vstack(batch_imgs)
         return (batch_imgs, labels)
-
-    def __next_from_mem(self):
-        batch_imgs = []
-        labels = []
-        # 1. if stop
-        if self.cur_idx >= self.num_of_data:
-            self.shuffle()
-            self.cur_idx = 0
-            raise StopIteration
-
-        # 2. else, get batch data
-        for i in range(self.batch_size):
-            data_idx = self.index_map[self.cur_idx]
-            val = self.input_lst[data_idx]
-            assert len(val.shape) == 3
-            shift = np.random.randint(0, val.shape[0])
-            val = np.roll(val, shift, axis=0)
-            label = self.output_lst[data_idx]
-
-            self.cur_idx += 1
-
-            for id in range(val.shape[0]):
-                batch_imgs.append(np.expand_dims(val[id], -1))
-                labels.append(label)
-                # print(batch_imgs[-1].shape)
-                # print(labels[-1].shape)
-            
-
-            if self.cur_idx >= self.num_of_data:
-                break
-
-        return (batch_imgs, labels)
-
-    def __next__(self):
-        if self.load_all_data_into_mem == False:
-            return self.__next_from_hdf5()
-        else:
-            return self.__next_from_mem()
 
 
 import torch

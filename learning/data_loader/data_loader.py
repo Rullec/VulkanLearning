@@ -1,4 +1,5 @@
 from torch.utils.data import Dataset, DataLoader
+import os
 from tqdm import tqdm
 from torch.utils.data._utils.collate import default_collate
 import platform
@@ -99,7 +100,7 @@ class CustomDataLoader(DataLoader):
         self.dataset = dataset
         platform.system() == "Linux"
         if platform.system() == "Linux":
-            workers = 12
+            workers = os.cpu_count()
         elif platform.system() == "Windows":
             workers = 0
         else:
@@ -108,7 +109,6 @@ class CustomDataLoader(DataLoader):
             self.dataset,
             batch_size=batchsize,
             shuffle=True,
-            #  num_workers=workers, persistent_workers = True, prefetch_factor =2)
             num_workers=workers,
             persistent_workers=False,
             prefetch_factor=2)
