@@ -176,8 +176,8 @@ class ImageDataManipulator(MeshDataManipulator):
 
     def _build_data_augmentation(self):
         if self.enable_data_aug is True:
-            # from .data_aug import apply_depth_albumentation, apply_depth_aug
-            from data_aug import apply_depth_albumentation, apply_depth_aug
+            from .data_aug import apply_depth_albumentation, apply_depth_aug
+            # from data_aug import apply_depth_albumentation, apply_depth_aug
             self.data_aug = apply_depth_aug
             print("[log] do torch aug")
 
@@ -558,7 +558,7 @@ if __name__ == "__main__":
         "data_dir":
         "../../data/export_data/uniform_sample10_noised2_4camnoised_2rot_4view",
         "train_perc": 0.8,
-        "enable_data_augment": True,
+        "enable_data_augment": False,
         "load_all_data_into_mem": False,
         "enable_test": False,
         "input_normalize_mode": "per_pixel"

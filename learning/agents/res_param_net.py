@@ -29,8 +29,8 @@ class CNNParamNet(ParamNet):
             CNNParamNet.IMAGE_DATALOADER_TYPE_KEY]
 
     def _build_dataloader(self):
-        data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
-        # data_mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        # data_mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
+        data_mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
         self.train_dataloader, self.test_dataloader = data_mani.get_dataloader(
         )
         self.input_size = self.train_dataloader.get_input_size()
@@ -61,15 +61,15 @@ class CNNParamNet(ParamNet):
 
             total_train_cost_time = 0
             total_datafetch_cost_time = 0
-            dataload_start = time.time()
+            # dataload_start = time.time()
             st_epoch = time.time()
             for i_batch, sampled_batched in enumerate(
                     tqdm(self.train_dataloader,
                          total=len(self.train_dataloader))):
                 # profiling
-                dataload_finish = time.time()
-                total_datafetch_cost_time += dataload_finish - dataload_start
-                train_start = time.time()
+                # dataload_finish = time.time()
+                # total_datafetch_cost_time += dataload_finish - dataload_start
+                # train_start = time.time()
                 # begin to train
                 self.net.train()
                 inputs, outputs = sampled_batched
@@ -96,24 +96,23 @@ class CNNParamNet(ParamNet):
                 loss.backward()
                 self.optimizer.step()
                 train_end = time.time()
-                total_train_cost_time += train_end - train_start
+                # total_train_cost_time += train_end - train_start
 
                 # print(f"batch train cost {ed_epoch - st_epoch} s")
                 # print(f"[train] single mse {loss} num {inputs.shape[0]}")
                 cur_epoch_train_loss += loss.item() * num
                 iters += 1
                 total_num += num
-                dataload_start = time.time()
+                # dataload_start = time.time()
                 # st6 = time.time()
                 # print(f"4 {st6 - st5}")
             ed_epoch = time.time()
-            print(
-                f"train epoch cost {ed_epoch - st_epoch}, train cost {total_train_cost_time}, dataloader cost {total_datafetch_cost_time}"
-            )
+            print(f"train epoch cost {ed_epoch - st_epoch}")
             mean_train_loss = cur_epoch_train_loss / total_num
             # print(f"[train] total err {mean_train_loss} num {total_num}")
             # logging
             if epoch % self.iters_logging == 0:
+                print(f"begin to do validation...")
                 step = epoch / self.iters_logging
                 validation_err = self._calc_validation_error()
                 print(
@@ -128,10 +127,13 @@ class CNNParamNet(ParamNet):
 
             # saving model
             if epoch % self.iters_save_model == 0:
+                print(f"begin to save model...")
                 name = self._get_model_save_name(float(validation_err))
                 self.save_model(name)
+                print(f"save model done")
                 # print(f"name {name}")
 
             # update hyper parameters
             self._set_lr(max(self.lr_decay * self._get_lr(), self.min_lr))
+            print(f"done an epoch")
         return validation_err

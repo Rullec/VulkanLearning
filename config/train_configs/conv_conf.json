@@ -82,6 +82,16 @@
         {
             "type": "fc",
             "input": 8192,
+            "output": 2048
+        },
+        {
+            "type": "fc",
+            "input": 2048,
+            "output": 1024
+        },
+        {
+            "type": "fc",
+            "input": 1024,
             "output": 512
         },
         {
@@ -100,7 +110,7 @@
         }
     ],
     "model_output_dir": "../output/",
-    "model_path": "../output/07-06-14_25_08-0.1071.pkl",
+    "model_path": "../output/07-08-16_37_32-0.1146.pkl",
     "save_model_iters": 10,
     "logging_iters": 1,
     "dropout": 0.0,

@@ -12,6 +12,7 @@ except ImportError as e:
     pass
 from .dali_utils.dali_file_reader import DALIHdf5Reader
 # from dali_utils.dali_file_reader import DALIHdf5Reader
+from .dali_utils.dali_file_reader_torch import DALIFileReaderBasedTorch
 import h5py
 
 
@@ -45,19 +46,28 @@ class DALIDataManipulator(ImageDataManipulator):
             train_grp_lst.append(f["train_set"])
             test_grp_lst.append(f["test_set"])
 
-        input_mean, input_std, output_mean, output_std = self._load_statistics_from_archive()
-        train_reader = DALIHdf5Reader(self.batch_size, train_grp_lst,
-                                      self.conf_dict["load_all_data_into_mem"],
-                                      input_mean, input_std, output_mean,
-                                      output_std)
-        val_reader = DALIHdf5Reader(self.batch_size, test_grp_lst,
-                                    self.conf_dict["load_all_data_into_mem"],
-                                    input_mean, input_std, output_mean,
-                                    output_std)
+        input_mean, input_std, output_mean, output_std = self._load_statistics_from_archive(
+        )
+        # train_reader = DALIHdf5Reader(self.batch_size, train_grp_lst,
+        #                               self.conf_dict["load_all_data_into_mem"],
+        #                               input_mean, input_std, output_mean,
+        #                               output_std)
+        # val_reader = DALIHdf5Reader(self.batch_size, test_grp_lst,
+        #                             self.conf_dict["load_all_data_into_mem"],
+        #                             input_mean, input_std, output_mean,
+        #                             output_std)
+        self.train_reader = DALIFileReaderBasedTorch(
+            self.batch_size, train_grp_lst,
+            self.conf_dict["load_all_data_into_mem"], input_mean, input_std,
+            output_mean, output_std)
+        self.val_reader = DALIFileReaderBasedTorch(
+            self.batch_size, test_grp_lst,
+            self.conf_dict["load_all_data_into_mem"], input_mean, input_std,
+            output_mean, output_std)
         self.train_dataloader = build_dali_torch_wrapper(
-            file_reader=train_reader, batch_size=self.batch_size)
+            file_reader=self.train_reader, batch_size=self.batch_size)
         self.val_dataloader = build_dali_torch_wrapper(
-            file_reader=val_reader, batch_size=self.batch_size)
+            file_reader=self.val_reader, batch_size=self.batch_size)
         # print(f"please check the train pipe: it must be augmented")
         # exit()
         # cur_epoch = 0
@@ -107,7 +117,7 @@ if __name__ == "__main__":
         "data_dir":
         "../../data/export_data/uniform_sample10_noised2_4camnoised_2rot_4view",
         "train_perc": 0.8,
-        "enable_data_augment": True,
+        "enable_data_augment": False,
         "load_all_data_into_mem": False,
         "enable_test": False,
         "input_normalize_mode": "per_pixel"
@@ -115,9 +125,14 @@ if __name__ == "__main__":
 
     mani = DALIDataManipulator(conf_dict)
     train_loader, val_loader = mani.get_dataloader()
-    st = time.time()
-
-    for _idx, batched in enumerate(train_loader):
-        print(_idx)
-    ed = time.time()
-    print(f"cost {ed - st}")
+    # train_loader, val_loader = mani.train_reader, mani.val_reader
+    # train_loader, val_loader = mani.train_reader.torch_loader, mani.val_reader.torch_loader
+    epoch = 0
+    while True:
+        st = time.time()
+        iters = 0
+        for _idx, batched in enumerate(train_loader):
+            print(_idx)
+            iters += 1
+        ed = time.time()
+        print(f"epoch {epoch} total cost {ed - st}, avg cost {(ed - st) / iters}")
