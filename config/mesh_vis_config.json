@@ -2,7 +2,8 @@
     "scene_type": "mesh_vis",
     "cloth_size": 1,
     "cloth_mass": 1,
-    "mesh_data" : "data/export_data/cpu_nonoise_threshold1mm",
+    "mesh_data.bak" : "data/export_data/cpu_nonoise_threshold1mm",
+    "mesh_data" : "data/export_data/uniform_sample10_noised16",
     "cloth_init_pos": [
         0,
         1,
@@ -64,5 +65,9 @@
     },
     "enable_profiling": false,
     "enable_obstacle": false,
-    "enable_collision_detection": true
+    "enable_collision_detection": true,
+    "ground_png_path": "data/grid0.png",
+    "enable_cloth": true,
+    "object_name": "cloth",
+    "enable_only_exporting_cutted_window": false
 }

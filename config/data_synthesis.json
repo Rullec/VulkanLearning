@@ -49,7 +49,7 @@
             },
             "bending_warp": {
                 "range": [
-                    0,
+                    1,
                     50
                 ],
                 "num_of_samples": 10,
@@ -58,7 +58,7 @@
             },
             "bending_weft": {
                 "range": [
-                    0,
+                    1,
                     50
                 ],
                 "num_of_samples": 10,
@@ -67,7 +67,7 @@
             },
             "bending_bias": {
                 "range": [
-                    0,
+                    1,
                     50
                 ],
                 "num_of_samples": 10,
