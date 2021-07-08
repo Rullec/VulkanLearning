@@ -6,16 +6,18 @@ from torchvision import transforms
 from torchvision.transforms.transforms import RandomRotation, ToTensor
 
 
-def apply_mesh_data_noise(batch):
-    inputs, outputs = batch
-    size = inputs.shape[1]
-    noise = (np.random.rand(3).astype(np.float32) - 0.5) / 10  # +-5cm
-    noise_all = np.repeat([np.tile(noise, size // 3)], inputs.shape[0], axis=0)
+def apply_mesh_data_noise(inputs):
+    size = inputs.shape[0]
+    noise = (np.random.rand(3).astype(np.float32) - 0.5) / 10  # +-5cm, 3x1
+
+    noise_all = np.tile(noise, size // 3)
+    # print(f"noise all shape {noise_all.shape} {noise_all}")
+    # exit()
     inputs += noise_all
     # for _idx in range(inputs.shape[0]):
     #     # print(f"noise = {noise}")
     #     inputs[_idx] += noise_all
-    return (inputs, outputs)
+    return inputs
 
 
 class AddGaussianNoise(object):
@@ -62,7 +64,7 @@ import albumentations as A
 a_ssr = A.ShiftScaleRotate(p=1.0)
 a_gb = A.GaussianBlur(p=1.0)
 a_gn = A.GaussNoise(p=1.0)
-trans_aug_A = A.Compose([ a_ssr, a_gb, a_gn])
+trans_aug_A = A.Compose([a_ssr, a_gb, a_gn])
 
 
 def apply_depth_albumentation(inputs):

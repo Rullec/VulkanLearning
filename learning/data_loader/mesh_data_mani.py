@@ -216,30 +216,18 @@ class MeshDataManipulator(ABC):
             stats)
 
         for _idx, cur_file in tqdm(enumerate(train_files),
-                                   "saving training set"):
-            res = MeshDataManipulator.load_single_json_mesh_data_for_archive
-            (_idx, "train_set", cur_file, output_file, input_mean, input_std,
-             output_mean, output_std)
+                                   "saving training set", total = len(train_files)):
+            res = MeshDataManipulator.load_single_json_mesh_data_for_archive(
+                _idx, "train_set", cur_file, output_file, input_mean,
+                input_std, output_mean, output_std)
+            MeshDataManipulator.save_files_to_grp(res)
+
+        for _idx, cur_file in tqdm(enumerate(test_files), "saving test set", total = len(test_files)):
+            res = MeshDataManipulator.load_single_json_mesh_data_for_archive(
+                _idx, "test_set", cur_file, output_file, input_mean, input_std,
+                output_mean, output_std)
 
             MeshDataManipulator.save_files_to_grp(res)
-            # pool = Pool(4)
-            # pool.apply(
-            #     MeshDataManipulator.load_single_json_mesh_data_for_archive,
-            #     (_idx, "train_set", cur_file, output_file, input_mean,
-            #      input_std, output_mean, output_std),
-            #     callback=MeshDataManipulator.save_files_to_grp)
-            # pool.close()
-            # pool.join()
-
-        for _idx, cur_file in tqdm(enumerate(test_files), "saving test set"):
-            pool = Pool(4)
-            pool.apply(
-                MeshDataManipulator.load_single_json_mesh_data_for_archive,
-                (_idx, "test_set", cur_file, output_file, input_mean,
-                 input_std, output_mean, output_std),
-                callback=MeshDataManipulator.save_files_to_grp)
-            pool.close()
-            pool.join()
 
         # output statistics
         f = h5py.File(output_file, 'a')

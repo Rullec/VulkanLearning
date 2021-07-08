@@ -71,10 +71,17 @@ class CustomDataset(Dataset):
         else:
             input, output = self.__getitem_from_disk(index)
         if self.data_aug is not None:
-            assert len(input.shape) == 3
-            num_of_views = input.shape[0]
-            shift = np.random.randint(0, num_of_views)
-            input = np.roll(input, shift, axis=0)
+            if len(input.shape) == 3:
+                # input is view of images
+                num_of_views = input.shape[0]
+                shift = np.random.randint(0, num_of_views)
+                input = np.roll(input, shift, axis=0)
+            elif len(input.shape) == 1:
+                # for mesh data, we do not need to change the channels, pass
+                pass
+            else:
+                raise ValueError
+            
             # print(f"shift {shift}")
 
         if self.data_aug is not None:
