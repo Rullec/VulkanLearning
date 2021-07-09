@@ -29,9 +29,9 @@
         "stretch_warp": 27,
         "stretch_weft": 27,
         "stretch_bias": 27,
-        "bending_warp": 38,
-        "bending_weft": 38,
-        "bending_bias": 38
+        "bending_warp": 1,
+        "bending_weft": 1,
+        "bending_bias": 1
     },
     "constraints": {
         "fixed_point.bak": [
@@ -62,7 +62,7 @@
         ],
         "camera_focus": [
             0.0,
-            0.0,
+            0.2,
             0
         ],
         "fov": 52.5,

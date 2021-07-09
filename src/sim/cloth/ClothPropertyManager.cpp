@@ -348,6 +348,11 @@ void tPhyPropertyManager::InitFeaturesFromGivenFile()
     // std::cout << mAllPropertyFeatures << std::endl;
     // exit(0);
     printf("[log] load %d properties from %s\n", num_of_samples,
-           mExternalPropertySamplesPath);
+           mExternalPropertySamplesPath.c_str());
+    std::cout << "[log] begin feature = " << mAllPropertyFeatures.row(0)
+              << std::endl;
+    std::cout << "[log] end feature = "
+              << mAllPropertyFeatures.row(mAllPropertyFeatures.rows() - 1)
+              << std::endl;
 }
 #endif

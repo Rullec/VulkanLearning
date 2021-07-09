@@ -15,7 +15,8 @@ class cSynDataScene : public cSimScene
 {
 public:
     inline static const std::string ENABLE_DRAW_KEY = "enable_draw",
-                                    EXPORT_DATA_DIR = "export_data_dir";
+                                    EXPORT_DATA_DIR = "export_data_dir",
+                                    MAX_CONVERGENCE_ITERS = "max_convergence_iters";
     explicit cSynDataScene();
     virtual void Init(const std::string &conf_path) override;
     virtual void Update(double dt) override;
@@ -54,6 +55,7 @@ protected:
     std::string mDefaultConfigPath;      // config used to build simulation
     tPhyPropertyManagerPtr mPropManager; // physical property manager
     double mConvergenceThreshold;
+    int mMaxConvergenceIters; // max convergence iterations
     std::string mExportDataDir;
 
     bool mEnableDataCleaner;

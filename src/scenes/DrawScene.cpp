@@ -649,34 +649,33 @@ void cDrawScene::Scroll(double xoff, double yoff)
 void cDrawScene::Reset()
 {
     mSimScene->Reset();
-// #ifdef _WIN32
-//     auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
-//     auto cloth = lin_scene->GetLinctexCloth();
-//     if (lin_scene != nullptr)
-//     {
+#ifdef _WIN32
+    auto lin_scene = std::dynamic_pointer_cast<cLinctexScene>(mSimScene);
+    auto cloth = lin_scene->GetLinctexCloth();
+    if (lin_scene != nullptr)
+    {
+        // double a = 1.5;
+        // tVector3d principle_axis = tVector3d::Random();
+        // principle_axis[1] = 0;
+        // principle_axis.normalize();
+        // principle_axis = tVector3d(1, 0, 0);
+        // lin_scene->ApplyFoldNoise(principle_axis, a);
+        // naive gaussian noise
+        // double angle = 0;
+        // double std = 0.02;
+        // lin_scene->ApplyNoise(true, angle, false, 0);
+        // lin_scene->ApplyNoise(true, angle, true, std);
 
-//         double a = 1.5;
-//         tVector3d principle_axis = tVector3d::Random();
-//         principle_axis[1] = 0;
-//         principle_axis.normalize();
-//         // principle_axis = tVector3d(1, 0, 0);
-//         // lin_scene->ApplyFoldNoise(principle_axis, a);
-//         // naive gaussian noise
-//         double angle = 0;
-//         double std = 0.02;
-//         // lin_scene->ApplyNoise(true, angle, false, 0);
-//         // lin_scene->ApplyNoise(true, angle, true, std);
-
-//         // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
-//         int num_of_fold = 3;
-//         double amp = 5e-2;
-//         cloth->ApplyMultiFoldsNoise(num_of_fold, amp);
-//         printf("apply multiple folds noise, fold %d, amp %.3f\n", num_of_fold,
-//                amp);
-//         // std::cout << "apply noise in draw scene, std = " << std <<
-//         // std::endl;
-//     }
-// #endif
+        // lin_scene->ApplyMultiFoldsNoise(cMathUtil::RandInt(2, 10));
+        int num_of_fold = 7;
+        double amp = 3e-2;
+        cloth->ApplyMultiFoldsNoise(num_of_fold, amp);
+        printf("apply multiple folds noise, fold %d, amp %.3f\n", num_of_fold,
+               amp);
+        // std::cout << "apply noise in draw scene, std = " << std <<
+        // std::endl;
+    }
+#endif
 }
 
 /**

@@ -86,20 +86,21 @@
                 "stretch_weft"
             ]
         ],
-        "enable_external_property_samples": false,
-        "external_property_samples_path": "./config/train_configs/isotropic_properties_sample_200.json"
+        "enable_external_property_samples": true,
+        "external_property_samples_path": "./split_save/uniform_sample10_noised16_amp1e-4_part0.json"
     },
     "noise": {
         "samples_per_prop": 16,
         "enable_noise": true,
         "enable_low_freq_noise": true,
-        "max_fold_amp": 5e-2,
+        "max_fold_amp": 3e-2,
         "min_fold_num": 3,
         "max_fold_num": 10
     },
-    "convergence_threshold": 0.001,
+    "convergence_threshold": 1e-4,
+    "max_convergence_iters": 100,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "uniform_sample10_noised16"
+    "export_data_dir": "uniform_sample10_noised16_part0"
 }

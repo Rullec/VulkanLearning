@@ -58,6 +58,8 @@ void cSynDataScene::Init(const std::string &conf_path)
     mSynDataNoise = std::make_shared<tSyncDataNoise>(
         cJsonUtil::ParseAsValue("noise", conf_json));
     mExportDataDir = cJsonUtil::ParseAsString(EXPORT_DATA_DIR, conf_json);
+    mMaxConvergenceIters =
+        cJsonUtil::ParseAsInt(MAX_CONVERGENCE_ITERS, conf_json);
     mLinScene = std::make_shared<cLinctexScene>();
     mLinScene->Init(mDefaultConfigPath);
     mLinCloth = mLinScene->GetLinctexCloth();
@@ -113,6 +115,7 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
     int before_frame = this->mLinScene->GetCurrentFrame();
     int frame_check_gap = 100;
     mLinScene->Start();
+    int cur_iters = 0;
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -139,7 +142,8 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             tVectorXd rowwise_norm = diff_mat.rowwise().norm();
             // std::cout << "begin to check 4 " << std::endl;
             double max_move_dist = rowwise_norm.maxCoeff();
-            // std::cout << "max move dist = " << max_move_dist << std::endl;
+
+            // if convergence
             if (max_move_dist < threshold)
             {
                 printf("[debug] %d RunSimulation: cur frame %d, diff norm %.6f "
@@ -150,7 +154,22 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
                           << std::endl;
                 break;
             }
+
+            // if doesn't convergence, but the max iter has been reached
+            if (cur_iters > mMaxConvergenceIters)
+            {
+                printf("[warn] %d RunSimulation upto max iters %d, cur frame "
+                       "%d, diff norm %.6f "
+                       "> %.6f for feature ",
+                       mTotalSamples_count, mMaxConvergenceIters, cur_frame,
+                       max_move_dist, threshold);
+                std::cout << props->BuildVisibleFeatureVector().transpose()
+                          << std::endl;
+                break;
+            }
+
             buffer0.noalias() = buffer1;
+            cur_iters += 1;
         }
     }
     // export data
@@ -246,7 +265,8 @@ void cSynDataScene::OfflineSampling()
     num_of_samples *= this->mSynDataNoise->mNumOfSamplesPerProp;
     float time_cost_per_sample = 16; // s
     float total_time_day = time_cost_per_sample * num_of_samples / (3600 * 24);
-    printf("[log] we will have %d samples, nearly cost %.1f day\n", num_of_samples, total_time_day);
+    printf("[log] we will have %d samples, nearly cost %.1f day\n",
+           num_of_samples, total_time_day);
     for (int i = 0; i < num_of_properties; i++)
     {
         // 1. reset the internal linctex scene,
