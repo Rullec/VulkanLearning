@@ -45,13 +45,13 @@ tPhyPropertyManager::tPhyPropertyManager(const Json::Value &conf)
             {
                 mVisibleIndex[i] = cJsonUtil::ParseAsInt("index", sub_value);
             }
-            std::cout << "[debug] property " << tPhyProperty::mPropertiesName[i]
-                      << " range = " << range.transpose()
-                      << " samples = " << mSamples[i]
-                      << " visi = " << mVisibilities[i] << std::endl;
+            // std::cout << "[debug] property " << tPhyProperty::mPropertiesName[i]
+            //           << " range = " << range.transpose()
+            //           << " samples = " << mSamples[i]
+            //           << " visi = " << mVisibilities[i] << std::endl;
         }
-        std::cout << "visible index = " << mVisibleIndex.transpose()
-                  << std::endl;
+        // std::cout << "visible index = " << mVisibleIndex.transpose()
+                //   << std::endl;
         InitExchangeablePairs(
             cJsonUtil::ParseAsValue("exchangeable_pairs", conf));
 
@@ -97,7 +97,7 @@ void tPhyPropertyManager::InitExchangeablePairs(const Json::Value &conf)
             idx1 = tPhyProperty::GetFeatureIdx(name1);
         mExchangeablePairs.push_back(std::pair<int, int>(idx0, idx1));
         auto a = mExchangeablePairs[mExchangeablePairs.size() - 1];
-        printf("[debug] add exchangeable pair %d-%d\n", a.first, a.second);
+        // printf("[debug] add exchangeable pair %d-%d\n", a.first, a.second);
     }
 }
 

@@ -7,8 +7,8 @@ import json
 from multiprocessing import Pool, Value
 from itertools import repeat
 import h5py
-# from .data_loader import CustomDataLoader
-from data_loader import CustomDataLoader
+from .data_loader import CustomDataLoader
+# from data_loader import CustomDataLoader
 from abc import ABC
 from tqdm import tqdm
 
@@ -439,8 +439,8 @@ class MeshDataManipulator(ABC):
                                                     output_mean, output_std)
 
     def __create_dataset(self):
-        # from .data_loader import CustomDataset
-        from data_loader import CustomDataset
+        from .data_loader import CustomDataset
+        # from data_loader import CustomDataset
 
         ultimate_f = h5py.File(self.get_default_archive_path(), mode='r')
 

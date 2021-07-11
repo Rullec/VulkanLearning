@@ -244,12 +244,12 @@ void cTriangulator::BuildGeometry_SkewTriangle(
             // triangles_array.size() - 1, tri2->mId0, tri2->mId1, tri2->mId2);
         }
     }
-    printf("[debug] create %d triangles done\n", triangles_array.size());
+    // printf("[debug] create %d triangles done\n", triangles_array.size());
     // 2. init the vertices
     double unit_edge_length = width / subdivision;
     // double unit_mass = mClothMass / (num_of_lines * num_of_lines);
 
-    printf("[debug] create %d vertices done\n", vertices_array.size());
+    // printf("[debug] create %d vertices done\n", vertices_array.size());
     // 3. init the edges
     {
         int num_of_edges_per_line = subdivision * 3 + 1;
@@ -354,7 +354,7 @@ void cTriangulator::BuildGeometry_SkewTriangle(
             }
         }
     }
-    printf("[debug] create %d edges done\n", edges_array.size());
+    // printf("[debug] create %d edges done\n", edges_array.size());
 }
 void cTriangulator::BuildGeometry_UniformTriangle(
     double width, int subdivision, std::vector<tVertex *> &vertices_array,
@@ -420,12 +420,12 @@ void cTriangulator::BuildGeometry_UniformTriangle(
             }
         }
     }
-    printf("[debug] create %d triangles done\n", triangles_array.size());
+    // printf("[debug] create %d triangles done\n", triangles_array.size());
     // 2. init the vertices
     double unit_edge_length = width / subdivision;
     // double unit_mass = mClothMass / (num_of_lines * num_of_lines);
 
-    printf("[debug] create %d vertices done\n", vertices_array.size());
+    // printf("[debug] create %d vertices done\n", vertices_array.size());
     // 3. init the edges
     {
         int num_of_edges_per_line = subdivision * 3 + 1;
@@ -574,7 +574,7 @@ void cTriangulator::BuildGeometry_UniformTriangle(
             }
         }
     }
-    printf("[debug] create %d edges done\n", edges_array.size());
+    // printf("[debug] create %d edges done\n", edges_array.size());
     // exit(0);
 }
 

@@ -6,8 +6,8 @@ import sys
 sys.path.append("../calibration")
 sys.path.append("../../calibration")
 from file_util import get_subdirs, load_json, load_png_image
-# from .mesh_data_mani import MeshDataManipulator
-from mesh_data_mani import MeshDataManipulator
+from .mesh_data_mani import MeshDataManipulator
+# from mesh_data_mani import MeshDataManipulator
 import os
 from multiprocessing import Pool, Value
 

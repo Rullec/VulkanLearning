@@ -143,8 +143,8 @@ SePiecePtr SePiece::Create(const std::vector<Int3> & triangles,
     auto cloth_sim_prop = mSeCloth->GetSimulationProperties();
     // cloth_sim_prop->SetCollisionThickness(0);
     mSeCloth->GetPhysicalProperties()->SetThickness(0);
-    std::cout << "[debug] se col thickness = "
-              << cloth_sim_prop->GetCollisionThickness() << std::endl;
+    // std::cout << "[debug] se col thickness = "
+    //           << cloth_sim_prop->GetCollisionThickness() << std::endl;
 }
 
 void cLinctexCloth::SetSimProperty(const tPhyPropertyPtr &prop)

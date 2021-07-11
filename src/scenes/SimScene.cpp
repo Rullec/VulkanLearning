@@ -461,7 +461,7 @@ void cSimScene::CreateObstacle(const Json::Value &conf)
         mObstacleList.push_back(obs);
     }
 
-    printf("[debug] create %d obstacle(s) done\n", mObstacleList.size());
+    // printf("[debug] create %d obstacle(s) done\n", mObstacleList.size());
     // exit(0);
 }
 

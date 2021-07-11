@@ -6,7 +6,7 @@
 void tPhyProperty::Init(const Json::Value &root)
 {
     Json::Value conf = cJsonUtil::ParseAsValue("cloth_property", root);
-    std::cout << "[debug] init physical prop = \n " << conf << std::endl;
+    // std::cout << "[debug] init physical prop = \n " << conf << std::endl;
     mStretchWarp = cJsonUtil::ParseAsDouble(mPropertiesName[0], conf);
     mStretchWeft = cJsonUtil::ParseAsDouble(mPropertiesName[1], conf);
     mStretchBias = cJsonUtil::ParseAsDouble(mPropertiesName[2], conf);

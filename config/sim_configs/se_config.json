@@ -29,9 +29,9 @@
         "stretch_warp": 27,
         "stretch_weft": 27,
         "stretch_bias": 27,
-        "bending_warp": 1,
-        "bending_weft": 1,
-        "bending_bias": 1
+        "bending_warp": 42,
+        "bending_weft": 42,
+        "bending_bias": 42
     },
     "constraints": {
         "fixed_point.bak": [

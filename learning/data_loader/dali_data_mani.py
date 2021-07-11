@@ -1,17 +1,17 @@
-# from .img_data_mani import ImageDataManipulator
-from img_data_mani import ImageDataManipulator
+from .img_data_mani import ImageDataManipulator
+# from img_data_mani import ImageDataManipulator
 
 # only import dali on Linux platform
 try:
     import platform
     if platform.system() != "Linux":
         raise ImportError
-    # from .dali_utils.dali_torch_wrapper import build_dali_torch_wrapper
-    from dali_utils.dali_torch_wrapper import build_dali_torch_wrapper
+    from .dali_utils.dali_torch_wrapper import build_dali_torch_wrapper
+    # from dali_utils.dali_torch_wrapper import build_dali_torch_wrapper
 except ImportError as e:
     pass
-# from .dali_utils.dali_file_reader import DALIHdf5Reader
-from dali_utils.dali_file_reader import DALIHdf5Reader
+from .dali_utils.dali_file_reader import DALIHdf5Reader
+# from dali_utils.dali_file_reader import DALIHdf5Reader
 import h5py
 
 

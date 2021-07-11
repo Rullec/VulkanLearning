@@ -87,7 +87,7 @@
             ]
         ],
         "enable_external_property_samples": true,
-        "external_property_samples_path": "./split_save/uniform_sample10_noised16_amp1e-4_part0.json"
+        "external_property_samples_path": "./split_save/uniform_2c_sample25_noised16_amp5e-4_part0.json"
     },
     "noise": {
         "samples_per_prop": 16,
@@ -97,7 +97,7 @@
         "min_fold_num": 3,
         "max_fold_num": 10
     },
-    "convergence_threshold": 1e-4,
+    "convergence_threshold": 5e-4,
     "max_convergence_iters": 100,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
