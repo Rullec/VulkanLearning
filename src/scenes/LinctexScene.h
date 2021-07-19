@@ -32,6 +32,7 @@ public:
     cLinctexClothPtr GetLinctexCloth() const;
     int GetCurrentFrame() const;
     void Start();
+    static double CalcSimDiff(const tVectorXd &v0, const tVectorXd &v1);
     // external cloth property settings
     // virtual void SetSimProperty(const tPhyPropertyPtr &prop);
     // virtual void ApplyTransform(const tMatrix &trans);
@@ -47,7 +48,9 @@ public:
     virtual void Key(int key, int scancode, int action, int mods);
     // virtual tVector CalcCOM() const;
     virtual void End();
-
+    virtual void SetEnableCheckSimulationDiff(bool val);
+    virtual void UpdateCurTimeRec(); // update current time record
+    virtual void CheckOutputIfPossible(); // update current time record
 protected:
     void AddPiece();
     virtual void UpdatePerturb();
@@ -73,6 +76,8 @@ protected:
     tVectorXd mPreviosFeature; // used in network inference mode, previous nodal
     // position vector
     cMessageCallbackPtr mMstPtr;
+    bool mEnableCheckSimulationDiff;          // enable check simulation diff
+    double mCheckSimulationDiffElaspedSecond; // check
     virtual void CreateCloth(const Json::Value &conf) override final;
 
     virtual void CreateObstacle(const Json::Value &conf) override final;

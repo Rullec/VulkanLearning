@@ -133,16 +133,9 @@ void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
             // std::cout << "begin to check 2 " << std::endl;
             // std::cout << "buffer0 " << buffer0.size() << std::endl;
             // std::cout << "buffer1 " << buffer1.size() << std::endl;
-            tVectorXd diff_vec = buffer1 - buffer0;
+            // tVectorXd diff_vec = buffer1 - buffer0;
             // std::cout << "begin to check 2.5 " << std::endl;
-            Eigen::Map<
-                Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
-                diff_mat(diff_vec.data(), num_of_points, 3);
-            // std::cout << "begin to check 3 " << std::endl;
-            tVectorXd rowwise_norm = diff_mat.rowwise().norm();
-            // std::cout << "begin to check 4 " << std::endl;
-            double max_move_dist = rowwise_norm.maxCoeff();
-
+            double max_move_dist = cLinctexScene::CalcSimDiff(buffer0, buffer1);
             // if convergence
             if (max_move_dist < threshold)
             {

@@ -21,7 +21,7 @@
     "cloth_init_nodal_position": "",
     "geometry_type": "regular_triangle",
     "subdivision": 100,
-    "se_sim_platform": "cpu",
+    "se_sim_platform": "xgpu",
     "se_enable_collision": true,
     "damping": 1e-3,
     "default_timestep": 1e-4,
@@ -29,9 +29,9 @@
         "stretch_warp": 27,
         "stretch_weft": 27,
         "stretch_bias": 27,
-        "bending_warp": 42,
-        "bending_weft": 42,
-        "bending_bias": 42
+        "bending_warp": 10,
+        "bending_weft": 10,
+        "bending_bias": 50
     },
     "constraints": {
         "fixed_point.bak": [
@@ -143,5 +143,7 @@
     "network_inference_min_iter": 100,
     "enable_collision_detection": false,
     "ground_png_path": "data/grid0.png",
-    "enable_cloth": true
+    "enable_cloth": true,
+    "enable_check_simulation_diff": false,
+    "check_simulation_diff_elasped_s": 1
 }

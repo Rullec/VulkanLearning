@@ -1,8 +1,11 @@
 #include "scenes/LinctexCloth.h"
 #include "utils/JsonUtil.h"
 #include "utils/MathUtil.h"
+#include "utils/TimeUtil.hpp"
 #include <iostream>
 
+std::chrono::system_clock::time_point tp_rec0, tp_rec_st;
+tVectorXd cloth_pos_rec0;
 /**
  * \brief           Save current simulation correspondence
  */
@@ -40,9 +43,9 @@ void LoadSimulationData(tVectorXd &simualtion_result,
 }
 
 #ifdef _WIN32
-#include "SeMessageCallback.h"
 #include "Core/SeLogger.h"
 #include "LinctexScene.h"
+#include "SeMessageCallback.h"
 #include "SePhysicalProperties.h"
 #include "SePiece.h"
 #include "SeScene.h"
@@ -146,7 +149,10 @@ void cLinctexScene::Reset()
     mEngineStart = false;
     mCloth->Reset();
     mMstPtr->Reset();
+    UpdateCurTimeRec();
+    tp_rec_st = tp_rec0;
 }
+
 void cLinctexScene::Init(const std::string &path)
 {
     Json::Value root;
@@ -157,20 +163,30 @@ void cLinctexScene::Init(const std::string &path)
     std::string sim_platform =
         cJsonUtil::ParseAsString(SE_SIM_PLATFORM_KEY, root);
 
+    // old cuda
     if (sim_platform == "cuda")
     {
         mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
+        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
+        SIM_ERROR("Do not use cuda backend, it will generate diverse "
+                  "simulation result");
+        exit(1);
     }
     else if (sim_platform == "cpu")
     {
         mSeScene->GetOptions()->SetPlatForm(SePlatform::CPU);
+        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
+    }
+    else if (sim_platform == "xgpu")
+    {
+        mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
+        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Candidate);
     }
     else
     {
         SIM_ERROR("unsupported platform type {}", sim_platform);
+        exit(1);
     }
-    mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
-
     cSimScene::Init(path);
 
     bool enable_collision =
@@ -213,6 +229,13 @@ void cLinctexScene::Init(const std::string &path)
                       << std::endl;
             // exit(0);
         }
+        mEnableCheckSimulationDiff =
+            cJsonUtil::ParseAsBool("enable_check_simulation_diff", root);
+        mCheckSimulationDiffElaspedSecond = cJsonUtil::ParseAsBool(
+            "check_simulation_diff_elasped_s", root); // check
+        // std::cout << mEnableCheckSimulationDiff << std::endl;
+        // std::cout << mCheckSimulationDiffElaspedSecond << std::endl;
+        // exit(1);
     }
 
     // now the cloth should have been added & inited well
@@ -227,6 +250,8 @@ void cLinctexScene::Init(const std::string &path)
     auto ptr = mSeScene->GetSimulationParameters();
     ptr->SetGravity(gGravity[1]);
     mEngineStart = false;
+    UpdateCurTimeRec();
+    tp_rec_st = tp_rec0;
     // SaveCurrentScene();
     // exit(1);
 }
@@ -303,6 +328,8 @@ void cLinctexScene::Update(double dt)
         if (mEnableNetworkInferenceMode == true)
             NetworkInferenceFunction();
     }
+
+    CheckOutputIfPossible();
 }
 
 #include "Perturb.h"
@@ -470,4 +497,64 @@ cLinctexClothPtr cLinctexScene::GetLinctexCloth() const
 int cLinctexScene::GetCurrentFrame() const { return mMstPtr->GetCurFrame(); }
 
 void cLinctexScene::Start() { mSeScene->Start(); }
+
+double cLinctexScene::CalcSimDiff(const tVectorXd &v0, const tVectorXd &v1)
+{
+    // std::cout << "v0 size = " << v0.size() << std::endl;
+    // std::cout << "v1 size = " << v1.size() << std::endl;
+    int num_of_points = int(v0.size() / 3);
+    tVectorXd diff_vec = v0 - v1;
+    Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>
+        diff_mat(diff_vec.data(), num_of_points, 3);
+    // std::cout << "get diff mat\n";
+    // std::cout << "begin to check 3 " << std::endl;
+    tVectorXd rowwise_norm = diff_mat.rowwise().norm();
+    // std::cout << "get rowwise_norm\n";
+    // std::cout << "begin to check 4 " << std::endl;
+    double max_move_dist = rowwise_norm.maxCoeff();
+    // std::cout << "get max_move_dist\n";
+    return max_move_dist;
+}
+
+void cLinctexScene::UpdateCurTimeRec()
+{
+    if (mEnableCheckSimulationDiff)
+    {
+        // std::cout << "update cur time begin\n";
+        tp_rec0 = cTimeUtil::GetCurrentTime_chrono();
+        cloth_pos_rec0 = GetLinctexCloth()->GetClothFeatureVector();
+        // std::cout << "update cur time rec\n";
+    }
+}
+
+/**
+ * \brief
+ */
+void cLinctexScene::CheckOutputIfPossible()
+{
+    if (mEnableCheckSimulationDiff)
+    {
+        auto cur_time = cTimeUtil::GetCurrentTime_chrono();
+        double cost = cTimeUtil::CalcTimeElaspedms(tp_rec0, cur_time);
+        if (cost > this->mCheckSimulationDiffElaspedSecond * 1000)
+        {
+            // std::cout << "cost " << cost << "begin\n";
+            tVectorXd cur_feat = GetLinctexCloth()->GetClothFeatureVector();
+            // std::cout << "get feat " << cost << "begin\n";
+            double diff = cLinctexScene::CalcSimDiff(cloth_pos_rec0, cur_feat);
+            double from_st = cTimeUtil::CalcTimeElaspedms(tp_rec_st, cur_time);
+            // std::cout << "diff " << cost << "begin\n";
+            printf("[debug] sim from st cost %.5f s, time gap %.5f s, diff = "
+                   "%.5f m\n",
+                   from_st * 1e-3, cost * 1e-3, diff);
+            UpdateCurTimeRec();
+            // std::cout << "----update done----\n";
+        }
+    }
+}
+
+void cLinctexScene::SetEnableCheckSimulationDiff(bool enable)
+{
+    mEnableCheckSimulationDiff = enable;
+}
 #endif

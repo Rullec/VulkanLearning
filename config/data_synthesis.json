@@ -48,20 +48,14 @@
                 "visible": false
             },
             "bending_warp": {
-                "range": [
-                    1,
-                    50
-                ],
-                "num_of_samples": 10,
+                "range": [27],
+                "num_of_samples": 1,
                 "visible": true,
                 "index": 0
             },
             "bending_weft": {
-                "range": [
-                    1,
-                    50
-                ],
-                "num_of_samples": 10,
+                "range": [27],
+                "num_of_samples": 1,
                 "visible": true,
                 "index": 1
             },
@@ -70,7 +64,7 @@
                     1,
                     50
                 ],
-                "num_of_samples": 10,
+                "num_of_samples": 200,
                 "visible": true,
                 "index": 2
             }
@@ -86,8 +80,8 @@
                 "stretch_weft"
             ]
         ],
-        "enable_external_property_samples": true,
-        "external_property_samples_path": "./split_save/uniform_2c_sample25_noised16_amp5e-4_part0.json"
+        "enable_external_property_samples": false,
+        "external_property_samples_path": ""
     },
     "noise": {
         "samples_per_prop": 16,
@@ -102,5 +96,5 @@
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "uniform_sample10_noised16_part0"
+    "export_data_dir": "isotropic_200prop_16samples_amp_0.05"
 }
