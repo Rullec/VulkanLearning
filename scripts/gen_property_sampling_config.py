@@ -4,6 +4,8 @@ import itertools
 import shutil
 from typing import ValuesView
 
+local_samples = 16
+
 
 class cPropertyManager:
     def __init__(self):
@@ -27,37 +29,43 @@ class cPropertyManager:
         prop_name_list = [i for i in self.property_dict]
         value = {
             "prop_name_list": prop_name_list,
-            "prop_samples": self.property_sample_lst[idx_st:idx_ed]
+            "prop_samples": self.property_sample_lst[idx_st:idx_ed],
+            "external_property_samples_start_id": idx_st * local_samples
         }
         dirname = os.path.dirname(path)
         if os.path.exists(dirname) == False:
             os.makedirs(dirname)
             print(f"create {dirname}")
         with open(path, 'w') as f:
-            json.dump(value, f)
+            json.dump(value, f, indent=True)
         # print(f"write down to {path}")
 
-    def dump_to_multiple_path(self, path_lst):
+    def dump_to_multiple_path(self, path_lst, weight_lst):
         num_path = len(path_lst)
         assert num_path >= 1
         segment_lst = []
         cur_st = 0
         num_total_sample = len(self.property_sample_lst)
+        standard_gap = round(num_total_sample / num_path)
+        print(f"total sample {num_total_sample}, num_machine {num_path}, gap {standard_gap}")
         assert num_total_sample >= num_path
         for i in range(num_path):
             if i == num_path - 1:
                 segment_lst.append((cur_st, num_total_sample))
             else:
-                cur_ed = cur_st + num_total_sample // num_path
+                cur_ed = cur_st + round(standard_gap * weight_lst[i])
                 segment_lst.append((cur_st, cur_ed))
                 cur_st = cur_ed
+
         # print(f"sample num {num_total_sample}, seg {segment_lst}")
         for i in range(num_path):
             path = path_lst[i]
             st = segment_lst[i][0]
             ed = segment_lst[i][1]
             self._dump_to_json_segment(path, st, ed)
-            print(f"[log] dump from {st} to {ed} to {path}")
+            print(
+                f"[log] dump from {st} to {ed} to {path}, samples {ed - st + 1}, weight {weight_lst[i]}"
+            )
 
     def add(self, prop):
         assert len(prop) == len(self.property_dict)
@@ -149,8 +157,8 @@ def create_bat(bat_id, config_path):
     print(f"[log] create batch file {bat_name} succ")
 
 
-def gen_uniform_config(manager, path_lst):
-    samples = 10
+def gen_uniform_config(manager, path_lst, weight_lst):
+    samples = 12
     bending_begin = 1
     bending_end = 50
     stretch = 27
@@ -167,46 +175,20 @@ def gen_uniform_config(manager, path_lst):
     values = remove_duplicate(values)
     for cur_v in values:
         manager.add([stretch, stretch, stretch, cur_v[0], cur_v[1], cur_v[2]])
-    manager.dump_to_multiple_path(path_lst)
-
-
-def gen_two_channels_uniform_config(manager, path_lst):
-    samples = 25
-    st_val, ed_val = 1, 50
-    stretch_val = 27
-    gap = samples - 1
-
-    template_data_synthesis_config = "../config/data_synthesis.json"
-
-    step = (ed_val - st_val) / gap if gap != 0 else 0
-    single_value_lst = [25]
-
-    uniform_values = [st_val + step * i for i in range(samples)]
-    values = [
-        list(i) for i in itertools.product(single_value_lst, uniform_values,
-                                           uniform_values)
-    ]
-    values = remove_duplicate(values)
-    for cur_v in values:
-        manager.add([
-            stretch_val, stretch_val, stretch_val, cur_v[0], cur_v[1], cur_v[2]
-        ])
-    manager.dump_to_multiple_path(path_lst)
+    manager.dump_to_multiple_path(path_lst, weight_lst)
 
     print(f"-----------------------")
+    template_data_synthesis_config = "../config/data_synthesis.json"
 
     for _idx, cur_path in enumerate(path_lst):
         # 1. copy and generate the export data dir and path
-        # 2. create the bat file, copy the files to the main directory
-
         new_config_path = f"split_save/batch_data_synthesis_part{_idx}.json"
-        # print(
-        #     f"old config {template_data_synthesis_config} new config {new_config_path}"
-        # )
-        create_data_synthesis_config(template_data_synthesis_config, os.path.join("scripts", cur_path),
+
+        # 2. create the bat file, copy the files to the main directory
+        create_data_synthesis_config(template_data_synthesis_config,
+                                     os.path.join("scripts", cur_path),
                                      new_config_path)
-        create_bat(_idx, os.path.join("scripts",  new_config_path))
-    # generate batch files and corresponding config
+        create_bat(_idx, os.path.join("scripts", new_config_path))
 
 
 if __name__ == "__main__":
@@ -223,13 +205,56 @@ if __name__ == "__main__":
     # gen_isotropic_config()
 
     path_lst = [
-        "split_save/uniform_2c_sample25_noised16_amp5e-4_part0.json",
-        "split_save/uniform_2c_sample25_noised16_amp5e-4_part1.json",
-        "split_save/uniform_2c_sample25_noised16_amp5e-4_part2.json",
-        "split_save/uniform_2c_sample25_noised16_amp5e-4_part3.json",
-        "split_save/uniform_2c_sample25_noised16_amp5e-4_part4.json",
-        "split_save/uniform_2c_sample25_noised16_amp5e-4_part5.json"
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part0.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part1.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part2.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part3.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part4.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part5.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part6.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part7.json",
+        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part8.json",
     ]
+    import numpy as np
+    weight_lst = [0.87,0.7,0.77,0.92,1.14,1.36,0.70,1.22,0.70]
+    weight_lst /= (np.sum(weight_lst) / len(weight_lst))
+    gen_uniform_config(mana, path_lst, weight_lst)
+    # gen_two_channels_uniform_config(mana, path_lst)
 
-    # gen_uniform_config(mana, path_lst)
-    gen_two_channels_uniform_config(mana, path_lst)
+# def gen_two_channels_uniform_config(manager, path_lst):
+#     samples = 13
+#     st_val, ed_val = 1, 50
+#     stretch_val = 27
+#     gap = samples - 1
+
+#     template_data_synthesis_config = "../config/data_synthesis.json"
+
+#     step = (ed_val - st_val) / gap if gap != 0 else 0
+#     single_value_lst = [25]
+
+#     uniform_values = [st_val + step * i for i in range(samples)]
+#     values = [
+#         list(i) for i in itertools.product(single_value_lst, uniform_values,
+#                                            uniform_values)
+#     ]
+#     values = remove_duplicate(values)
+#     for cur_v in values:
+#         manager.add([
+#             stretch_val, stretch_val, stretch_val, cur_v[0], cur_v[1], cur_v[2]
+#         ])
+#     manager.dump_to_multiple_path(path_lst)
+
+#     print(f"-----------------------")
+
+#     for _idx, cur_path in enumerate(path_lst):
+#         # 1. copy and generate the export data dir and path
+#         # 2. create the bat file, copy the files to the main directory
+
+#         new_config_path = f"split_save/batch_data_synthesis_part{_idx}.json"
+#         # print(
+#         #     f"old config {template_data_synthesis_config} new config {new_config_path}"
+#         # )
+#         create_data_synthesis_config(template_data_synthesis_config, os.path.join("scripts", cur_path),
+#                                      new_config_path)
+#         create_bat(_idx, os.path.join("scripts",  new_config_path))
+#     # generate batch files and corresponding config

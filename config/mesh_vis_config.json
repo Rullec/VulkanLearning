@@ -2,8 +2,8 @@
     "scene_type": "mesh_vis",
     "cloth_size": 1,
     "cloth_mass": 1,
-    "mesh_data.bak" : "data/export_data/cpu_nonoise_threshold1mm",
-    "mesh_data" : "data/export_data/test_multiple_sampling_xgpu",
+    "mesh_data.bak" : "data/export_data/cpu_backend_visual",
+    "mesh_data" : "data/export_data/xgpu_backend_visual",
     "cloth_init_pos": [
         0,
         1,

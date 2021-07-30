@@ -11,6 +11,8 @@
 // int online_cur_prop_id = -1;
 // tVectorXd online_before_nodal_pos;
 
+int mTotalSamples_valid = 0;
+int mTotalSamples_count = 0;
 extern void DumpSimulationData(const tVectorXd &simualtion_result,
                                const tVectorXd &simulation_property,
                                // const tVector &init_rot_qua,
@@ -60,8 +62,22 @@ void cSynDataScene::Init(const std::string &conf_path)
     mExportDataDir = cJsonUtil::ParseAsString(EXPORT_DATA_DIR, conf_json);
     mMaxConvergenceIters =
         cJsonUtil::ParseAsInt(MAX_CONVERGENCE_ITERS, conf_json);
+
+    std::string backend_str =
+        cJsonUtil::ParseAsString("simulation_backend", conf_json);
     mLinScene = std::make_shared<cLinctexScene>();
     mLinScene->Init(mDefaultConfigPath);
+    // check the specified backends are the same
+    {
+        SIM_ASSERT(backend_str ==
+                   cLinctexScene::ParseBackendStr(mLinScene->GetBackend()));
+    }
+    if (mPropManager->GetEnableExternalPropertySamples() == true)
+    {
+        mTotalSamples_valid = mPropManager->GetCurrentPropertyStartId();
+        printf("[log] set start sample id = %d from extern path\n",
+               mTotalSamples_valid);
+    }
     mLinCloth = mLinScene->GetLinctexCloth();
     InitExportDataDir();
 
@@ -90,8 +106,6 @@ std::string to_string(const tVectorXd &vec)
  * result
  */
 
-int mTotalSamples_valid = 0;
-int mTotalSamples_count = 0;
 void cSynDataScene::RunSimulation(tPhyPropertyPtr props)
 {
     // std::cout << "run sim for feature = " < < < < std::endl;

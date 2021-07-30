@@ -160,33 +160,8 @@ void cLinctexScene::Init(const std::string &path)
 
     SeLogger::GetInstance()->RegisterCallback(logging);
 
-    std::string sim_platform =
-        cJsonUtil::ParseAsString(SE_SIM_PLATFORM_KEY, root);
-
-    // old cuda
-    if (sim_platform == "cuda")
-    {
-        mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
-        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
-        SIM_ERROR("Do not use cuda backend, it will generate diverse "
-                  "simulation result");
-        exit(1);
-    }
-    else if (sim_platform == "cpu")
-    {
-        mSeScene->GetOptions()->SetPlatForm(SePlatform::CPU);
-        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
-    }
-    else if (sim_platform == "xgpu")
-    {
-        mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
-        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Candidate);
-    }
-    else
-    {
-        SIM_ERROR("unsupported platform type {}", sim_platform);
-        exit(1);
-    }
+    SetBackend(
+        ParseBackend(cJsonUtil::ParseAsString(SE_SIM_PLATFORM_KEY, root)));
     cSimScene::Init(path);
 
     bool enable_collision =
@@ -556,5 +531,89 @@ void cLinctexScene::CheckOutputIfPossible()
 void cLinctexScene::SetEnableCheckSimulationDiff(bool enable)
 {
     mEnableCheckSimulationDiff = enable;
+}
+
+/**
+ * \brief           Get backend (str) from static
+ */
+cLinctexScene::eLinctexSimBackend
+cLinctexScene::ParseBackend(std::string mode_str)
+{
+    // old cuda
+    for (int i = 0; i < eLinctexSimBackend::NUM_LINCTEX_SIM_BACKEND; i++)
+    {
+        if (mode_str ==
+            cLinctexScene::ParseBackendStr(static_cast<eLinctexSimBackend>(i)))
+        {
+            return static_cast<eLinctexSimBackend>(i);
+        }
+    }
+    SIM_ERROR("failed to parse the backend mode {}", mode_str);
+    return eLinctexSimBackend::NUM_LINCTEX_SIM_BACKEND;
+}
+
+/**
+ * \brief           Get backend (str) from static
+ */
+std::string cLinctexScene::ParseBackendStr(eLinctexSimBackend backend)
+{
+    std::string output = "";
+    switch (backend)
+    {
+    case eLinctexSimBackend::CPU:
+        output = "cpu";
+        break;
+    case eLinctexSimBackend::CUDA:
+        output = "cuda";
+        break;
+    case eLinctexSimBackend::XGPU:
+        output = "xgpu";
+        break;
+    default:
+        SIM_ERROR("illegal backend str {}", backend);
+        break;
+    }
+    return output;
+}
+
+cLinctexScene::eLinctexSimBackend cLinctexScene::GetBackend() const
+{
+    return eSimBackend;
+}
+
+/**
+ * \brief           Set simulation backend
+ */
+void cLinctexScene::SetBackend(eLinctexSimBackend backend)
+{
+    eSimBackend = backend;
+    SIM_INFO("Set simulation backend to {}", ParseBackendStr(backend));
+    switch (eSimBackend)
+    {
+    case eLinctexSimBackend::CUDA:
+    {
+        mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
+        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
+        SIM_WARN("Do not use cuda backend, it will generate diverse "
+                  "simulation result");
+        break;
+    }
+    case eLinctexSimBackend::CPU:
+    {
+        mSeScene->GetOptions()->SetPlatForm(SePlatform::CPU);
+        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Normal);
+        break;
+    }
+    case eLinctexSimBackend::XGPU:
+    {
+
+        mSeScene->GetOptions()->SetPlatForm(SePlatform::CUDA);
+        mSeScene->GetOptions()->SetUpdateMode(SeUpdateMode::Candidate);
+        break;
+    }
+    default:
+        SIM_ERROR("SetBackend: unsupported platform type {}", backend);
+        exit(1);
+    }
 }
 #endif

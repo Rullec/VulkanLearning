@@ -11,7 +11,7 @@
         32
     ],
     "model_output_dir": "../output/",
-    "model_path": "../output/07-19-14_28_12-0.0079.pkl",
+    "model_path": "",
     "save_model_iters": 10,
     "logging_iters": 1,
     "mode": "train",

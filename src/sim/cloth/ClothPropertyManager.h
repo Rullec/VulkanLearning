@@ -10,11 +10,17 @@ SIM_DECLARE_CLASS_AND_PTR(tPhyProperty);
 class tPhyPropertyManager
 {
 public:
-    inline static const std::string ENABLE_EXTERNAL_PROPERTY_SAMPLES_KEY = "enable_external_property_samples",
-    EXTERNAL_PROPERTY_SAMPLES_PATH_KEY = "external_property_samples_path";
+    inline static const std::string ENABLE_EXTERNAL_PROPERTY_SAMPLES_KEY =
+                                        "enable_external_property_samples",
+                                    EXTERNAL_PROPERTY_SAMPLES_PATH_KEY =
+                                        "external_property_samples_path",
+                                    EXTERNAL_PROPERTY_SAMPLES_START_ID_KEY =
+                                        "external_property_samples_start_id";
     explicit tPhyPropertyManager(const Json::Value &conf);
     tPhyPropertyPtr GetProperty(int idx);
     int GetNumOfProperties() const;
+    bool GetEnableExternalPropertySamples() const;
+    int GetCurrentPropertyStartId() const;
 
 protected:
     tVectorXd mPropMin, mPropMax;
@@ -31,6 +37,7 @@ protected:
     tMatrixXd mAllPropertyFeatures;
     bool mEnableExternalPropertySamples;
     std::string mExternalPropertySamplesPath;
+    int mExternalPropertySamplesStartId;
     std::vector<std::pair<int, int>> mExchangeablePairs;
     void InitExchangeablePairs(const Json::Value &conf);
     void InitFeaturesFromSampling();

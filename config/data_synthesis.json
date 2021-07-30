@@ -48,13 +48,17 @@
                 "visible": false
             },
             "bending_warp": {
-                "range": [27],
+                "range": [
+                    27
+                ],
                 "num_of_samples": 1,
                 "visible": true,
                 "index": 0
             },
             "bending_weft": {
-                "range": [27],
+                "range": [
+                    27
+                ],
                 "num_of_samples": 1,
                 "visible": true,
                 "index": 1
@@ -64,7 +68,7 @@
                     1,
                     50
                 ],
-                "num_of_samples": 200,
+                "num_of_samples": 25,
                 "visible": true,
                 "index": 2
             }
@@ -80,8 +84,8 @@
                 "stretch_weft"
             ]
         ],
-        "enable_external_property_samples": false,
-        "external_property_samples_path": ""
+        "enable_external_property_samples": true,
+        "external_property_samples_path": "./scripts/split_save/uniform_2c_sample25_noised16_amp5e-4_part0.json"
     },
     "noise": {
         "samples_per_prop": 16,
@@ -91,10 +95,11 @@
         "min_fold_num": 3,
         "max_fold_num": 10
     },
+    "simulation_backend": "xgpu",
     "convergence_threshold": 5e-4,
-    "max_convergence_iters": 100,
+    "max_convergence_iters": 50,
     "enable_data_cleaner": false,
     "data_cleaner_threshold": 0.005,
     "enable_collision_detection": false,
-    "export_data_dir": "isotropic_200prop_16samples_amp_0.05"
+    "export_data_dir": "test_output"
 }

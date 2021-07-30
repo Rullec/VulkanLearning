@@ -45,13 +45,14 @@ tPhyPropertyManager::tPhyPropertyManager(const Json::Value &conf)
             {
                 mVisibleIndex[i] = cJsonUtil::ParseAsInt("index", sub_value);
             }
-            // std::cout << "[debug] property " << tPhyProperty::mPropertiesName[i]
+            // std::cout << "[debug] property " <<
+            // tPhyProperty::mPropertiesName[i]
             //           << " range = " << range.transpose()
             //           << " samples = " << mSamples[i]
             //           << " visi = " << mVisibilities[i] << std::endl;
         }
         // std::cout << "visible index = " << mVisibleIndex.transpose()
-                //   << std::endl;
+        //   << std::endl;
         InitExchangeablePairs(
             cJsonUtil::ParseAsValue("exchangeable_pairs", conf));
 
@@ -59,10 +60,10 @@ tPhyPropertyManager::tPhyPropertyManager(const Json::Value &conf)
             cJsonUtil::ParseAsBool(ENABLE_EXTERNAL_PROPERTY_SAMPLES_KEY, conf);
         mExternalPropertySamplesPath =
             cJsonUtil::ParseAsString(EXTERNAL_PROPERTY_SAMPLES_PATH_KEY, conf);
+
         // exit(0);
         if (mEnableExternalPropertySamples == true)
         {
-
             InitFeaturesFromGivenFile();
         }
         else
@@ -343,6 +344,8 @@ void tPhyPropertyManager::InitFeaturesFromGivenFile()
     // std::cout << "num of load samples = " << num_of_samples << std::endl;
     SIM_ASSERT(
         cJsonUtil::ReadMatrixJson(prop_samples, this->mAllPropertyFeatures));
+    mExternalPropertySamplesStartId =
+        cJsonUtil::ParseAsInt(EXTERNAL_PROPERTY_SAMPLES_START_ID_KEY, root);
     // std::cout << "all prop features size = " << mAllPropertyFeatures.rows()
     //           << " " << mAllPropertyFeatures.cols() << std::endl;
     // std::cout << mAllPropertyFeatures << std::endl;
@@ -355,4 +358,17 @@ void tPhyPropertyManager::InitFeaturesFromGivenFile()
               << mAllPropertyFeatures.row(mAllPropertyFeatures.rows() - 1)
               << std::endl;
 }
+
+/**
+ * \brief       whether do we enable external property samples
+ */
+bool tPhyPropertyManager::GetEnableExternalPropertySamples() const
+{
+    return mEnableExternalPropertySamples;
+}
+int tPhyPropertyManager::GetCurrentPropertyStartId() const
+{
+    return mExternalPropertySamplesStartId;
+}
+
 #endif

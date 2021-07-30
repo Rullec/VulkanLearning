@@ -19,6 +19,13 @@ SIM_DECLARE_CLASS_AND_PTR(cMessageCallback);
 class cLinctexScene : public cSimScene
 {
 public:
+    enum eLinctexSimBackend
+    {
+        CPU = 0,
+        CUDA = 1, // should not be used
+        XGPU = 2,
+        NUM_LINCTEX_SIM_BACKEND
+    };
     inline static const std::string SE_SIM_PLATFORM_KEY = "se_sim_platform",
                                     SE_ENABLE_COLLISION_KEY =
                                         "se_enable_collision";
@@ -33,6 +40,10 @@ public:
     int GetCurrentFrame() const;
     void Start();
     static double CalcSimDiff(const tVectorXd &v0, const tVectorXd &v1);
+    static eLinctexSimBackend ParseBackend(std::string mode_str);
+    static std::string ParseBackendStr(eLinctexSimBackend backend);
+    eLinctexSimBackend GetBackend() const;
+    void SetBackend(eLinctexSimBackend backend);
     // external cloth property settings
     // virtual void SetSimProperty(const tPhyPropertyPtr &prop);
     // virtual void ApplyTransform(const tMatrix &trans);
@@ -49,7 +60,7 @@ public:
     // virtual tVector CalcCOM() const;
     virtual void End();
     virtual void SetEnableCheckSimulationDiff(bool val);
-    virtual void UpdateCurTimeRec(); // update current time record
+    virtual void UpdateCurTimeRec();      // update current time record
     virtual void CheckOutputIfPossible(); // update current time record
 protected:
     void AddPiece();
@@ -59,8 +70,8 @@ protected:
     virtual void PauseSim() override;
     std::shared_ptr<StyleEngine::SeDraggedPoints> mDragPt;
     std::shared_ptr<StyleEngine::SeScene> mSeScene;
-
-    bool mEngineStart; // start the engine or not
+    eLinctexSimBackend eSimBackend; // simulation backend
+    bool mEngineStart;              // start the engine or not
 
     bool mEnableNetworkInferenceMode; // if it's true, the simulation is running
                                       // for the DNN 's inference proceduce
