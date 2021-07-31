@@ -171,8 +171,6 @@ class cnn_net(nn.Module):
         # x = self.dropout(self.output(x))
 
         # return x
-
-
 # import torchvision
 
 # class res_net(nn.Module):

@@ -99,13 +99,13 @@
         }
     ],
     "model_output_dir": "../output/",
-    "model_path": "../output/07-08-16_37_32-0.1146.pkl",
+    "model_path": "../output/07-31-18_33_03-0.6896.pkl",
     "save_model_iters": 10,
     "logging_iters": 1,
     "dropout": 0.0,
     "mode": "train",
     "data_loader_config": {
-        "batch_size": 128,
+        "batch_size": 64,
         "enable_log_prediction": false,
         "data_dir.small": "../data/export_data/test_data",
         "data_dir": "../data/export_data/uniform_sample10_noised2_4camnoised_2rot_4view",
