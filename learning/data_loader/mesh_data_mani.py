@@ -131,15 +131,16 @@ class MeshDataManipulator(ABC):
         self.val_dataloader = None
         self.enable_test = config_dict[MeshDataManipulator.ENABLE_TEST_KEY]
 
-    def save_files_to_grp(res):
+    def save_files_to_grp(res, input_type):
         group_name, idx, input, output, archive_path = res
         f = h5py.File(archive_path, 'a')
         grp = f[group_name]
         # print(f"save files {idx} to {archive_path} done")
+
         dst = grp.create_dataset(f"{idx}",
                                  shape=input.shape,
                                  data=input,
-                                 dtype=np.float32)
+                                 dtype=input_type)
         dst.attrs["label"] = output.astype(np.float32)
         f.close()
         del res
@@ -216,13 +217,16 @@ class MeshDataManipulator(ABC):
             stats)
 
         for _idx, cur_file in tqdm(enumerate(train_files),
-                                   "saving training set", total = len(train_files)):
+                                   "saving training set",
+                                   total=len(train_files)):
             res = MeshDataManipulator.load_single_json_mesh_data_for_archive(
                 _idx, "train_set", cur_file, output_file, input_mean,
                 input_std, output_mean, output_std)
             MeshDataManipulator.save_files_to_grp(res)
 
-        for _idx, cur_file in tqdm(enumerate(test_files), "saving test set", total = len(test_files)):
+        for _idx, cur_file in tqdm(enumerate(test_files),
+                                   "saving test set",
+                                   total=len(test_files)):
             res = MeshDataManipulator.load_single_json_mesh_data_for_archive(
                 _idx, "test_set", cur_file, output_file, input_mean, input_std,
                 output_mean, output_std)
@@ -474,6 +478,8 @@ class MeshDataManipulator(ABC):
         self.train_dataloader = CustomDataLoader(train_dataset,
                                                  self.batch_size)
         self.val_dataloader = CustomDataLoader(test_dataset, self.batch_size)
+        self.input_mean, self.input_std, self.output_mean, self.output_std = self._load_statistics_from_archive(
+        )
         print(f"create dataloader succ")
 
     # def __calc_statistics(self, all_files):

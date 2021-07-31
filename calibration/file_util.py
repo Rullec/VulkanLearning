@@ -21,7 +21,7 @@ def save_png_image(path, image):
 def load_png_image(path):
     assert os.path.exists(path) == True
     image = Image.open(path)
-    image = np.asarray(image, dtype=np.float32)
+    image = np.asarray(image, dtype=np.uint8)
     assert len(image.shape) == 2
     return image
 

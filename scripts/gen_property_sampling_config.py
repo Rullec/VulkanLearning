@@ -158,7 +158,7 @@ def create_bat(bat_id, config_path):
 
 
 def gen_uniform_config(manager, path_lst, weight_lst):
-    samples = 12
+    samples = 25
     bending_begin = 1
     bending_end = 50
     stretch = 27
@@ -204,20 +204,24 @@ if __name__ == "__main__":
     # path = "../config/train_configs/isotropic_properties_sample_200.json"
     # gen_isotropic_config()
 
-    path_lst = [
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part0.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part1.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part2.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part3.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part4.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part5.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part6.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part7.json",
-        "split_save/uniform_3c_sample10_noised16_amp5e-4_xgpu_part8.json",
-    ]
+    num = 22
+    # :
+    path_lst = [ f"split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part{i}.json" for i in range(num)]
+    # path_lst = [
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part0.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part1.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part2.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part3.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part4.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part5.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part6.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part7.json",
+    #     "split_save/uniform_3c_sample25_noised16_amp5e-4_xgpu_part8.json",
+    # ]
     import numpy as np
-    weight_lst = [0.87,0.7,0.77,0.92,1.14,1.36,0.70,1.22,0.70]
-    weight_lst /= (np.sum(weight_lst) / len(weight_lst))
+    # weight_lst = [0.87,0.7,0.77,0.92,1.14,1.36,0.70,1.22,0.70]
+    weight_lst = [ 1 for _ in range(num)]
+    # weight_lst /= (np.sum(weight_lst) / len(weight_lst))
     gen_uniform_config(mana, path_lst, weight_lst)
     # gen_two_channels_uniform_config(mana, path_lst)
 

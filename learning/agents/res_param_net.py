@@ -33,15 +33,21 @@ class CNNParamNet(ParamNet):
         # data_mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
         self.train_dataloader, self.test_dataloader = data_mani.get_dataloader(
         )
+        self.input_mean = data_mani.input_mean
+        self.input_std = data_mani.input_std
+        self.output_mean = data_mani.output_mean
+        self.output_std = data_mani.output_std
+
         self.input_size = self.train_dataloader.get_input_size()
         self.output_size = self.train_dataloader.get_output_size()[0]
 
     def _build_net(self):
 
-        # print(self.output_size)
-        # exit(0)
-        self.net = cnn_net(self.layers, self.output_size,
-                           self.dropout).to(self.device)
+        print("begin to build net")
+
+        self.net = cnn_net(self.layers, self.output_size, self.dropout,
+                           self.input_mean, self.input_std, self.output_mean,
+                           self.output_std).to(self.device)
         self.criterion = torch.nn.MSELoss()
         total = 0
         for i in self.net.parameters():

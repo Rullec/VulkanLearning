@@ -105,11 +105,15 @@ def build_end_fc_block(config, output_size):
     return nn.Linear(input_size, output_size)
 
 
+import matplotlib.pyplot as plt
+
+
 class cnn_net(nn.Module):
     '''
         common CNN implemention for depth image(c=1)
     '''
-    def __init__(self, layers_config, output_size, dropout):
+    def __init__(self, layers_config, output_size, dropout, input_mean,
+                 input_std, output_mean, output_std):
         super(cnn_net, self).__init__()
         assert dropout == 0.0, "dropout must be 0.0"
 
@@ -132,7 +136,21 @@ class cnn_net(nn.Module):
         # self.dropout = dropout
         self.layer_lst = torch.nn.ModuleList(self.layer_lst)
 
+        self.input_mean = torch.Tensor(input_mean)
+        self.input_std = torch.Tensor(input_std)
+        self.output_mean = torch.Tensor(output_mean)
+        self.output_std = torch.Tensor(output_std)
+
+    def to(self, device):
+        self.input_mean = self.input_mean.to(device)
+        self.input_std = self.input_std.to(device)
+        self.output_mean = self.output_mean.to(device)
+        self.output_std = self.output_std.to(device)
+        return super().to(device)
+
     def forward(self, x):
+        # 1. do normalize
+        x = (x - self.input_mean) / self.input_std
 
         enable_logging = False
         if enable_logging:
@@ -157,6 +175,9 @@ class cnn_net(nn.Module):
                 print(f"[error] got exception in layer {_idx} {type}, {e}")
                 exit(1)
         x = torch.squeeze(x)
+
+        # do unnormalization
+        x = (x * self.output_std) + self.output_mean
         if enable_logging:
             print(f"output shape {x.shape}")
         return x

@@ -177,7 +177,7 @@ class ImageDataManipulator(MeshDataManipulator):
     def _build_data_augmentation(self):
         if self.enable_data_aug is True:
             # from .data_aug import apply_depth_albumentation, apply_depth_aug
-            from data_aug import apply_depth_albumentation, apply_depth_aug
+            from .data_aug import apply_depth_albumentation, apply_depth_aug
             self.data_aug = apply_depth_aug
             print("[log] do torch aug")
 
@@ -411,16 +411,14 @@ class ImageDataManipulator(MeshDataManipulator):
                                                     output_mean, output_std)
 
     def load_datadir_and_feature_file_for_archive(_idx, group_name, data_dir,
-                                                  feature_file, archive_path,
-                                                  input_mean, input_std,
-                                                  output_mean, output_std):
+                                                  feature_file, archive_path):
         # noth that now the "data_dir" should be the very low level dir
-        input = ImageDataManipulator._load_many_png(data_dir).astype(
-            np.float32)
+        input = ImageDataManipulator._load_many_png(data_dir)
+        assert input.dtype == np.uint8
         output = np.array(load_json(feature_file)["feature"], dtype=np.float32)
 
-        input = (input - input_mean) / input_std
-        output = (output - output_mean) / output_std
+        # input = (input - input_mean) / input_std
+        # output = (output - output_mean) / output_std
 
         return (group_name, _idx, input, output, archive_path)
 
@@ -465,9 +463,8 @@ class ImageDataManipulator(MeshDataManipulator):
                 ImageDataManipulator._create_hdf5_archive_empty_file(
                     output_file)
             output = ImageDataManipulator.load_datadir_and_feature_file_for_archive(
-                _idx, "train_set", data_dir, feature_file, output_file,
-                input_mean, input_std, output_mean, output_std)
-            MeshDataManipulator.save_files_to_grp(output)
+                _idx, "train_set", data_dir, feature_file, output_file)
+            MeshDataManipulator.save_files_to_grp(output, np.uint8)
 
         for _idx, value in enumerate(
                 tqdm(test_data_dirs, "begin to archive test data")):
@@ -478,9 +475,8 @@ class ImageDataManipulator(MeshDataManipulator):
                 ImageDataManipulator._create_hdf5_archive_empty_file(
                     output_file)
             output = ImageDataManipulator.load_datadir_and_feature_file_for_archive(
-                _idx, "test_set", data_dir, feature_file, output_file,
-                input_mean, input_std, output_mean, output_std)
-            MeshDataManipulator.save_files_to_grp(output)
+                _idx, "test_set", data_dir, feature_file, output_file)
+            MeshDataManipulator.save_files_to_grp(output, np.uint8)
 
         output_file = self.get_default_archive_path()
         f = h5py.File(output_file, 'a')
