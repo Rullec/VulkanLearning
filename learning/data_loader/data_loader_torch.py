@@ -69,11 +69,13 @@ class CustomDataset(Dataset):
             input, output = self.__getitem_from_mem(index)
         else:
             input, output = self.__getitem_from_disk(index)
-        assert len(input.shape) == 3
-        num_of_views = input.shape[0]
-        shift = np.random.randint(0, num_of_views)
-        input = np.roll(input, shift, axis=0)
+        # if this data is images, rotate its axis
+        if len(input.shape) == 3:
+            num_of_views = input.shape[0]
+            shift = np.random.randint(0, num_of_views)
+            input = np.roll(input, shift, axis=0)
 
+        # if the augmentation is enabled, apply it
         if self.data_aug is not None:
             input = self.data_aug(input)
         return input, output
@@ -100,7 +102,6 @@ class CustomDataset(Dataset):
 class CustomDataLoader(DataLoader):
     def __init__(self, dataset, batchsize):
         self.dataset = dataset
-        platform.system() == "Linux"
         if platform.system() == "Linux":
             workers = 6
         elif platform.system() == "Windows":
@@ -111,7 +112,7 @@ class CustomDataLoader(DataLoader):
                          batch_size=batchsize,
                          shuffle=True,
                          num_workers=workers,
-                         persistent_workers=True,
+                         persistent_workers= (workers != 0),
                          prefetch_factor=2)
 
     def input_unnormalize(self, val):
