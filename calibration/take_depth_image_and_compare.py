@@ -95,9 +95,9 @@ def get_calibrated_camera_extrinsics_new():
 
     # rgb camera ori & pos
     real_cam_pos = np.array(
-        [0.049792031956888125, 0.4808656785922257, 0.4155189073952698, 1])
+        [0.004116185008483258, 0.44936590683538263, 0.42331089016701756, 1])
     real_cam_focus = np.array(
-        [0.027227736992100748, 0.24315683743796296, 0.0, 1])
+        [-0.0040316904696218675, 0.22782011402389488, 0.0, 1])
     real_cam_fov = 58
 
     return real_cam_pos, real_cam_focus, real_cam_fov

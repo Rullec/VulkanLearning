@@ -66,7 +66,10 @@ def handle(raw_pkl_file, masked_pkl_file, save_file):
             save = False
 
         plot.add(masked_pkl)
-        plot.show()
+        try:
+            plot.show()
+        except:
+            break
 
 
 if __name__ == "__main__":
@@ -76,7 +79,7 @@ if __name__ == "__main__":
     raw_files = get_subfiles(raw_dir)
 
     assert len(masked_files) == len(raw_files)
-    for _idx in range(1, len(masked_files)):
+    for _idx in range(0, len(masked_files)):
         masked_file = os.path.join(masked_dir, masked_files[_idx])
         raw_file = os.path.join(raw_dir, raw_files[_idx])
 

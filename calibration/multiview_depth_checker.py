@@ -6,8 +6,9 @@ from drawer_util import DynaPlotter
 
 if __name__ == "__main__":
     # output_dir = "current_dir.log"
-    output_dir = "no_background_dir.log"
-    # output_dir = "manual_fix_dir.log"
+    # output_dir = "cutted_dir.log"
+    # output_dir = "no_background_dir.log"
+    output_dir = "manual_fix_dir.log"
     files = [
         os.path.join(output_dir, i) for i in os.listdir(output_dir)
         if i.find("pkl") != -1

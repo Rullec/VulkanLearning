@@ -106,7 +106,7 @@ bool cJsonUtil::LoadJson(const std::string &path, Json::Value &value)
         // report to the user the failure and their locations in the
         // document.
         std::cout << "[error] cJsonUtil::LoadJson: Failed to parse json\n"
-                  << errs << std::endl;
+                  << errs << ", file path " << path << std::endl;
         return false;
     }
     // std::cout <<"parsing " << path << " end \n";

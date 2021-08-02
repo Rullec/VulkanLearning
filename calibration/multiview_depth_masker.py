@@ -17,7 +17,7 @@ if __name__ == "__main__":
     not_clear_and_create_dir(output_dir)
 
     files = [os.path.join(origin_dir, i) for i in os.listdir(origin_dir)]
-    threshold = 700
+    threshold = 670
     # 1. begin to load the pkl files
     for _idx in range(len(files)):
         depth_image = load_pkl(files[_idx])
