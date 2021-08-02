@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from tqdm import tqdm
 import sys
-
+import time
 sys.path.append("../calibration")
 sys.path.append("../../calibration")
 from file_util import get_subdirs, load_json, load_png_image
@@ -37,7 +37,7 @@ class NORMALIZE_MODE(Enum):
             raise Value(mode)
 
 
-class ImageDataManipulator(MeshDataManipulator):
+class HDF5ImageDataManipulator(MeshDataManipulator):
     FEATURE_JSON_NAME = "feature.json"
     INPUT_NORMALZE_MODE_KEY = "input_normalize_mode"
     NORMALIZE_MODE_HDF5_KEY = "normalize_mode"
@@ -45,45 +45,51 @@ class ImageDataManipulator(MeshDataManipulator):
     ARCHIVE_SPLIT_THRESHOLD = 5000
 
     def __init__(self, conf_dict):
+        print(f"[debug] begin to init img data mani")
         self.conf_dict = conf_dict
         self._parse_config(conf_dict)
 
         if self.enable_test == True:
             self._test()
 
+        print(f"[debug] begin to check archive")
         # if the archive doesn't exist
         if self._check_archive_exists() == False or self._validate_archive(
         ) == False:
+            print(f"[debug] judge archive false, begin to load data")
             train_dirs, test_dirs = self._load_mesh_data()
 
             stats = self._calc_statistics_distributed(train_dirs + test_dirs)
 
             self._save_archive(self.get_default_archive_path(), train_dirs,
                                test_dirs, stats)
+        print(f"[debug] begin to build augmentation")
         self._build_data_augmentation()
         # begin to init dataloader
+        print(f"[debug] begin to create dataloader")
         self._create_dataloader()
 
     def _parse_config(self, conf_dict):
         super()._parse_config(conf_dict)
         self.normalize_mode = NORMALIZE_MODE.build_mode_from_str(
-            conf_dict[ImageDataManipulator.INPUT_NORMALZE_MODE_KEY])
+            conf_dict[HDF5ImageDataManipulator.INPUT_NORMALZE_MODE_KEY])
 
     def _validate_archive_num_of_data(self):
+        print(f"begin to _validate_archive_num_of_data")
         # check train set: num of data
         f = h5py.File(self.get_default_archive_path(), 'r')
 
         # the num of item key exist
         train_grp, test_grp = f["train_set"], f["test_set"]
-        if (ImageDataManipulator.NUM_OF_ITEMS_KEY not in train_grp.attrs) or (
-                ImageDataManipulator.NUM_OF_ITEMS_KEY not in test_grp.attrs):
+        if (HDF5ImageDataManipulator.NUM_OF_ITEMS_KEY not in train_grp.attrs) or (
+                HDF5ImageDataManipulator.NUM_OF_ITEMS_KEY not in test_grp.attrs):
             return False
         # the num of item key exist, load the number
         num_of_train_items = int(
-            train_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY])
+            train_grp.attrs[HDF5ImageDataManipulator.NUM_OF_ITEMS_KEY])
         num_of_test_items = int(
-            test_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY])
-        thre = ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD
+            test_grp.attrs[HDF5ImageDataManipulator.NUM_OF_ITEMS_KEY])
+        thre = HDF5ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD
         cur_st = 0
         end = num_of_train_items - 1
         cur_iter = 0
@@ -97,9 +103,11 @@ class ImageDataManipulator(MeshDataManipulator):
                 valid = False
                 break
 
-            real_num = ImageDataManipulator.get_num_of_items(
+            print(f"begin to get num of items")
+            real_num = HDF5ImageDataManipulator.get_num_of_items(
                 cur_path, "train_set")
-            # print(f"train real num {real_num} ideal num {ideal_num} iter {cur_iter}")
+            print(f"end to get num of items")
+            print(f"train real num {real_num} ideal num {ideal_num} iter {cur_iter}")
             # print(locals())
             valid = valid and (real_num == ideal_num)
             cur_st += thre
@@ -119,9 +127,11 @@ class ImageDataManipulator(MeshDataManipulator):
                 valid = False
                 break
 
-            real_num = ImageDataManipulator.get_num_of_items(
+            st = time.time()
+            real_num = HDF5ImageDataManipulator.get_num_of_items(
                 cur_path, "test_set")
-            # print(f"test real num {real_num} ideal num {ideal_num} iter {cur_iter}")
+            ed = time.time()
+            print(f"test real num {real_num} ideal num {ideal_num} iter {cur_iter}, cost {ed - st}")
             valid = valid and (real_num == ideal_num)
             cur_st += thre
             cur_iter += 1
@@ -145,32 +155,48 @@ class ImageDataManipulator(MeshDataManipulator):
     def get_splitted_archive_path_by_itemid(self, i):
         cur_iter = 0
         while True:
-            if (i >= cur_iter * ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD
+            if (i >= cur_iter * HDF5ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD
                 ) and (i < (cur_iter + 1) *
-                       ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD):
+                       HDF5ImageDataManipulator.ARCHIVE_SPLIT_THRESHOLD):
                 break
             cur_iter += 1
         return self.get_splitted_archive_path_by_file_id(cur_iter)
 
     def get_num_of_items(path, key):
+        import time 
+        st = time.time()
         f = h5py.File(path, 'r')
+        ed1 = time.time()
+        print(f"get_num_of_items 1 {ed1 - st}")
         dst = f[key]
-        return len(dst)
+        ed2 = time.time()
+        print(f"get_num_of_items 2 {ed2 - ed1}")
+        print(type(dst))
+        num =  len(dst.keys())
+        ed3 = time.time()
+        print(f"get_num_of_items 3 {ed3 - ed2}")
+        return num
 
     def _validate_archive(self):
         valid = super()._validate_archive()
+        print(f"begin to do img_data validate archive")
+        print(f"begin to open archive")
+
         f = h5py.File(self.get_default_archive_path(), 'r')
-        valid = (ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY
+        valid = (HDF5ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY
                  in f.attrs) and valid
 
+        print(f"judge valid 1")
         if valid is True:
             hdf5_mode_str = f.attrs[
-                ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY]
+                HDF5ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY]
             cur_str = NORMALIZE_MODE.build_str_from_mode(self.normalize_mode)
             valid = (hdf5_mode_str == cur_str)
 
+        print(f"judge valid 2")
         if valid is True:
             valid = valid and (self._validate_archive_num_of_data())
+        print(f"judge valid done for img data")
 
         return valid
 
@@ -190,7 +216,7 @@ class ImageDataManipulator(MeshDataManipulator):
         print(f"begin to load depth data from {self.data_dir}")
         # 1. find all images dirs
         all_img_dirs = []
-        for cur_obj in os.listdir(self.data_dir):
+        for cur_obj in tqdm( os.listdir(self.data_dir)):
             full = os.path.join(self.data_dir, cur_obj)
             if os.path.isdir(full) == True:
                 all_img_dirs.append(full)
@@ -201,7 +227,7 @@ class ImageDataManipulator(MeshDataManipulator):
     def _get_directory_png_dirs_and_feature_file(cur_dir):
         assert os.path.exists(cur_dir) == True, f"{cur_dir}"
         feature_filename = os.path.join(cur_dir,
-                                        ImageDataManipulator.FEATURE_JSON_NAME)
+                                        HDF5ImageDataManipulator.FEATURE_JSON_NAME)
         assert os.path.exists(feature_filename) == True, f"{feature_filename}"
 
         data_dir_lst = []
@@ -224,7 +250,7 @@ class ImageDataManipulator(MeshDataManipulator):
         # 1. judge the feature.json
         assert os.path.exists(cur_dir) == True, f"{cur_dir}"
         feature_filename = os.path.join(cur_dir,
-                                        ImageDataManipulator.FEATURE_JSON_NAME)
+                                        HDF5ImageDataManipulator.FEATURE_JSON_NAME)
         assert os.path.exists(feature_filename) == True
         from file_util import load_json
         label = np.array(load_json(feature_filename)["feature"])
@@ -235,7 +261,7 @@ class ImageDataManipulator(MeshDataManipulator):
             cur_dir1 = os.path.join(cur_dir, init_rot_dir)
             for cam_dir in get_subdirs(cur_dir1):
                 cur_dir2 = os.path.join(cur_dir1, cam_dir)
-                input = ImageDataManipulator._load_many_png(cur_dir2)
+                input = HDF5ImageDataManipulator._load_many_png(cur_dir2)
                 input_lst.append(input)
         input_array = np.array(input_lst)
         # 3. return feature vector & data list
@@ -247,7 +273,7 @@ class ImageDataManipulator(MeshDataManipulator):
         output_sum = None
         # for cur_dir in tqdm(dir_path_lst):
         for cur_dir in tqdm(dir_path_lst):
-            input_array, output = ImageDataManipulator._load_image_parent_dir(
+            input_array, output = HDF5ImageDataManipulator._load_image_parent_dir(
                 cur_dir)
             assert len(input_array.shape) == 4
             num = input_array.shape[0]
@@ -276,7 +302,7 @@ class ImageDataManipulator(MeshDataManipulator):
         output_sum = None
         total_num = 0
         for cur_dir in tqdm(dir_path_lst):
-            input_array, output = ImageDataManipulator._load_image_parent_dir(
+            input_array, output = HDF5ImageDataManipulator._load_image_parent_dir(
                 cur_dir)
             assert len(input_array.shape) == 4, f"{input_array.shape}"
             cur_num = input_array.shape[0]
@@ -296,7 +322,7 @@ class ImageDataManipulator(MeshDataManipulator):
         num_input_total = 0
         num_output_total = 0
         for cur_dir in tqdm(dir_path_lst):
-            input_array, output = ImageDataManipulator._load_image_parent_dir(
+            input_array, output = HDF5ImageDataManipulator._load_image_parent_dir(
                 cur_dir)
             assert len(input_array.shape) == 4, f"{input_array.shape}"
             num_input_total += input_array.size
@@ -318,7 +344,7 @@ class ImageDataManipulator(MeshDataManipulator):
         num_output_total = 0
         # for cur_dir in tqdm(dir_path_lst):
         for cur_dir in tqdm(dir_path_lst):
-            input_array, output = ImageDataManipulator._load_image_parent_dir(
+            input_array, output = HDF5ImageDataManipulator._load_image_parent_dir(
                 cur_dir)
             assert len(input_array.shape) == 4
             num_input_total += input_array.size
@@ -329,14 +355,14 @@ class ImageDataManipulator(MeshDataManipulator):
 
     def _calc_statistics_distributed_perpixel(all_dirs):
         stats = MeshDataManipulator._calc_statistics_distributed(
-            all_dirs, ImageDataManipulator._calc_sum_per_pixel,
-            ImageDataManipulator._calc_x_minus_xbar_perpixel)
+            all_dirs, HDF5ImageDataManipulator._calc_sum_per_pixel,
+            HDF5ImageDataManipulator._calc_x_minus_xbar_perpixel)
         return stats
 
     def _calc_statistics_distributed_allfloat(all_dirs):
         stats = MeshDataManipulator._calc_statistics_distributed(
-            all_dirs, ImageDataManipulator._calc_sum_allfloat,
-            ImageDataManipulator._calc_x_minus_xbar_allfloat)
+            all_dirs, HDF5ImageDataManipulator._calc_sum_allfloat,
+            HDF5ImageDataManipulator._calc_x_minus_xbar_allfloat)
         return stats
 
     def _calc_statistics_distributed(self, all_dirs):
@@ -349,16 +375,16 @@ class ImageDataManipulator(MeshDataManipulator):
         # output_mean = np.ones(3)
         # output_std = np.ones(3)
         if self.normalize_mode == NORMALIZE_MODE.PER_PIXEL:
-            stats = ImageDataManipulator._calc_statistics_distributed_perpixel(
+            stats = HDF5ImageDataManipulator._calc_statistics_distributed_perpixel(
                 all_dirs)
         elif self.normalize_mode == NORMALIZE_MODE.ALL_FLOAT:
-            stats = ImageDataManipulator._calc_statistics_distributed_allfloat(
+            stats = HDF5ImageDataManipulator._calc_statistics_distributed_allfloat(
                 all_dirs)
         else:
             raise ValueError(f"{self.normalize_mode} unsupported")
         input_mean, input_std, output_mean, output_std = MeshDataManipulator._unpack_statistics(
             stats)
-        input_std, output_std = ImageDataManipulator._std_clip(
+        input_std, output_std = HDF5ImageDataManipulator._std_clip(
             input_std, output_std)
         stats = MeshDataManipulator._pack_statistics(
             input_mean.astype(np.float32), input_std.astype(np.float32),
@@ -371,7 +397,7 @@ class ImageDataManipulator(MeshDataManipulator):
         output_lst = []
         # for cur_dir in all_dirs:
         for cur_dir in tqdm(all_dirs):
-            input, output = ImageDataManipulator._load_image_parent_dir(
+            input, output = HDF5ImageDataManipulator._load_image_parent_dir(
                 cur_dir)
             input_lst.append(input)
             output_lst.append(output)
@@ -394,7 +420,7 @@ class ImageDataManipulator(MeshDataManipulator):
         output_lst = []
         # for cur_dir in all_dirs:
         for cur_dir in tqdm(all_dirs):
-            input, output = ImageDataManipulator._load_image_parent_dir(
+            input, output = HDF5ImageDataManipulator._load_image_parent_dir(
                 cur_dir)
             input_lst.append(input)
             output_lst.append(output)
@@ -415,7 +441,7 @@ class ImageDataManipulator(MeshDataManipulator):
                                                   input_mean, input_std,
                                                   output_mean, output_std):
         # noth that now the "data_dir" should be the very low level dir
-        input = ImageDataManipulator._load_many_png(data_dir).astype(
+        input = HDF5ImageDataManipulator._load_many_png(data_dir).astype(
             np.float32)
         output = np.array(load_json(feature_file)["feature"], dtype=np.float32)
 
@@ -439,14 +465,14 @@ class ImageDataManipulator(MeshDataManipulator):
         train_data_dirs = [
         ]  # filled with tuples (datapoint dir, feature file)
         for p in train_parent_dirs:
-            data_dirs, feature_file = ImageDataManipulator._get_directory_png_dirs_and_feature_file(
+            data_dirs, feature_file = HDF5ImageDataManipulator._get_directory_png_dirs_and_feature_file(
                 p)
             for i in range(len(data_dirs)):
                 train_data_dirs.append((data_dirs[i], feature_file))
 
         test_data_dirs = []  # filled with tuples (datapoint dir, feature file)
         for p in test_parent_dirs:
-            data_dirs, feature_file = ImageDataManipulator._get_directory_png_dirs_and_feature_file(
+            data_dirs, feature_file = HDF5ImageDataManipulator._get_directory_png_dirs_and_feature_file(
                 p)
             for i in range(len(data_dirs)):
                 test_data_dirs.append((data_dirs[i], feature_file))
@@ -462,9 +488,9 @@ class ImageDataManipulator(MeshDataManipulator):
             output_file = self.get_splitted_archive_path_by_itemid(_idx)
 
             if os.path.exists(output_file) == False:
-                ImageDataManipulator._create_hdf5_archive_empty_file(
+                HDF5ImageDataManipulator._create_hdf5_archive_empty_file(
                     output_file)
-            output = ImageDataManipulator.load_datadir_and_feature_file_for_archive(
+            output = HDF5ImageDataManipulator.load_datadir_and_feature_file_for_archive(
                 _idx, "train_set", data_dir, feature_file, output_file,
                 input_mean, input_std, output_mean, output_std)
             MeshDataManipulator.save_files_to_grp(output)
@@ -475,9 +501,9 @@ class ImageDataManipulator(MeshDataManipulator):
             output_file = self.get_splitted_archive_path_by_itemid(_idx)
 
             if os.path.exists(output_file) == False:
-                ImageDataManipulator._create_hdf5_archive_empty_file(
+                HDF5ImageDataManipulator._create_hdf5_archive_empty_file(
                     output_file)
-            output = ImageDataManipulator.load_datadir_and_feature_file_for_archive(
+            output = HDF5ImageDataManipulator.load_datadir_and_feature_file_for_archive(
                 _idx, "test_set", data_dir, feature_file, output_file,
                 input_mean, input_std, output_mean, output_std)
             MeshDataManipulator.save_files_to_grp(output)
@@ -491,9 +517,9 @@ class ImageDataManipulator(MeshDataManipulator):
             self.normalize_mode)
         train_grp = f["train_set"]
         test_grp = f["test_set"]
-        train_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY] = len(
+        train_grp.attrs[HDF5ImageDataManipulator.NUM_OF_ITEMS_KEY] = len(
             train_data_dirs)
-        test_grp.attrs[ImageDataManipulator.NUM_OF_ITEMS_KEY] = len(
+        test_grp.attrs[HDF5ImageDataManipulator.NUM_OF_ITEMS_KEY] = len(
             test_data_dirs)
 
         f.close()
@@ -509,10 +535,10 @@ class ImageDataManipulator(MeshDataManipulator):
     def _test_perpixel(self):
         self._remove_archive()
         train_dirs, test_dirs = self._load_mesh_data()
-        dist_stats = ImageDataManipulator._calc_statistics_distributed_perpixel(
+        dist_stats = HDF5ImageDataManipulator._calc_statistics_distributed_perpixel(
             train_dirs + test_dirs)
         print(f"_calc_statistics_distributed perpixel done")
-        mem_stats = ImageDataManipulator._calc_statistics_allmem_perpixel(
+        mem_stats = HDF5ImageDataManipulator._calc_statistics_allmem_perpixel(
             train_dirs + test_dirs)
 
         print(f"_calc_statistics_allmem perpixel ldone")
@@ -529,10 +555,10 @@ class ImageDataManipulator(MeshDataManipulator):
     def _test_allfloat(self):
         self._remove_archive()
         train_dirs, test_dirs = self._load_mesh_data()
-        dist_stats = ImageDataManipulator._calc_statistics_distributed_allfloat(
+        dist_stats = HDF5ImageDataManipulator._calc_statistics_distributed_allfloat(
             train_dirs + test_dirs)
         print(f"_calc_statistics_distributed allfloat done")
-        mem_stats = ImageDataManipulator._calc_statistics_allmem_allfloat(
+        mem_stats = HDF5ImageDataManipulator._calc_statistics_allmem_allfloat(
             train_dirs + test_dirs)
 
         print(f"_calc_statistics_allmem allfloat ldone")
@@ -564,7 +590,7 @@ if __name__ == "__main__":
         "input_normalize_mode": "per_pixel"
     }
 
-    mani = ImageDataManipulator(conf_dict)
+    mani = HDF5ImageDataManipulator(conf_dict)
     train_loader, val_loader = mani.get_dataloader()
     st = time.time()
 

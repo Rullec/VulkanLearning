@@ -44,9 +44,10 @@ class MeshDataManipulator(ABC):
 
             self._save_archive(self.get_default_archive_path(), train_files,
                                test_files, stats)
-
+        print(f"[debug] begin to build data aug")
         self._build_data_augmentation()
         # begin to init dataloader
+        print(f"[debug] begin to create dataloader")
         self._create_dataloader()
 
     def _test(self):
@@ -89,8 +90,10 @@ class MeshDataManipulator(ABC):
         return exists
 
     def _validate_archive(self):
+        print(f"[debug] begin to validate archive")
         if self._check_archive_exists() == False:
             return False
+        print(f"[debug] begin to open file")
         f = h5py.File(self.get_default_archive_path(), 'r')
         all_keys = f.keys()
         valid = (MeshDataManipulator.INPUT_MEAN_KEY in all_keys)
@@ -98,7 +101,8 @@ class MeshDataManipulator(ABC):
         valid = (MeshDataManipulator.OUTPUT_MEAN_KEY in all_keys) and valid
         valid = (MeshDataManipulator.OUTPUT_STD_KEY in all_keys) and valid
         f.close()
-
+        print(f"[debug] done to validate archive")
+        # raise ValueError()
         return valid
 
     def _remove_archive(self):
@@ -215,13 +219,16 @@ class MeshDataManipulator(ABC):
             stats)
 
         for _idx, cur_file in tqdm(enumerate(train_files),
-                                   "saving training set", total = len(train_files)):
+                                   "saving training set",
+                                   total=len(train_files)):
             res = MeshDataManipulator.load_single_json_mesh_data_for_archive(
                 _idx, "train_set", cur_file, output_file, input_mean,
                 input_std, output_mean, output_std)
             MeshDataManipulator.save_files_to_grp(res)
 
-        for _idx, cur_file in tqdm(enumerate(test_files), "saving test set", total = len(test_files)):
+        for _idx, cur_file in tqdm(enumerate(test_files),
+                                   "saving test set",
+                                   total=len(test_files)):
             res = MeshDataManipulator.load_single_json_mesh_data_for_archive(
                 _idx, "test_set", cur_file, output_file, input_mean, input_std,
                 output_mean, output_std)
@@ -256,7 +263,7 @@ class MeshDataManipulator(ABC):
             num, self.train_perc)
         train_files = []
         test_files = []
-        for i in range(num):
+        for i in tqdm(range(num), "spliting mesh data"):
             assert (i in train_id) != (i in test_id)
             if i in train_id:
                 train_files.append(files[i])
@@ -438,8 +445,8 @@ class MeshDataManipulator(ABC):
                                                     output_mean, output_std)
 
     def __create_dataset(self):
-        from .data_loader_torch import CustomDataset
-        # from data_loader import CustomDataset
+        from .data_loader_torch import HDF5Dataset
+        # from data_loader import HDF5Dataset
 
         ultimate_f = h5py.File(self.get_default_archive_path(), mode='r')
 
@@ -450,7 +457,7 @@ class MeshDataManipulator(ABC):
             f = h5py.File(i)
             train_handle_lst.append(f["train_set"])
             test_handle_lst.append(f["test_set"])
-        train_dataset = CustomDataset(
+        train_dataset = HDF5Dataset(
             train_handle_lst,
             ultimate_f[MeshDataManipulator.INPUT_MEAN_KEY],
             ultimate_f[MeshDataManipulator.INPUT_STD_KEY],
@@ -458,7 +465,7 @@ class MeshDataManipulator(ABC):
             ultimate_f[MeshDataManipulator.OUTPUT_STD_KEY],
             load_all_data_into_mem=self.load_all_data_into_mem,
             data_aug=self.data_aug)
-        test_dataset = CustomDataset(
+        test_dataset = HDF5Dataset(
             test_handle_lst,
             ultimate_f[MeshDataManipulator.INPUT_MEAN_KEY],
             ultimate_f[MeshDataManipulator.INPUT_STD_KEY],

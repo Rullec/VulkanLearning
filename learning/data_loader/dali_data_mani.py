@@ -1,5 +1,5 @@
-from .img_data_mani import ImageDataManipulator
-# from img_data_mani import ImageDataManipulator
+from .img_data_mani import HDF5ImageDataManipulator
+# from img_data_mani import HDF5ImageDataManipulator
 
 # only import dali on Linux platform
 try:
@@ -16,7 +16,7 @@ from .dali_utils.dali_file_reader_torch import DALIFileReaderBasedTorch
 import h5py
 
 
-class DALIDataManipulator(ImageDataManipulator):
+class DALIDataManipulator(HDF5ImageDataManipulator):
     '''
     '''
     def __init__(self, conf_dict):

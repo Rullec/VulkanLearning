@@ -35,9 +35,9 @@ class AddGaussianNoise(object):
 
 affine = RandomAffine(degrees=(-5, 5),
                       translate=(0.07, 0.07),
-                      scale=(1.0, 1.0))
+                      scale=(0.9, 1.1))
 blur = GaussianBlur(kernel_size=3)
-gaussian_noise = AddGaussianNoise(mean=0, std=0.04)
+gaussian_noise = AddGaussianNoise(mean=0, std=0.1)
 trans_aug = transforms.Compose([affine, blur, gaussian_noise])
 
 import time

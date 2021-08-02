@@ -59,11 +59,7 @@ def build_conv2d_block(config):
     outplanes = config[OUTPLANE_KEY]
     padding = config[PADDING_KEY]
 
-    return nn.Conv2d(inplanes,
-                     outplanes,
-                     kernel_size=kernel_size,
-                     stride=stride_size,
-                     padding=padding)
+    return 
 
 
 def build_conv1d_block(config):
@@ -88,7 +84,7 @@ def build_conv1d_block(config):
 def build_avg_pool_block(config):
     OUTPUT_KEY = "output"
     size = config[OUTPUT_KEY]
-    return nn.AdaptiveAvgPool1d(size)
+    return 
 
 
 def build_fc_block(config):
@@ -112,51 +108,63 @@ class cnn_net(nn.Module):
     def __init__(self, layers_config, output_size, dropout):
         super(cnn_net, self).__init__()
         assert dropout == 0.0, "dropout must be 0.0"
+        norm_layer = nn.BatchNorm2d
+        self.inplanes = 4
+        self.conv1 = nn.Conv2d(self.inplanes, 32, kernel_size=7, stride=2)
+        self.bn1 = norm_layer(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2)
+        self.bn2 = norm_layer(64)
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1)
+        self.bn3 = norm_layer(128)
+        self.conv4 = nn.Conv2d(128, 64, kernel_size=3, stride=1)
+        self.bn4 = norm_layer(64)
+        self.conv5 = nn.Conv2d(64, 32, kernel_size=3, stride=1)
+        self.bn5 = norm_layer(32)
+        self.conv6 = nn.Conv2d(32, 8, kernel_size=3, stride=1)
+        self.bn6 = norm_layer(8)
+        self.conv7 = nn.Conv2d(8, 4, kernel_size=3, stride=1)
+        self.bn7 = norm_layer(4)
+        # self.avg_pool = nn.AdaptiveAvgPool1d(8192)
+        self.avg_pool = nn.AdaptiveAvgPool2d((32, 32))
 
-        self.type_lst = []
-        self.layer_lst = []
-        for config in layers_config:
-            type = config["type"]
-            self.type_lst.append(type)
-            if type == "conv2d":
-                block = build_conv2d_block(config)
-            elif type == "conv1d":
-                block = build_conv1d_block(config)
-            elif type == "avgpool":
-                block = build_avg_pool_block(config)
-            elif type == "fc":
-                block = build_fc_block(config)
-            elif type == "end_fc":
-                block = build_end_fc_block(config, output_size)
-            self.layer_lst.append(block)
-        # self.dropout = dropout
-        self.layer_lst = torch.nn.ModuleList(self.layer_lst)
-
+        self.fc1 = nn.Linear(4096, 2048)
+        self.fc2 = nn.Linear(2048, 1024)
+        self.fc3 = nn.Linear(1024, 512)
+        self.fc4 = nn.Linear(512, 128)
+        self.fc5 = nn.Linear(128, 64)
+        self.output_fc = nn.Linear(64, output_size)
+        self.act = F.relu
+        
     def forward(self, x):
 
         enable_logging = False
         if enable_logging:
             print(f"input shape {x.shape}")
-        for _idx in range(len(self.type_lst)):
-            try:
-                layer = self.layer_lst[_idx]
-                type = self.type_lst[_idx]
-                if type == "avgpool":
-                    x = torch.flatten(x, 1)
-                    x = torch.unsqueeze(x, 1)
-                    # print(f"after flatten shape {x.shape}")
-                    if enable_logging:
-                        print(f"after flatten shape {x.shape}")
-                x = layer(x)
-                if type == "fc":
-                    x = F.relu(x)
-                if enable_logging:
-                    print(
-                        f"after layer {_idx} {type} output shape = {x.shape}")
-            except Exception as e:
-                print(f"[error] got exception in layer {_idx} {type}, {e}")
-                exit(1)
-        x = torch.squeeze(x)
+       
+        output = self.conv1(x)
+        output = self.conv2(output)
+        output = self.conv3(output)
+        output = self.conv4(output)
+        output = self.conv5(output)
+        output = self.conv6(output)
+        output = self.conv7(output)
+
+        # print(output.shape)
+        # output = torch.flatten(output, 1)
+        # print(output.shape)
+        # output = torch.squeeze(output, 1)
+        # print(output.shape)
+        output = self.avg_pool(output)
+        output = torch.flatten(output, 1)
+        # print(output.shape)
+        output = self.act(self.fc1(output))
+        output = self.act(self.fc2(output))
+        output = self.act(self.fc3(output))
+        output = self.act(self.fc4(output))
+        output = self.act(self.fc5(output))
+        output = self.output_fc(output)
+
+        x = torch.squeeze(output)
         if enable_logging:
             print(f"output shape {x.shape}")
         return x

@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../")
-# from .dali_file_reader_torch import CustomDataLoader, CustomDataset
-from ..data_loader_torch import CustomDataLoader, CustomDataset
+# from .dali_file_reader_torch import CustomDataLoader, HDF5Dataset
+from ..data_loader_torch import CustomDataLoader, HDF5Dataset
 import numpy as np
 from tqdm import tqdm
 import time
@@ -52,7 +52,7 @@ class DALIFileReaderBasedTorch(object):
     def __init__(self, batch_size, grp_handles, load_all_data_into_mem,
                  input_mean, input_std, output_mean, output_std):
         # do not apply data aug in torch
-        dataset = CustomDataset(grp_handles,
+        dataset = HDF5Dataset(grp_handles,
                                 input_mean,
                                 input_std,
                                 output_mean,

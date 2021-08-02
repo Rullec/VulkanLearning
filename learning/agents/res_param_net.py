@@ -2,7 +2,8 @@ from .param_net import ParamNet
 import platform
 import sys
 sys.path.append("../data_loader/")
-from data_loader.img_data_mani import ImageDataManipulator
+from data_loader.cv_img_data_mani import OpencvImageDataManipulator
+from data_loader.img_data_mani import HDF5ImageDataManipulator
 from data_loader.dali_data_mani import DALIDataManipulator
 from net_core import cnn_net
 import torch
@@ -258,9 +259,12 @@ class CNNParamNet(ParamNet):
 
     def _build_dataloader(self):
         if platform.system() == "Linux":
-            mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
+            print(f"[debug] begin to build dataloader for linux, torch image dataloader")
+            # mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
+            # mani = HDF5ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
+            mani = OpencvImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
         elif platform.system() == "Windows":
-            mani = ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
+            mani = HDF5ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
         else:
             raise ValueError()
         self.train_dataloader, self.test_dataloader = mani.get_dataloader()
@@ -271,15 +275,15 @@ class CNNParamNet(ParamNet):
 
         # print(self.output_size)
         # exit(0)
-        # self.net = cnn_net(self.layers, self.output_size,
-        #                    self.dropout).to(self.device)
+        self.net = cnn_net(self.layers, self.output_size,
+                           self.dropout).to(self.device)
         # self.net = ResModel(self.output_size).to(self.device)
 
 
         ## resnet 50
         # self.net = ResNet(Bottleneck, [3, 4, 6, 3], num_classes = self.output_size).to(self.device)
-        ## resnet 18
-        self.net = ResNet(BasicBlock, [2, 2, 2, 2], num_classes = self.output_size).to(self.device)
+        # resnet 18
+        # self.net = ResNet(BasicBlock, [2, 2, 2, 2], num_classes = self.output_size).to(self.device)
 
         self.criterion = torch.nn.MSELoss()
         total = 0

@@ -8,108 +8,18 @@
     "optimizer": "adam",
     "image_dataloader_type": "image_dataloader",
     "layers": [
-        {
-            "type": "conv2d",
-            "kernel_size": 7,
-            "stride": 2,
-            "inplanes": 4,
-            "outplanes": 32,
-            "padding": 1
-        },
-        {
-            "type": "conv2d",
-            "kernel_size": 3,
-            "stride": 2,
-            "inplanes": 32,
-            "outplanes": 64,
-            "padding": 1
-        },
-        {
-            "type": "conv2d",
-            "kernel_size": 3,
-            "stride": 1,
-            "inplanes": 64,
-            "outplanes": 128,
-            "padding": 1
-        },
-        {
-            "type": "conv2d",
-            "kernel_size": 3,
-            "stride": 1,
-            "inplanes": 128,
-            "outplanes": 64,
-            "padding": 1
-        },
-        {
-            "type": "conv2d",
-            "kernel_size": 3,
-            "stride": 1,
-            "inplanes": 64,
-            "outplanes": 32,
-            "padding": 1
-        },
-        {
-            "type": "conv2d",
-            "kernel_size": 3,
-            "stride": 1,
-            "inplanes": 32,
-            "outplanes": 8,
-            "padding": 1
-        },
-        {
-            "type": "conv2d",
-            "kernel_size": 3,
-            "stride": 1,
-            "inplanes": 8,
-            "outplanes": 4,
-            "padding": 1
-        },
-        {
-            "type": "avgpool",
-            "output": 8192
-        },
-        {
-            "type": "fc",
-            "input": 8192,
-            "output": 2048
-        },
-        {
-            "type": "fc",
-            "input": 2048,
-            "output": 1024
-        },
-        {
-            "type": "fc",
-            "input": 1024,
-            "output": 512
-        },
-        {
-            "type": "fc",
-            "input": 512,
-            "output": 128
-        },
-        {
-            "type": "fc",
-            "input": 128,
-            "output": 64
-        },
-        {
-            "type": "end_fc",
-            "input": 64
-        }
     ],
     "model_output_dir": "../output/",
-    "model_path": "../output/07-31-18_33_03-0.6896.pkl",
-    "save_model_iters": 10,
+    "model_path": "",
+    "save_model_iters": 5,
     "logging_iters": 1,
     "dropout": 0.0,
     "mode": "train",
     "data_loader_config": {
-        "batch_size": 64,
+        "batch_size": 128,
         "enable_log_prediction": false,
-        "data_dir.small": "../data/export_data/test_data",
-        "data_dir": "../data/export_data/test_data",
-        "data_dir.big": "../data/export_data/uniform_sample10_noised16_4camnoised_2rot_4view",
+        "data_dir.small": "../data/export_data/uniform_sample10_noised2_4camnoised_2rot_4view",
+        "data_dir": "../data/export_data/uniform_3c_sample25_noised16_xgpu_initrot1_cam1",
         "train_perc": 0.8,
         "enable_data_augment": true,
         "load_all_data_into_mem": false,
