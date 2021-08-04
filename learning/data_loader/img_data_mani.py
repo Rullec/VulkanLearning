@@ -75,7 +75,7 @@ class HDF5ImageDataManipulator(MeshDataManipulator):
             conf_dict[HDF5ImageDataManipulator.INPUT_NORMALZE_MODE_KEY])
 
     def _validate_archive_num_of_data(self):
-        print(f"begin to _validate_archive_num_of_data")
+        # print(f"begin to _validate_archive_num_of_data")
         # check train set: num of data
         f = h5py.File(self.get_default_archive_path(), 'r')
 
@@ -103,11 +103,11 @@ class HDF5ImageDataManipulator(MeshDataManipulator):
                 valid = False
                 break
 
-            print(f"begin to get num of items")
+            # print(f"begin to get num of items")
             real_num = HDF5ImageDataManipulator.get_num_of_items(
                 cur_path, "train_set")
-            print(f"end to get num of items")
-            print(f"train real num {real_num} ideal num {ideal_num} iter {cur_iter}")
+            # print(f"end to get num of items")
+            # print(f"train real num {real_num} ideal num {ideal_num} iter {cur_iter}")
             # print(locals())
             valid = valid and (real_num == ideal_num)
             cur_st += thre
@@ -163,40 +163,40 @@ class HDF5ImageDataManipulator(MeshDataManipulator):
         return self.get_splitted_archive_path_by_file_id(cur_iter)
 
     def get_num_of_items(path, key):
-        import time 
-        st = time.time()
+        # import time 
+        # st = time.time()
         f = h5py.File(path, 'r')
-        ed1 = time.time()
-        print(f"get_num_of_items 1 {ed1 - st}")
+        # ed1 = time.time()
+        # print(f"get_num_of_items 1 {ed1 - st}")
         dst = f[key]
-        ed2 = time.time()
-        print(f"get_num_of_items 2 {ed2 - ed1}")
-        print(type(dst))
+        # ed2 = time.time()
+        # print(f"get_num_of_items 2 {ed2 - ed1}")
+        # print(type(dst))
         num =  len(dst.keys())
-        ed3 = time.time()
-        print(f"get_num_of_items 3 {ed3 - ed2}")
+        # ed3 = time.time()
+        # print(f"get_num_of_items 3 {ed3 - ed2}")
         return num
 
     def _validate_archive(self):
         valid = super()._validate_archive()
-        print(f"begin to do img_data validate archive")
-        print(f"begin to open archive")
+        # print(f"begin to do img_data validate archive")
+        # print(f"begin to open archive")
 
         f = h5py.File(self.get_default_archive_path(), 'r')
         valid = (HDF5ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY
                  in f.attrs) and valid
 
-        print(f"judge valid 1")
+        # print(f"judge valid 1")
         if valid is True:
             hdf5_mode_str = f.attrs[
                 HDF5ImageDataManipulator.NORMALIZE_MODE_HDF5_KEY]
             cur_str = NORMALIZE_MODE.build_str_from_mode(self.normalize_mode)
             valid = (hdf5_mode_str == cur_str)
 
-        print(f"judge valid 2")
+        # print(f"judge valid 2")
         if valid is True:
             valid = valid and (self._validate_archive_num_of_data())
-        print(f"judge valid done for img data")
+        # print(f"judge valid done for img data")
 
         return valid
 

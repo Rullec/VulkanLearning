@@ -1,6 +1,6 @@
 from .img_data_mani import HDF5ImageDataManipulator
 from .mesh_data_mani import MeshDataManipulator
-from .data_loader_torch import OpencvDataset
+from .opencv_dataset import OpencvDataset
 import h5py
 from .data_loader_torch import CustomDataLoader
 class OpencvImageDataManipulator(HDF5ImageDataManipulator):

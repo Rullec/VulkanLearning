@@ -1,7 +1,7 @@
 import json
 from .res_param_net import CNNParamNet
 from .param_net import ParamNet
-
+from .vae_net import VAENet
 
 def build_net(conf):
     with open(conf) as f:
@@ -15,6 +15,10 @@ def build_net(conf):
     elif param_name == CNNParamNet.NAME:
         print(f"[log] build {param_name} net succ")
         return CNNParamNet
+    elif param_name == VAENet.NAME:
+        print(f"[log] build {param_name} net succ")
+        return VAENet
     else:
         raise ValueError(f"unsupport net type {param_name}")
+    
     # print(param_name)

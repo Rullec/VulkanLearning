@@ -44,15 +44,15 @@ class ParamNet:
         self.conf_path = config_path
         with open(config_path) as f:
             self.conf = json.load(f)
-        print(f"[debug] begin to load param")
+        # print(f"[debug] begin to load param")
         self._load_param()
-        print(f"[debug] begin to build dataloader")
+        # print(f"[debug] begin to build dataloader")
         self._build_dataloader()
-        print(f"[debug] begin to build net")
+        # print(f"[debug] begin to build net")
         self._build_net()
-        print(f"[debug] begin to build optimizer")
+        # print(f"[debug] begin to build optimizer")
         self._build_optimizer()
-        print(f"[debug] begin to do postprocess")
+        # print(f"[debug] begin to do postprocess")
         self._postprocess()
 
     def _load_param(self):

@@ -22,15 +22,15 @@
         "far": 100
     },
     "capture_camera_pos": [
-        0.0021079,
-        0.4687629,
-        0.35001404,
+        0.0176,
+        0.471,
+        0.4015,
         1
     ],
     "capture_camera_center": [
-        0.0032,
-        0.26,
-        0,
+        0.011,
+        0.220,
+        0.0,
         1
     ],
     "capture_camera_up": [
@@ -52,14 +52,14 @@
     "capture_camera_fov": 61.92,
     "enable_cloth_geometry": true,
     "geometry_info": "./log/geo_info.json",
-    "raw_data_dir": "data/export_data/isotropic_25prop_16samples_amp_0.05",
-    "gen_data_dir": "data/export_data/isotropic_25prop_16samples_amp_0.05_2camnoised_4rot_4view",
+    "raw_data_dir": "data/export_data/uniform_3c_sample25_noised16_xgpu",
+    "gen_data_dir": "data/export_data/uniform_3c_sample25_noised16_xgpu_initrot1_cam1",
     "preprocess_info": {
-        "num_of_init_rotation_angle": 2,
+        "num_of_init_rotation_angle": 1,
         "enable_camera_noise": true,
         "camera_translation_noise": 0.01,
         "camera_orientation_noise": 0.01,
-        "camera_noise_samples": 4,
+        "camera_noise_samples": 1,
         "num_of_cloth_views": 4,
         "disable_depth_for_objects": {
             "cyliner": false,

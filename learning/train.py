@@ -30,6 +30,7 @@ if __name__ == "__main__":
     device = init_env()
 
     conf_path = "../config/train_configs/conv_conf.json"
+    # conf_path = "../config/train_configs/vae_conf.json"
     # conf_path = "../config/train_configs/fc_conf.json"
 
     with open(conf_path) as f:

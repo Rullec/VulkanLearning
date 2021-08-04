@@ -59,7 +59,7 @@ def build_conv2d_block(config):
     outplanes = config[OUTPLANE_KEY]
     padding = config[PADDING_KEY]
 
-    return 
+    return
 
 
 def build_conv1d_block(config):
@@ -84,7 +84,7 @@ def build_conv1d_block(config):
 def build_avg_pool_block(config):
     OUTPUT_KEY = "output"
     size = config[OUTPUT_KEY]
-    return 
+    return
 
 
 def build_fc_block(config):
@@ -127,13 +127,13 @@ class cnn_net(nn.Module):
         self.fc5 = nn.Linear(128, 64)
         self.output_fc = nn.Linear(64, output_size)
         self.act = F.relu
-        
+
     def forward(self, x):
 
         enable_logging = False
         if enable_logging:
             print(f"input shape {x.shape}")
-       
+
         output = self.conv1(x)
         output = self.conv2(output)
         output = self.conv3(output)
@@ -166,6 +166,8 @@ class cnn_net(nn.Module):
         # x = self.dropout(self.output(x))
 
         # return x
+
+
 # import torchvision
 
 # class res_net(nn.Module):
