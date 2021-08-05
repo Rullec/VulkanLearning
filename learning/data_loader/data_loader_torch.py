@@ -69,6 +69,7 @@ class OpencvDataset(Dataset):
         ]
 
         # st = time.time()
+        # normalize the input
         inputs = (np.array([cv2.imread(i, cv2.IMREAD_GRAYSCALE) for i in pngs], dtype=np.float32) - self.input_mean) * self.input_std_inv
 
         # re-arrange the axis
@@ -80,6 +81,7 @@ class OpencvDataset(Dataset):
         if self.data_aug is not None:
             inputs = self.data_aug(inputs)
 
+        # the output has been normalized
         output = self.output_lst[index] 
         return inputs, output
         # ed = time.time()

@@ -108,26 +108,19 @@ class cnn_net(nn.Module):
     def __init__(self, layers_config, output_size, dropout):
         super(cnn_net, self).__init__()
         assert dropout == 0.0, "dropout must be 0.0"
-        norm_layer = nn.BatchNorm2d
+        norm_layer = nn.BatchNorm1d
         self.inplanes = 4
         self.conv1 = nn.Conv2d(self.inplanes, 32, kernel_size=7, stride=2)
-        self.bn1 = norm_layer(32)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2)
-        self.bn2 = norm_layer(64)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1)
-        self.bn3 = norm_layer(128)
         self.conv4 = nn.Conv2d(128, 64, kernel_size=3, stride=1)
-        self.bn4 = norm_layer(64)
         self.conv5 = nn.Conv2d(64, 32, kernel_size=3, stride=1)
-        self.bn5 = norm_layer(32)
         self.conv6 = nn.Conv2d(32, 8, kernel_size=3, stride=1)
-        self.bn6 = norm_layer(8)
-        self.conv7 = nn.Conv2d(8, 4, kernel_size=3, stride=1)
-        self.bn7 = norm_layer(4)
+        # self.conv7 = nn.Conv2d(8, 4, kernel_size=3, stride=1)
         # self.avg_pool = nn.AdaptiveAvgPool1d(8192)
         self.avg_pool = nn.AdaptiveAvgPool2d((32, 32))
 
-        self.fc1 = nn.Linear(4096, 2048)
+        self.fc1 = nn.Linear(8192, 2048)
         self.fc2 = nn.Linear(2048, 1024)
         self.fc3 = nn.Linear(1024, 512)
         self.fc4 = nn.Linear(512, 128)
@@ -147,16 +140,10 @@ class cnn_net(nn.Module):
         output = self.conv4(output)
         output = self.conv5(output)
         output = self.conv6(output)
-        output = self.conv7(output)
-
-        # print(output.shape)
-        # output = torch.flatten(output, 1)
-        # print(output.shape)
-        # output = torch.squeeze(output, 1)
-        # print(output.shape)
         output = self.avg_pool(output)
         output = torch.flatten(output, 1)
-        # print(output.shape)
+        
+        
         output = self.act(self.fc1(output))
         output = self.act(self.fc2(output))
         output = self.act(self.fc3(output))
