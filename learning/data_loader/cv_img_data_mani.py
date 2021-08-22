@@ -9,15 +9,27 @@ class OpencvImageDataManipulator(HDF5ImageDataManipulator):
         self._parse_config(conf_dict)
         if self._check_archive_exists() == False:
             # begin to save archive
+            train_dirs, test_dirs = self._load_mesh_data()
+
+            self._remove_all_hdf5()
+            stats = self._calc_statistics_distributed(train_dirs + test_dirs)
+            output_file = self.get_default_archive_path()
+            print(f"begin to save statistics into the archive {output_file} ...")
+            MeshDataManipulator._create_hdf5_archive_empty_file(output_file)
+
             # only the statistics: input & output / mean & std
-            assert False
-        else:
-            ultimate_f = h5py.File(self.get_default_archive_path(), mode='r')
-            self.input_mean = ultimate_f[MeshDataManipulator.INPUT_MEAN_KEY][...]
-            self.input_std = ultimate_f[MeshDataManipulator.INPUT_STD_KEY][...]
-            self.output_mean = ultimate_f[MeshDataManipulator.OUTPUT_MEAN_KEY][...]
-            self.output_std = ultimate_f[MeshDataManipulator.OUTPUT_STD_KEY][...]
-            # read the statistics
+            f = h5py.File(output_file, 'a')
+            for i in list(stats.keys()):
+                f.create_dataset(i, stats[i].shape, data=stats[i])
+            f.close()
+            
+            print(f"[log] save archive succ")
+        ultimate_f = h5py.File(self.get_default_archive_path(), mode='r')
+        self.input_mean = ultimate_f[MeshDataManipulator.INPUT_MEAN_KEY][...]
+        self.input_std = ultimate_f[MeshDataManipulator.INPUT_STD_KEY][...]
+        self.output_mean = ultimate_f[MeshDataManipulator.OUTPUT_MEAN_KEY][...]
+        self.output_std = ultimate_f[MeshDataManipulator.OUTPUT_STD_KEY][...]
+        # read the statistics
 
         # build the data augmentation
         self._build_data_augmentation()

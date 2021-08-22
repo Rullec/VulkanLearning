@@ -133,7 +133,7 @@ class CustomDataLoader(DataLoader):
     def __init__(self, dataset, batchsize):
         self.dataset = dataset
         if platform.system() == "Linux":
-            workers = 12
+            workers = 6
         elif platform.system() == "Windows":
             workers = 0
         else:

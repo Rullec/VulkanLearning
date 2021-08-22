@@ -395,6 +395,7 @@ class MeshDataManipulator(ABC):
         if platform.system() == "Linux":
             num_of_thread = os.cpu_count(
             ) if num_of_files > os.cpu_count() else num_of_files
+            num_of_thread = min(num_of_thread, 50)
         elif platform.system() == "Windows":
             num_of_thread = 4 if num_of_files > 4 else num_of_files
         else:
@@ -405,7 +406,7 @@ class MeshDataManipulator(ABC):
         for _idx, file in enumerate(all_files):
             params[_idx % num_of_thread].append(file)
 
-        print(f"beginto calc mean")
+        print(f"begin to calc mean")
         input_mean, output_mean = MeshDataManipulator._calc_dataset_mean_by_pool(
             pool, calc_sum_func, params)
 

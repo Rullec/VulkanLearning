@@ -1,6 +1,7 @@
 from .param_net import ParamNet
 import platform
 import sys
+
 sys.path.append("../data_loader/")
 from data_loader.cv_img_data_mani import OpencvImageDataManipulator
 from data_loader.img_data_mani import HDF5ImageDataManipulator
@@ -11,6 +12,12 @@ import time
 from tqdm import tqdm
 import numpy as np
 import torch
+import torch.nn as nn
+
+
+def get_num_of_devices():
+    return torch.cuda.device_count()
+
 
 class CNNParamNet(ParamNet):
     '''
@@ -31,7 +38,9 @@ class CNNParamNet(ParamNet):
 
     def _build_dataloader(self):
         if platform.system() == "Linux":
-            print(f"[debug] begin to build dataloader for linux, torch image dataloader")
+            print(
+                f"[debug] begin to build dataloader for linux, torch image dataloader"
+            )
             # mani = DALIDataManipulator(self.conf[self.DATA_LOADER_KEY])
             # mani = HDF5ImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
             mani = OpencvImageDataManipulator(self.conf[self.DATA_LOADER_KEY])
@@ -56,12 +65,16 @@ class CNNParamNet(ParamNet):
         # --------------------------
         self.net = cnn_net(self.layers, self.output_size,
                            self.dropout).to(self.device)
+        num_devices = get_num_of_devices()
+        # num_devices = 1
+        if num_devices > 1:
+            self.net = nn.DataParallel(self.net)
+        print(f"we will use {num_devices} GPUs")
         # --------------------------
         # from resnet_backbone_core import ResnetBackboneFC
         # self.net = ResnetBackboneFC("18", 4, self.output_size).to(self.device)
         # # self.net._freeze_backbone()
         # self.net.show_parameters()
-        
 
         ## resnet 50
         # self.net = ResNet(Bottleneck, [3, 4, 6, 3], num_classes = self.output_size).to(self.device)
@@ -92,11 +105,6 @@ class CNNParamNet(ParamNet):
             for i_batch, sampled_batched in enumerate(
                     tqdm(self.train_dataloader,
                          total=len(self.train_dataloader))):
-                # profiling
-                # dataload_finish = time.time()
-                # total_datafetch_cost_time += dataload_finish - dataload_start
-                # train_start = time.time()
-                # begin to train
                 self.net.train()
                 inputs, outputs = sampled_batched
                 inputs = inputs.to(self.device)

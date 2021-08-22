@@ -39,7 +39,8 @@ class OpencvDataset(Dataset):
         self.input_dir_lst = []
         self.output_lst = []
         import platform
-        pool = Pool(28 if platform.system() == "Linux" else 1)
+        pool = Pool(
+            min(50, os.cpu_count()) if platform.system() == "Linux" else 1)
 
         for ret in tqdm(pool.imap_unordered(
                 OpencvDataset.load_data_info,
@@ -64,12 +65,11 @@ class OpencvDataset(Dataset):
         ]
         # st = time.time()
         inputs = np.array([cv2.imread(i, cv2.IMREAD_GRAYSCALE) for i in pngs],
-                           dtype=np.float32)
+                          dtype=np.float32)
         # raw_max = np.amax(inputs)
         # raw_min = np.amin(inputs)
-        inputs = (inputs -
-                  self.input_mean) * self.input_std_inv
-        
+        inputs = (inputs - self.input_mean) * self.input_std_inv
+
         # new_data = inputs * self.input_std + self.input_mean
         # max_d = np.amax(new_data)
         # min_d = np.amin(new_data)
@@ -78,8 +78,7 @@ class OpencvDataset(Dataset):
         #     exit()
         # print(f"max {max_d} min {min_d} in opencv dataset")
         # print(f"raw max {raw_max} raw min {raw_min}")
-       
-        
+
         # re-arrange the axis
         if len(inputs.shape) == 3:
             num_of_views = inputs.shape[0]

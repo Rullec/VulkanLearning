@@ -7,8 +7,7 @@
     "covg_threshold": 1e-2,
     "optimizer": "SGD",
     "image_dataloader_type": "image_dataloader",
-    "layers": [
-    ],
+    "layers": [],
     "model_output_dir": "../output/",
     "model_path": "",
     "save_model_iters": 5,
@@ -16,10 +15,10 @@
     "dropout": 0.0,
     "mode": "train",
     "data_loader_config": {
-        "batch_size": 32,
+        "batch_size": 512,
         "enable_log_prediction": false,
-        "data_dir": "../data/export_data/test_data",
-        "data_dir.small": "../data/export_data/uniform_3c_sample25_noised16_xgpu_initrot1_cam1",
+        "data_dir.small": "../data/export_data/test_data",
+        "data_dir": "../data/export_data/uniform_3c_sample25_noised16_xgpu_initrot1_cam1",
         "train_perc": 0.8,
         "enable_data_augment": true,
         "load_all_data_into_mem": false,
