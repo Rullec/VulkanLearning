@@ -247,20 +247,6 @@ class ParamNet:
                 iters += 1
                 total_num += num
 
-                # if True and _idx == 0:
-                #     pred = pred.cpu()
-                #     Y = Y.cpu()
-                #     diff = np.array(pred - Y)
-                #     # print(f"diff shape {diff.shape}")
-                #     print(f"pred {pred}")
-                #     print(f"gt {Y}")
-                #     print(f"diff {diff}")
-                #     # exit()
-
-            # output_mean = self.test_dataloader.get_output_mean()
-            # output_std = self.test_dataloader.get_output_std()
-            # print(f"output mean {output_mean}")
-            # print(f"output std {output_std}")
             np_pred = pred.cpu()[0].detach().numpy()
             np_gt = Y.cpu()[0].detach().numpy()
 

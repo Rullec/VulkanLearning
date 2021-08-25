@@ -73,7 +73,9 @@ class ToyDataset(Dataset):
             return depth, label
 
     def __len__(self):
-        if self.phase_train:
+        if self.phase_train == True:
+            # print(f"get train length {len(self.train_depth_lst)}")
             return len(self.train_depth_lst)
         else:
+            # print(f"get test length {len(self.test_depth_lst)}")
             return len(self.test_depth_lst)

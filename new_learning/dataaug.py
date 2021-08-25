@@ -100,15 +100,15 @@ def get_albumentation_aug():
 
     aug = A.Compose([
         AlbumentationCHWToHWC(),
-        # A.augmentations.geometric.transforms.ShiftScaleRotate(
-        #     shift_limit=0.0625,
-        #     scale_limit=0.1,
-        #     rotate_limit=10,
-        #     always_apply=True),
-        # A.augmentations.transforms.Blur(blur_limit=3, p=0.7),
-        # AlbumentationRandomNoise(variance=1, always_apply=False, p=0.5),
-        # AlbumentationFullBias(bias_limit=10),
-        # AlbumentationAxisRoll(always_apply=True),
+        A.augmentations.geometric.transforms.ShiftScaleRotate(
+            shift_limit=0.0625,
+            scale_limit=0.1,
+            rotate_limit=10,
+            always_apply=True),
+        A.augmentations.transforms.Blur(blur_limit=3, p=0.7),
+        AlbumentationRandomNoise(variance=1, always_apply=False, p=0.5),
+        AlbumentationFullBias(bias_limit=10),
+        AlbumentationAxisRoll(always_apply=True),
         AlbumentationHWCToCHW(),
         # A.augmentations.transforms.GaussNoise(var_limit=(100, 200),
         #                                       always_apply=True),
