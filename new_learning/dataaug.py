@@ -106,12 +106,10 @@ def get_albumentation_aug():
             rotate_limit=10,
             always_apply=True),
         A.augmentations.transforms.Blur(blur_limit=3, p=0.7),
-        AlbumentationRandomNoise(variance=1, always_apply=False, p=0.5),
+        AlbumentationRandomNoise(variance=1, always_apply=False, p=0.5),    # it make the training very very slow
         AlbumentationFullBias(bias_limit=10),
         AlbumentationAxisRoll(always_apply=True),
         AlbumentationHWCToCHW(),
-        # A.augmentations.transforms.GaussNoise(var_limit=(100, 200),
-        #                                       always_apply=True),
     ])
     return aug
 

@@ -306,11 +306,11 @@ class ToyModel(nn.Module):
 
         if version == "50":
             base_class = ResNet50
-            torch_base_mode = torchvision.models.resnet50(pretrained=True)
+            torch_base_mode = torchvision.models.resnet50(pretrained=load_pretrained_weights)
             self.avgpool = nn.AdaptiveAvgPool2d((2, 2))
         elif version == "18":
             base_class = ResNet18
-            torch_base_mode = torchvision.models.resnet18(pretrained=True)
+            torch_base_mode = torchvision.models.resnet18(pretrained=load_pretrained_weights)
             # self.avgpool = nn.AdaptiveAvgPool2d((4, 2))
         else:
             raise ValueError(version)
@@ -322,15 +322,13 @@ class ToyModel(nn.Module):
 
         self.fc1 = nn.Linear(24576, 64)
         self.fc2 = nn.Linear(64, output_size)
+        self._initialize_weights()
 
         # load the pretrain weight
         if load_pretrained_weights is True:
             # get the pretrained weight
             mod = torch_base_mode
-            self._initialize_weights()
             self_model_keys = list(self.base.state_dict().keys())
-            pretrained_model_keys = list(mod.state_dict().keys())
-
             pretrained_model_values = list(mod.state_dict().values())
             model_dict_1 = {}
             for k in range(len(self_model_keys)):
