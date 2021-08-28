@@ -1,7 +1,7 @@
 import argparse
 import datetime
 from torch.distributed.distributed_c10d import init_process_group
-from tqdm import tqdm
+import os
 import torch
 import torch.nn as nn
 import torch.distributed as dist
@@ -31,16 +31,20 @@ def get_dataset(datadir):
                                              batch_size=128,
                                              num_workers=6,
                                              sampler=test_sampler)
+
     return trainloader, testloader
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", default=None, type=str)
 parser.add_argument("--local_rank", default=-1, type=int)
+parser.add_argument("--model_path", default=None, type=str)
 
 args = parser.parse_args()
 data_dir = args.data_dir
 local_rank = args.local_rank
+init_model_path = args.model_path
+
 device = local_rank
 torch.cuda.set_device(local_rank)
 dist.init_process_group(backend='nccl')
@@ -50,11 +54,19 @@ input_mean = trainloader.dataset.input_mean
 input_std = trainloader.dataset.input_std
 output_mean = trainloader.dataset.output_mean
 output_std = trainloader.dataset.output_std
-model = ToyModel(input_mean,
-                 input_std,
-                 output_mean,
-                 output_std,
-                 load_pretrained_weights=False).to(device)
+
+if init_model_path is None:
+    model = ToyModel(input_mean,
+                     input_std,
+                     output_mean,
+                     output_std,
+                     load_pretrained_weights=False).to(device)
+else:
+    assert os.path.exists(
+        init_model_path), f"init model path {init_model_path} doesn't exist"
+    model = torch.load(init_model_path).to(device)
+    print(f"[log] load model from {init_model_path}")
+
 # model._freeze_backbone_except_1st_conv()
 
 # optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)

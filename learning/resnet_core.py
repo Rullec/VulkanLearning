@@ -306,11 +306,13 @@ class ToyModel(nn.Module):
 
         if version == "50":
             base_class = ResNet50
-            torch_base_mode = torchvision.models.resnet50(pretrained=load_pretrained_weights)
+            torch_base_mode = torchvision.models.resnet50(
+                pretrained=load_pretrained_weights)
             self.avgpool = nn.AdaptiveAvgPool2d((2, 2))
         elif version == "18":
             base_class = ResNet18
-            torch_base_mode = torchvision.models.resnet18(pretrained=load_pretrained_weights)
+            torch_base_mode = torchvision.models.resnet18(
+                pretrained=load_pretrained_weights)
             # self.avgpool = nn.AdaptiveAvgPool2d((4, 2))
         else:
             raise ValueError(version)
@@ -378,6 +380,7 @@ class ToyModel(nn.Module):
         x = self.relu(self.fc1(x))
         x = self.fc2(x)
         x = x * self.output_std + self.output_mean
+        x = torch.clip(x, min=1, max=50)
         return x
 
     def _initialize_weights(self):
